@@ -1,10 +1,14 @@
 <?php
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+require_once __DIR__ . '/config/db.php';
 
 /* ================= AJAX: MARK TUTORIAL AS SEEN ================= */
 // This catches the background request when a user finishes the tutorial
 if (isset($_POST['mark_tutorial_seen'])) {
-    $conn_ajax = mysqli_connect("localhost", "root", "", "pet_adoption_rescue");
+    $conn_ajax = $conn;
     if ($conn_ajax) {
         $u_id = (int)($_SESSION['user_id'] ?? 1);
         mysqli_query($conn_ajax, "UPDATE users SET tutorial_seen = 1 WHERE id = '$u_id'");
@@ -17,10 +21,7 @@ if(isset($_GET['logout'])){ session_unset(); session_destroy(); header("Location
 if (isset($_GET['reset_match'])) { header("Location: ?#ai_match"); exit(); }
 
 // Database Connection
-$conn = mysqli_connect("localhost","root","","pet_adoption_rescue");
-if(!$conn){
-    die("Database connection failed: ".mysqli_connect_error());
-}
+// Railway MySQL connection is initialized above via config/db.php.
 
 /* ================= IDENTIFY USER FIRST ================= */
 $user_id = $_SESSION['user_id'] ?? 1; 
