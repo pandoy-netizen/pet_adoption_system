@@ -6,11 +6,21 @@ session_start();
    DATABASE CONNECTION
 ========================================================= */
 
-$host = getenv('MYSQLHOST') ?: '127.0.0.1';
+// Railway supplies these through pet_adoption_system service variables.
+// Local XAMPP settings are used only when Railway variables are absent.
+$railwayHost = getenv('MYSQLHOST');
+$host = $railwayHost ?: '127.0.0.1';
 $user = getenv('MYSQLUSER') ?: 'root';
-$password = getenv('MYSQLPASSWORD') ?: '';
+$password = getenv('MYSQLPASSWORD') !== false ? getenv('MYSQLPASSWORD') : '';
 $database = getenv('MYSQLDATABASE') ?: 'pet_adoption_rescue';
 $port = (int) (getenv('MYSQLPORT') ?: 3306);
+
+// Prevent Railway from silently falling back to the local XAMPP database.
+if (getenv('RAILWAY_ENVIRONMENT') && !$railwayHost) {
+    error_log('MYSQLHOST is missing from the Railway PHP service variables.');
+    http_response_code(500);
+    exit('Database configuration error. Check Railway service variables.');
+}
 
 try {
     $conn = new mysqli($host, $user, $password, $database, $port);
