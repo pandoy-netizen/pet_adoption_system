@@ -1,4 +1,3 @@
-
 <?php
 // PAW CARE LOGIN SYSTEM
 // Start session before any HTML output
