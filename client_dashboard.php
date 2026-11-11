@@ -32,13 +32,23 @@ if (isset($_POST['mark_tutorial_seen'])) {
 // Database Connection
 // Railway MySQL connection is initialized above via config/db.php.
 
+// Ensure the tutorial flag exists before reading the user record.
+try {
+    $tutorialColumn = $conn->query("SHOW COLUMNS FROM users LIKE 'tutorial_seen'");
+    if ($tutorialColumn && $tutorialColumn->num_rows === 0) {
+        $conn->query("ALTER TABLE users ADD COLUMN tutorial_seen TINYINT(1) NOT NULL DEFAULT 0");
+    }
+} catch (mysqli_sql_exception $e) {
+    error_log('Tutorial column check failed: ' . $e->getMessage());
+}
+
 /* ================= IDENTIFY USER FIRST ================= */
 $user_id = $_SESSION['user_id'] ?? 1; 
 
 // Fetch User Info
 $full_name = "User"; 
 $contact_info = "Registered User";
-$tutorial_seen = 1; // Default to 1 (seen) just in case, updated by DB below
+$tutorial_seen = 1; // Existing users without a tracking column do not auto-start.
 
 try {
     $user_query = @mysqli_query($conn, "SELECT * FROM users WHERE id = '$user_id'");
@@ -78,7 +88,7 @@ if (!is_dir('uploads')) {
 
 /* ================= DATABASE AUTO-MIGRATION ================= */
 // Add Tutorial Tracking Column to Users Table
-try { @mysqli_query($conn, "ALTER TABLE users ADD COLUMN tutorial_seen TINYINT(1) DEFAULT 0"); } catch (Exception $e) {}
+// Tutorial tracking column is checked before loading user information.
 
 mysqli_query($conn, "CREATE TABLE IF NOT EXISTS adoption_applications (
     id INT AUTO_INCREMENT PRIMARY KEY, user_id INT, pet_id INT, living_space VARCHAR(255),
@@ -710,6 +720,29 @@ label { font-weight: 700; font-size: 0.85rem; color: var(--text-muted); text-tra
     .monitor-grid, .profile-grid { grid-template-columns: 1fr; } 
     .map-container-stray { padding: 20px; }
 }
+
+/* Guided tour: clear highlighted target and animated directional pointer */
+.client-tour-pointer {
+    position: fixed;
+    z-index: 2147483647;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    color: #f59e0b;
+    font-size: 40px;
+    filter: drop-shadow(0 2px 2px #111827) drop-shadow(0 0 8px #fff);
+    animation: clientTourBounce 0.85s ease-in-out infinite alternate;
+}
+.client-tour-pointer i { transform: rotate(var(--tour-arrow-angle, 0deg)); }
+@keyframes clientTourBounce { from { translate: 0 0; } to { translate: 0 -7px; } }
+.client-tour-tooltip { max-width: min(400px, 88vw) !important; }
+.client-tour-tooltip .introjs-tooltiptext { line-height: 1.65; }
+.introjs-helperLayer { box-shadow: 0 0 0 5000px rgba(7, 16, 33, 0.72) !important; border: 3px solid #f59e0b !important; }
+@media (max-width: 600px) { .client-tour-pointer { font-size: 30px; width: 42px; height: 42px; } }
+
 </style>
 </head>
 
@@ -1877,99 +1910,141 @@ label { font-weight: 700; font-size: 0.85rem; color: var(--text-muted); text-tra
         window.addEventListener('load', () => { document.getElementById('pets').scrollIntoView({behavior: 'smooth', block: 'start'}); });
     <?php endif; ?>
 
-    // ================= HIGHLIGHT SPOTLIGHT TOUR LOGIC =================
+    // ================= INTERACTIVE CLIENT DASHBOARD GUIDED TOUR =================
+    let clientTourActive = false;
+    let clientTourArrow = null;
+    let clientTourTarget = null;
+    let clientTourResizeHandler = null;
+
     window.addEventListener('DOMContentLoaded', () => {
-        let dbTutorialSeen = <?php echo $tutorial_seen; ?>;
-        // Start tour after 1 second if they are a brand new user
-        if (dbTutorialSeen === 0) {
-            setTimeout(startTutorial, 1000);
+        const seen = <?php echo (int)$tutorial_seen; ?>;
+        if (seen === 0) {
+            window.setTimeout(() => startTutorial(), 1200);
         }
     });
 
+    function positionClientTourArrow() {
+        if (!clientTourArrow || !clientTourTarget) return;
+        const rect = clientTourTarget.getBoundingClientRect();
+        if (!rect.width || !rect.height) {
+            clientTourArrow.style.display = 'none';
+            return;
+        }
+        clientTourArrow.style.display = 'flex';
+        const margin = 68;
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+        let x, y, angle;
+        if (rect.right + margin < vw) {
+            x = rect.right + 14;
+            y = rect.top + rect.height / 2 - 25;
+            angle = 180; // points left to highlighted feature
+        } else if (rect.left > margin) {
+            x = rect.left - 64;
+            y = rect.top + rect.height / 2 - 25;
+            angle = 0; // points right to highlighted feature
+        } else if (rect.bottom + margin < vh) {
+            x = rect.left + rect.width / 2 - 25;
+            y = rect.bottom + 10;
+            angle = -90; // points up
+        } else {
+            x = rect.left + rect.width / 2 - 25;
+            y = rect.top - 60;
+            angle = 90; // points down
+        }
+        x = Math.max(8, Math.min(vw - 58, x));
+        y = Math.max(8, Math.min(vh - 58, y));
+        clientTourArrow.style.left = x + 'px';
+        clientTourArrow.style.top = y + 'px';
+        clientTourArrow.style.setProperty('--tour-arrow-angle', angle + 'deg');
+    }
+
+    function showClientTourArrow(element) {
+        clientTourTarget = element || null;
+        if (!clientTourArrow) {
+            clientTourArrow = document.createElement('div');
+            clientTourArrow.className = 'client-tour-pointer';
+            clientTourArrow.setAttribute('aria-hidden', 'true');
+            clientTourArrow.innerHTML = '<i class="fas fa-long-arrow-alt-right"></i>';
+            document.body.appendChild(clientTourArrow);
+        }
+        positionClientTourArrow();
+        window.setTimeout(positionClientTourArrow, 350);
+        window.setTimeout(positionClientTourArrow, 700);
+    }
+
+    function cleanupClientTour() {
+        clientTourActive = false;
+        clientTourTarget = null;
+        if (clientTourArrow) {
+            clientTourArrow.remove();
+            clientTourArrow = null;
+        }
+        if (clientTourResizeHandler) {
+            window.removeEventListener('resize', clientTourResizeHandler);
+            window.removeEventListener('scroll', clientTourResizeHandler, true);
+            clientTourResizeHandler = null;
+        }
+    }
+
     function startTutorial() {
+        if (clientTourActive) return;
+        if (typeof introJs !== 'function') {
+            alert('The interactive guide could not load. Check your internet connection and try again.');
+            return;
+        }
+        const features = [
+            { selector: '#navbar', title: '🧭 Navigation Menu', intro: 'Use the menu to jump to Adopt, Community, AI Match, Donate, and Report Stray. On a phone, open the hamburger menu first.' },
+            { selector: '#pets .pet-card', fallback: '#pets', title: '🐾 Browse Available Pets', intro: 'Look at each pet card. Open a pet profile to read its details and begin an adoption application. Tap the heart to add a pet to Favorites.' },
+            { selector: '#favorites', title: '❤️ Saved Favorites', intro: 'Pets you saved with the heart button appear here. You can review them or remove them from your favorites.' },
+            { selector: '#ai_match .ai-box', fallback: '#ai_match', title: '🧠 AI Pet Matching', intro: 'Choose your living situation and preferences in the matching form, then run the matcher to see recommended pets.' },
+            { selector: '#community_feed .feed-input-card', fallback: '#community_feed', title: '💬 Community Posts', intro: 'Write a post here, optionally add a photo and location, then submit to share it with the community.' },
+            { selector: '#lost_found', title: '🔎 Lost and Found', intro: 'Use this area to share missing-pet alerts and check community reports. Enter details and attach a photo when available.' },
+            { selector: '#appointments', title: '📅 Adoption Appointments', intro: 'Request a visit by choosing a pet, date, time, and purpose. Track the appointment status here after submitting.' },
+            { selector: '#notifications', title: '🔔 Notifications', intro: 'Read updates about your adoption requests and appointments. You can mark notifications as read.' },
+            { selector: '#donation-section', title: '💛 Donations and Sponsorship', intro: 'Follow the donation instructions displayed here. Check the payment and confirmation information before submitting.' },
+            { selector: '#report_stray .form-container', fallback: '#report_stray', title: '🚑 Report a Stray Animal', intro: 'Enter the location and description, attach a photo if possible, and use the map or location control to help the rescue team locate the animal.' },
+            { selector: '#profile', title: '👤 Your Profile', intro: 'Visit your profile to review your adoption activity and account information.' },
+            { selector: '.nav-utils .logout-btn', fallback: '#navbar', title: '🚪 Log Out Safely', intro: 'When finished, use Logout to end your session. On mobile, the Logout link is in the navigation menu.' }
+        ];
+        const steps = [{ title: '👋 Welcome to Pet Rescue!', intro: 'This interactive walkthrough highlights each important part of your client dashboard. Follow the glowing arrow and click Next to learn how to use the system.' }];
+        features.forEach(feature => {
+            const element = document.querySelector(feature.selector) || (feature.fallback ? document.querySelector(feature.fallback) : null);
+            if (element) steps.push({ element, title: feature.title, intro: feature.intro, position: 'auto' });
+        });
+        steps.push({ title: '🎉 You are ready!', intro: 'You now know how to explore pets, use AI Match, post to the community, request appointments, donate, report strays, and check your profile. You can replay this guide anytime from Tour in the menu.' });
+
         const intro = introJs();
+        clientTourActive = true;
+        clientTourResizeHandler = () => window.requestAnimationFrame(positionClientTourArrow);
+        window.addEventListener('resize', clientTourResizeHandler);
+        window.addEventListener('scroll', clientTourResizeHandler, true);
         intro.setOptions({
-            steps: [
-                {
-                    title: "👋 Welcome to Pet Rescue, <?php echo addslashes($first_name); ?>!",
-                    intro: "We are thrilled to have you here. Let's take a comprehensive tour of your new dashboard so you know exactly how to find your perfect pet, use our AI tools, and report emergencies. Click 'Next' to begin!"
-                },
-                {
-                    element: document.querySelector('#navbar'),
-                    title: "🧭 Main Navigation",
-                    intro: "This is your control center. Use these links to quickly jump to different sections like Adoption, Community, or AI Match. On mobile devices, tap the menu icon.",
-                    position: "bottom"
-                },
-                {
-                    element: document.querySelector('#pets .grid'),
-                    title: "🐶 Find Your New Best Friend",
-                    intro: "Browse all our available rescues here. Click 'View Full Profile' to see detailed medical and behavior info, or click the heart icon to save them for later.",
-                    position: "top"
-                },
-                {
-                    element: document.querySelector('#ai_match .ai-box'),
-                    title: "🧠 Neural Pet Matcher",
-                    intro: "Want the perfect recommendation? Select your living space, experience level, and other lifestyle preferences from these dropdowns. Our AI will analyze the entire database and match you with the absolute best pets for your situation.",
-                    position: "auto"
-                },
-                {
-                    element: document.querySelector('#community_feed .feed-input-card'),
-                    title: "💬 Community Board",
-                    intro: "Join our active community! Share updates about your adopted pets, ask for advice, or post cute photos. You can even tag your location.",
-                    position: "bottom"
-                },
-                {
-                    element: document.querySelector('#lost_found > div:last-child > .form-container'),
-                    title: "🔍 Lost & Found Alerts",
-                    intro: "If you lose a pet or find a stray, post an alert right here. It instantly notifies the community to keep an eye out and help reunite families.",
-                    position: "left"
-                },
-                {
-                    element: document.querySelector('#appointments'),
-                    title: "📅 Schedule a Visit",
-                    intro: "Found a pet you like? Request a Meet & Greet or Adoption Interview here. Select the pet, pick a date and time, and we'll prepare for your visit.",
-                    position: "top"
-                },
-                {
-                    element: document.querySelector('#pet_care'),
-                    title: "🩺 Pet Care & Fun Tools",
-                    intro: "Check out our fast care tips for keeping your pet healthy. Stuck on a name? Try our Pet Name Generator for some cute and popular ideas!",
-                    position: "top"
-                },
-                {
-                    element: document.querySelector('#report_stray .form-container'),
-                    title: "🚑 Emergency Stray Report",
-                    intro: "This is a critical tool. If you see an animal in immediate danger, upload a photo, use the 'Get My Location' button to lock your GPS, and submit. Our live map will route a rescue van to you.",
-                    position: "right"
-                },
-                {
-                    element: document.querySelector('#tour-profile-btn'),
-                    title: "👤 Your Profile Hub",
-                    intro: "Finally, click your Profile button anytime to check your unread alerts, view saved favorites, manage your adoption history, and track your donations. You are all set to start saving lives!",
-                    position: "left"
-                }
-            ],
+            steps,
             showProgress: true,
+            showStepNumbers: true,
             showBullets: false,
             exitOnOverlayClick: false,
             disableInteraction: true,
-            nextLabel: 'Next <i class="fas fa-arrow-right" style="font-size:12px;"></i>',
-            prevLabel: '<i class="fas fa-arrow-left" style="font-size:12px;"></i> Back',
-            doneLabel: 'Get Started <i class="fas fa-rocket"></i>',
-            scrollTo: 'tooltip', // This ensures the TOOLTIP is visible, not just the element top
-            scrollPadding: 150 
+            scrollToElement: true,
+            scrollTo: 'element',
+            scrollPadding: 140,
+            nextLabel: 'Next →',
+            prevLabel: '← Back',
+            doneLabel: 'Finish ✓',
+            tooltipClass: 'client-tour-tooltip'
         });
-
-        intro.oncomplete(markTutorialDone);
-        intro.onexit(markTutorialDone);
+        intro.onafterchange(function(target) { showClientTourArrow(target); });
+        intro.oncomplete(function() { cleanupClientTour(); markTutorialDone(); });
+        intro.onexit(function() { cleanupClientTour(); markTutorialDone(); });
         intro.start();
     }
 
     function markTutorialDone() {
-        // Send a silent request to the server so it doesn't auto-start next time
-        let formData = new FormData();
+        const formData = new FormData();
         formData.append('mark_tutorial_seen', '1');
-        fetch('', { method: 'POST', body: formData });
+        fetch(window.location.pathname, { method: 'POST', body: formData, credentials: 'same-origin' })
+            .catch(error => console.warn('Tutorial progress could not be saved:', error));
     }
 
     // Adoption Modal Logic - Updated for expanded info
