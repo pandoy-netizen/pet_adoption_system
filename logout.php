@@ -1,33 +1,31 @@
+
 <?php
-// logout.php
-// IMPORTANT: Save this file as UTF-8 without BOM.
-// Do not put spaces or blank lines before <?php.
+// Railway MySQL Database Connection
 
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
-// Clear all session variables
-$_SESSION = [];
+$host = getenv('MYSQLHOST') ?: getenv('MYSQL_HOST') ?: 'localhost';
+$port = (int)(getenv('MYSQLPORT') ?: getenv('MYSQL_PORT') ?: 3306);
+$user = getenv('MYSQLUSER') ?: getenv('MYSQL_USER') ?: 'root';
+$password = getenv('MYSQLPASSWORD') ?: getenv('MYSQL_PASSWORD') ?: '';
+$database = getenv('MYSQLDATABASE') ?: getenv('MYSQL_DATABASE') ?: 'pet_adoption_rescue';
 
-// Delete session cookie
-if (ini_get("session.use_cookies")) {
-    $params = session_get_cookie_params();
-
-    setcookie(
-        session_name(),
-        '',
-        time() - 42000,
-        $params['path'],
-        $params['domain'],
-        $params['secure'],
-        $params['httponly']
+try {
+    $conn = new mysqli(
+        $host,
+        $user,
+        $password,
+        $database,
+        $port
     );
+
+    $conn->set_charset('utf8mb4');
+
+} catch (mysqli_sql_exception $e) {
+    error_log("Database connection error: " . $e->getMessage());
+
+    http_response_code(500);
+    exit("Database connection failed. Please check Railway MySQL variables.");
 }
 
-// Destroy session
-session_destroy();
-
-// Redirect to homepage
-header("Location: /index.php", true, 302);
-exit;
+// Do not add a closing PHP tag.
