@@ -1,0 +1,220 @@
+adopter_living_space,adopter_children,adopter_experience,adopter_activity,adopter_temperament,adopter_other_pets,adopter_time_away,pet_activity,pet_temperament,pet_species,pet_size,result
+Apartment,Yes,Beginner,Low,Calm,None,4-8 hours,Low,Calm,Dog,Small,Compatible
+Apartment,Yes,Beginner,Low,Calm,None,4-8 hours,Low,Friendly,Dog,Small,Compatible
+Apartment,Yes,Beginner,Low,Friendly,None,4-8 hours,Low,Friendly,Dog,Small,Compatible
+Apartment,Yes,Beginner,Low,Calm,None,4-8 hours,Medium,Friendly,Dog,Medium,Compatible
+Apartment,Yes,Experienced,Medium,Friendly,None,4-8 hours,Medium,Friendly,Dog,Medium,Compatible
+Apartment,No,Beginner,Low,Calm,None,4-8 hours,Low,Calm,Cat,Small,Compatible
+Apartment,No,Beginner,Low,Friendly,None,4-8 hours,Low,Friendly,Cat,Small,Compatible
+Apartment,No,Experienced,Medium,Friendly,None,4-8 hours,Medium,Friendly,Cat,Medium,Compatible
+Apartment,Yes,Experienced,Low,Calm,None,4-8 hours,Low,Calm,Cat,Small,Compatible
+Apartment,Yes,Experienced,Medium,Friendly,None,4-8 hours,Medium,Friendly,Cat,Medium,Compatible
+Apartment,Yes,Beginner,Medium,Friendly,None,4-8 hours,Medium,Friendly,Dog,Small,Compatible
+Apartment,No,Beginner,Medium,Friendly,None,4-8 hours,Medium,Friendly,Dog,Small,Compatible
+Apartment,No,Experienced,Low,Calm,None,4-8 hours,Low,Calm,Dog,Small,Compatible
+Apartment,No,Experienced,Medium,Friendly,None,4-8 hours,Medium,Friendly,Dog,Medium,Compatible
+House,Yes,Beginner,Low,Calm,None,4-8 hours,Low,Calm,Dog,Small,Compatible
+House,Yes,Beginner,Low,Friendly,None,4-8 hours,Low,Friendly,Dog,Medium,Compatible
+House,Yes,Beginner,Medium,Friendly,None,4-8 hours,Medium,Friendly,Dog,Medium,Compatible
+House,Yes,Experienced,High,Active,None,4-8 hours,High,Active,Dog,Large,Compatible
+House,Yes,Experienced,Medium,Friendly,None,4-8 hours,Medium,Friendly,Dog,Large,Compatible
+House,No,Experienced,High,Active,None,4-8 hours,High,Active,Dog,Large,Compatible
+House,No,Beginner,Medium,Friendly,None,4-8 hours,Medium,Friendly,Dog,Medium,Compatible
+House,No,Experienced,Low,Calm,None,4-8 hours,Low,Calm,Cat,Small,Compatible
+House,No,Beginner,Low,Calm,None,4-8 hours,Low,Friendly,Cat,Small,Compatible
+House,Yes,Experienced,Low,Calm,None,4-8 hours,Low,Calm,Cat,Small,Compatible
+House,Yes,Experienced,Medium,Friendly,None,4-8 hours,Medium,Friendly,Cat,Medium,Compatible
+House,Yes,Experienced,High,Active,None,4-8 hours,High,Active,Cat,Medium,Compatible
+House,No,Experienced,Medium,Friendly,None,4-8 hours,Medium,Friendly,Cat,Small,Compatible
+House,No,Beginner,Medium,Friendly,None,4-8 hours,Low,Calm,Cat,Small,Compatible
+Apartment,Yes,Beginner,Low,Calm,None,4-8 hours,High,Active,Dog,Large,Not Compatible
+Apartment,Yes,Beginner,Low,Calm,None,4-8 hours,High,Aggressive,Dog,Large,Not Compatible
+Apartment,Yes,Beginner,Low,Friendly,None,4-8 hours,High,Active,Dog,Large,Not Compatible
+Apartment,Yes,Beginner,Medium,Calm,None,4-8 hours,High,Active,Dog,Large,Not Compatible
+Apartment,Yes,Beginner,Medium,Calm,None,4-8 hours,High,Aggressive,Dog,Large,Not Compatible
+Apartment,No,Beginner,Low,Calm,None,4-8 hours,High,Active,Dog,Large,Not Compatible
+Apartment,No,Beginner,Low,Friendly,None,4-8 hours,High,Aggressive,Dog,Large,Not Compatible
+Apartment,Yes,Beginner,Low,Calm,None,4-8 hours,High,Aggressive,Cat,Large,Not Compatible
+Apartment,Yes,Beginner,Low,Calm,None,4-8 hours,High,Active,Cat,Large,Not Compatible
+Apartment,Yes,Beginner,Medium,Calm,None,4-8 hours,High,Aggressive,Cat,Large,Not Compatible
+Apartment,Yes,Experienced,Low,Calm,None,4-8 hours,High,Aggressive,Dog,Large,Not Compatible
+Apartment,No,Experienced,Low,Calm,None,4-8 hours,High,Aggressive,Dog,Large,Not Compatible
+Apartment,Yes,Beginner,High,Calm,None,4-8 hours,High,Aggressive,Dog,Large,Not Compatible
+Apartment,Yes,Beginner,High,Friendly,None,4-8 hours,High,Aggressive,Cat,Large,Not Compatible
+House,Yes,Beginner,Low,Calm,None,4-8 hours,High,Aggressive,Dog,Large,Not Compatible
+House,Yes,Beginner,Low,Friendly,None,4-8 hours,High,Aggressive,Cat,Large,Not Compatible
+House,No,Beginner,Low,Calm,None,4-8 hours,High,Aggressive,Dog,Large,Not Compatible
+House,Yes,Beginner,Low,Calm,None,4-8 hours,High,Aggressive,Cat,Large,Not Compatible
+House,No,Beginner,Low,Friendly,None,4-8 hours,High,Aggressive,Cat,Large,Not Compatible
+House,Yes,Beginner,Low,Calm,None,4-8 hours,High,Active,Dog,Large,Not Compatible
+House,Yes,Beginner,Low,Calm,None,4-8 hours,High,Active,Cat,Large,Not Compatible
+House,Yes,Beginner,Low,Friendly,None,4-8 hours,High,Active,Dog,Large,Not Compatible
+House,No,Beginner,Low,Friendly,None,4-8 hours,High,Active,Cat,Large,Not Compatible
+Apartment,Yes,Experienced,Low,Calm,None,4-8 hours,Low,Aggressive,Dog,Small,Not Compatible
+Apartment,Yes,Experienced,Low,Friendly,None,4-8 hours,High,Aggressive,Cat,Medium,Not Compatible
+Apartment,No,Experienced,Low,Calm,None,4-8 hours,High,Active,Dog,Large,Not Compatible
+Apartment,No,Experienced,Low,Friendly,None,4-8 hours,High,Aggressive,Cat,Large,Not Compatible
+House,Yes,Experienced,Low,Calm,None,4-8 hours,High,Aggressive,Dog,Large,Not Compatible
+House,No,Experienced,Low,Calm,None,4-8 hours,High,Aggressive,Cat,Large,Not Compatible
+House,Yes,Beginner,Low,Calm,None,4-8 hours,High,Aggressive,Dog,Medium,Not Compatible
+House,No,Beginner,Low,Friendly,None,4-8 hours,High,Aggressive,Cat,Medium,Not Compatible
+Apartment,Yes,Experienced,Medium,Friendly,None,4-8 hours,Medium,Friendly,Dog,Small,Compatible
+Apartment,Yes,Experienced,Medium,Friendly,None,4-8 hours,Medium,Friendly,Dog,Large,Not Compatible
+Apartment,Yes,Beginner,Medium,Friendly,None,4-8 hours,Medium,Active,Dog,Large,Not Compatible
+Apartment,No,Beginner,Medium,Friendly,None,4-8 hours,Medium,Friendly,Dog,Large,Not Compatible
+Apartment,Yes,Experienced,Medium,Friendly,None,4-8 hours,Medium,Friendly,Dog,Medium,Compatible
+Apartment,Yes,Beginner,Low,Calm,None,4-8 hours,Medium,Calm,Dog,Medium,Compatible
+Apartment,Yes,Experienced,High,Active,None,4-8 hours,High,Active,Dog,Large,Not Compatible
+Apartment,No,Experienced,High,Active,None,4-8 hours,High,Active,Dog,Medium,Not Compatible
+Apartment,Yes,Experienced,Medium,Friendly,None,4-8 hours,Medium,Friendly,Cat,Small,Compatible
+Apartment,Yes,Beginner,Medium,Friendly,None,4-8 hours,Low,Calm,Cat,Small,Compatible
+Apartment,Yes,Beginner,Medium,Friendly,None,4-8 hours,Medium,Friendly,Cat,Medium,Compatible
+House,Yes,Beginner,Medium,Friendly,None,4-8 hours,Medium,Friendly,Dog,Large,Compatible
+House,Yes,Beginner,Medium,Friendly,None,4-8 hours,High,Active,Dog,Large,Not Compatible
+House,Yes,Experienced,High,Active,None,4-8 hours,High,Active,Dog,Medium,Compatible
+House,No,Beginner,Low,Calm,None,4-8 hours,High,Active,Dog,Medium,Not Compatible
+House,Yes,Experienced,Medium,Friendly,None,4-8 hours,High,Active,Dog,Large,Compatible
+House,Yes,Beginner,Low,Calm,None,4-8 hours,Medium,Friendly,Cat,Medium,Compatible
+House,Yes,Beginner,High,Active,None,4-8 hours,Low,Calm,Cat,Small,Not Compatible
+House,No,Experienced,High,Active,None,4-8 hours,High,Active,Cat,Medium,Compatible
+House,Yes,Experienced,Medium,Friendly,None,4-8 hours,Medium,Aggressive,Cat,Medium,Not Compatible
+House,Yes,Beginner,Medium,Friendly,Dogs,Under 4 hours,Medium,Friendly,Cat,Small,Compatible
+Apartment,Yes,Beginner,Low,Calm,Dogs,Over 8 hours,Low,Calm,Cat,Small,Compatible
+House,No,Experienced,Low,Calm,Dogs,Under 4 hours,Medium,Calm,Dog,Medium,Compatible
+House,Yes,Experienced,Medium,Friendly,None,Under 4 hours,Low,Active,Cat,Small,Compatible
+House,No,Experienced,Low,Calm,Both,Under 4 hours,Medium,Friendly,Cat,Medium,Compatible
+Apartment,No,Beginner,Medium,Friendly,Dogs,4-8 hours,Low,Friendly,Cat,Small,Compatible
+House,No,Beginner,Medium,Friendly,Dogs,Over 8 hours,Low,Friendly,Dog,Medium,Compatible
+House,Yes,Beginner,Low,Calm,Both,Under 4 hours,Low,Friendly,Dog,Small,Compatible
+Apartment,Yes,Experienced,Low,Calm,Cats,Under 4 hours,Medium,Active,Dog,Small,Not Compatible
+Apartment,Yes,Beginner,High,Active,Dogs,4-8 hours,High,Friendly,Dog,Large,Not Compatible
+Apartment,Yes,Experienced,Low,Calm,None,4-8 hours,High,Calm,Dog,Large,Not Compatible
+House,Yes,Experienced,High,Active,None,Under 4 hours,Low,Calm,Cat,Small,Not Compatible
+Apartment,Yes,Experienced,High,Active,None,Over 8 hours,Low,Friendly,Dog,Small,Not Compatible
+House,No,Beginner,High,Active,Dogs,Over 8 hours,High,Calm,Cat,Small,Not Compatible
+Apartment,No,Beginner,High,Active,Dogs,4-8 hours,Medium,Active,Dog,Medium,Not Compatible
+House,Yes,Beginner,Medium,Friendly,None,Under 4 hours,Low,Calm,Dog,Small,Compatible
+Apartment,Yes,Experienced,Medium,Friendly,None,4-8 hours,Medium,Active,Cat,Small,Compatible
+Apartment,No,Experienced,Medium,Friendly,Both,Under 4 hours,Low,Active,Dog,Large,Not Compatible
+Apartment,Yes,Experienced,Medium,Friendly,Cats,4-8 hours,High,Active,Cat,Small,Compatible
+House,No,Beginner,Low,Calm,Cats,4-8 hours,Low,Active,Cat,Medium,Not Compatible
+House,Yes,Beginner,High,Active,None,Under 4 hours,Low,Active,Dog,Small,Not Compatible
+Apartment,Yes,Beginner,High,Active,None,Under 4 hours,Medium,Friendly,Cat,Medium,Compatible
+House,No,Experienced,High,Active,None,Under 4 hours,High,Active,Cat,Small,Compatible
+Apartment,No,Experienced,High,Active,Both,Under 4 hours,High,Active,Cat,Small,Not Compatible
+House,Yes,Beginner,Low,Calm,Cats,Under 4 hours,Medium,Friendly,Cat,Small,Compatible
+Apartment,Yes,Experienced,Low,Calm,Both,Under 4 hours,Medium,Friendly,Cat,Medium,Compatible
+House,Yes,Experienced,High,Active,Dogs,Under 4 hours,High,Calm,Dog,Medium,Compatible
+Apartment,No,Beginner,High,Active,None,Under 4 hours,Low,Friendly,Dog,Medium,Not Compatible
+House,No,Beginner,Low,Calm,Dogs,4-8 hours,Medium,Active,Dog,Small,Not Compatible
+Apartment,Yes,Beginner,Low,Calm,Both,Under 4 hours,Medium,Friendly,Cat,Small,Compatible
+House,Yes,Beginner,Medium,Friendly,Dogs,4-8 hours,Low,Friendly,Dog,Medium,Compatible
+House,Yes,Experienced,Medium,Friendly,Cats,Under 4 hours,Low,Friendly,Cat,Medium,Compatible
+House,No,Beginner,High,Active,None,Under 4 hours,Low,Aggressive,Dog,Large,Not Compatible
+House,Yes,Beginner,High,Active,Cats,Under 4 hours,Low,Aggressive,Dog,Small,Not Compatible
+Apartment,Yes,Beginner,Medium,Friendly,Both,Over 8 hours,Low,Friendly,Cat,Medium,Compatible
+House,No,Beginner,Low,Calm,None,4-8 hours,Medium,Calm,Cat,Medium,Compatible
+Apartment,Yes,Beginner,Medium,Friendly,None,Over 8 hours,Low,Calm,Dog,Small,Compatible
+House,No,Beginner,Medium,Friendly,None,Under 4 hours,Medium,Active,Cat,Small,Compatible
+House,No,Experienced,Low,Calm,Cats,Under 4 hours,Low,Friendly,Cat,Small,Compatible
+Apartment,No,Beginner,Medium,Friendly,Cats,Over 8 hours,Medium,Friendly,Cat,Small,Not Compatible
+Apartment,Yes,Experienced,Medium,Friendly,None,Over 8 hours,High,Friendly,Cat,Small,Not Compatible
+House,Yes,Experienced,Medium,Friendly,Both,Over 8 hours,High,Aggressive,Dog,Small,Not Compatible
+House,Yes,Beginner,Medium,Friendly,Both,4-8 hours,Medium,Friendly,Dog,Medium,Compatible
+Apartment,No,Experienced,Medium,Friendly,None,Over 8 hours,High,Calm,Dog,Medium,Not Compatible
+House,No,Experienced,Low,Calm,Cats,4-8 hours,High,Friendly,Dog,Medium,Not Compatible
+Apartment,No,Beginner,Low,Calm,None,Over 8 hours,Low,Calm,Cat,Medium,Compatible
+House,Yes,Experienced,Low,Calm,None,Over 8 hours,High,Friendly,Dog,Medium,Not Compatible
+Apartment,Yes,Experienced,High,Active,Cats,Under 4 hours,Medium,Friendly,Cat,Medium,Compatible
+House,No,Beginner,High,Active,None,Over 8 hours,Low,Friendly,Cat,Medium,Not Compatible
+House,Yes,Beginner,Low,Calm,None,Over 8 hours,High,Aggressive,Dog,Small,Not Compatible
+Apartment,No,Experienced,High,Active,Cats,Under 4 hours,High,Friendly,Dog,Medium,Compatible
+Apartment,Yes,Beginner,Medium,Friendly,None,4-8 hours,Low,Friendly,Dog,Small,Compatible
+Apartment,Yes,Beginner,High,Active,Cats,Over 8 hours,Medium,Calm,Dog,Small,Not Compatible
+House,Yes,Experienced,High,Active,None,Under 4 hours,Low,Calm,Dog,Medium,Not Compatible
+House,Yes,Experienced,Low,Calm,Cats,Under 4 hours,Low,Active,Cat,Small,Compatible
+Apartment,Yes,Beginner,Medium,Friendly,None,4-8 hours,Low,Active,Dog,Large,Not Compatible
+Apartment,No,Experienced,Low,Calm,None,4-8 hours,Medium,Calm,Cat,Small,Compatible
+Apartment,No,Experienced,Low,Calm,None,Over 8 hours,Medium,Active,Cat,Medium,Not Compatible
+House,Yes,Beginner,Low,Calm,None,Under 4 hours,Medium,Active,Cat,Small,Not Compatible
+Apartment,Yes,Experienced,Medium,Friendly,Both,Under 4 hours,Low,Active,Dog,Small,Not Compatible
+Apartment,Yes,Experienced,High,Active,Dogs,4-8 hours,Medium,Friendly,Dog,Medium,Compatible
+Apartment,No,Experienced,High,Active,None,Under 4 hours,Low,Friendly,Dog,Small,Not Compatible
+Apartment,No,Experienced,Low,Calm,Both,Under 4 hours,Medium,Calm,Cat,Small,Compatible
+House,Yes,Beginner,Medium,Friendly,Cats,Under 4 hours,Low,Active,Cat,Medium,Not Compatible
+Apartment,No,Beginner,Low,Calm,Both,Over 8 hours,Medium,Active,Cat,Small,Not Compatible
+Apartment,No,Beginner,Low,Calm,Cats,Over 8 hours,Medium,Aggressive,Dog,Large,Not Compatible
+House,Yes,Beginner,High,Active,Both,4-8 hours,Medium,Calm,Dog,Medium,Compatible
+Apartment,Yes,Experienced,Medium,Friendly,None,Over 8 hours,Low,Aggressive,Cat,Small,Not Compatible
+Apartment,No,Experienced,High,Active,None,Over 8 hours,Medium,Active,Cat,Small,Not Compatible
+House,No,Experienced,Medium,Friendly,Both,Over 8 hours,High,Friendly,Dog,Small,Not Compatible
+House,Yes,Experienced,Medium,Friendly,Dogs,Under 4 hours,High,Active,Dog,Medium,Compatible
+House,Yes,Beginner,High,Active,Both,Over 8 hours,Low,Active,Dog,Medium,Not Compatible
+House,Yes,Experienced,Low,Calm,Cats,Under 4 hours,Low,Calm,Cat,Medium,Compatible
+House,No,Experienced,Medium,Friendly,Both,4-8 hours,Medium,Friendly,Cat,Small,Compatible
+Apartment,Yes,Experienced,High,Active,Cats,Over 8 hours,Low,Friendly,Dog,Medium,Not Compatible
+House,No,Experienced,High,Active,Cats,4-8 hours,Low,Calm,Dog,Large,Not Compatible
+Apartment,No,Beginner,High,Active,None,4-8 hours,Medium,Calm,Cat,Small,Compatible
+Apartment,No,Beginner,High,Active,None,4-8 hours,Low,Active,Cat,Medium,Not Compatible
+Apartment,No,Beginner,Medium,Friendly,Both,4-8 hours,Low,Friendly,Dog,Medium,Compatible
+House,Yes,Beginner,Medium,Friendly,None,Under 4 hours,Medium,Aggressive,Dog,Large,Not Compatible
+House,No,Experienced,High,Active,Dogs,4-8 hours,Medium,Friendly,Cat,Small,Compatible
+Apartment,Yes,Beginner,Medium,Friendly,Dogs,Over 8 hours,Medium,Friendly,Dog,Medium,Not Compatible
+Apartment,Yes,Experienced,High,Active,None,Under 4 hours,High,Friendly,Dog,Medium,Compatible
+Apartment,No,Beginner,Low,Calm,None,4-8 hours,Low,Calm,Cat,Medium,Compatible
+House,Yes,Experienced,Medium,Friendly,Both,4-8 hours,Medium,Active,Dog,Medium,Not Compatible
+House,Yes,Experienced,Low,Calm,Both,4-8 hours,High,Aggressive,Dog,Large,Not Compatible
+House,Yes,Experienced,Low,Calm,Both,Over 8 hours,Medium,Aggressive,Dog,Large,Not Compatible
+Apartment,Yes,Experienced,Medium,Friendly,None,Over 8 hours,Low,Friendly,Cat,Medium,Compatible
+Apartment,Yes,Experienced,High,Active,Both,Under 4 hours,High,Active,Dog,Small,Not Compatible
+House,Yes,Beginner,Low,Calm,None,Under 4 hours,Medium,Calm,Dog,Small,Compatible
+House,Yes,Beginner,High,Active,None,Under 4 hours,Low,Calm,Cat,Small,Not Compatible
+Apartment,Yes,Beginner,Medium,Friendly,Dogs,Over 8 hours,High,Friendly,Dog,Small,Not Compatible
+Apartment,Yes,Beginner,Low,Calm,Both,4-8 hours,Medium,Active,Cat,Small,Not Compatible
+House,No,Beginner,Medium,Friendly,Dogs,Under 4 hours,Medium,Aggressive,Cat,Small,Not Compatible
+House,No,Experienced,High,Active,Cats,4-8 hours,Medium,Calm,Cat,Small,Compatible
+Apartment,Yes,Beginner,Low,Calm,Cats,Under 4 hours,Medium,Active,Dog,Large,Not Compatible
+House,Yes,Experienced,High,Active,Cats,Over 8 hours,Medium,Friendly,Dog,Large,Not Compatible
+House,Yes,Beginner,Low,Calm,Both,Over 8 hours,High,Active,Cat,Small,Not Compatible
+Apartment,Yes,Experienced,High,Active,None,4-8 hours,Medium,Friendly,Cat,Small,Compatible
+Apartment,No,Beginner,Low,Calm,Both,Under 4 hours,Medium,Active,Cat,Medium,Not Compatible
+Apartment,No,Experienced,Medium,Friendly,None,Under 4 hours,Medium,Calm,Dog,Medium,Compatible
+Apartment,No,Beginner,High,Active,Both,4-8 hours,Medium,Calm,Cat,Small,Compatible
+Apartment,No,Experienced,Medium,Friendly,Cats,4-8 hours,High,Friendly,Dog,Medium,Compatible
+Apartment,No,Experienced,Low,Calm,Dogs,Over 8 hours,Medium,Aggressive,Cat,Small,Not Compatible
+House,No,Experienced,Low,Calm,None,4-8 hours,Medium,Friendly,Cat,Medium,Compatible
+Apartment,No,Experienced,Low,Calm,Cats,4-8 hours,Low,Calm,Dog,Small,Compatible
+House,Yes,Beginner,High,Active,None,Under 4 hours,Low,Friendly,Cat,Small,Not Compatible
+House,No,Experienced,Medium,Friendly,Cats,Under 4 hours,Medium,Active,Dog,Large,Not Compatible
+Apartment,No,Experienced,Medium,Friendly,Both,4-8 hours,Medium,Calm,Cat,Small,Compatible
+Apartment,Yes,Beginner,High,Active,None,Over 8 hours,Medium,Aggressive,Dog,Small,Not Compatible
+Apartment,Yes,Beginner,Medium,Friendly,None,Over 8 hours,Low,Friendly,Cat,Small,Compatible
+Apartment,No,Experienced,Medium,Friendly,None,Under 4 hours,High,Friendly,Cat,Medium,Compatible
+Apartment,No,Experienced,Medium,Friendly,None,Under 4 hours,High,Friendly,Dog,Small,Compatible
+Apartment,Yes,Experienced,Medium,Friendly,None,4-8 hours,Medium,Aggressive,Dog,Small,Not Compatible
+House,No,Beginner,Low,Calm,Dogs,Under 4 hours,Medium,Calm,Cat,Small,Compatible
+Apartment,Yes,Beginner,Low,Calm,Dogs,Under 4 hours,Medium,Friendly,Cat,Medium,Compatible
+House,No,Beginner,High,Active,Dogs,4-8 hours,Medium,Calm,Cat,Medium,Compatible
+House,Yes,Experienced,High,Active,Cats,Under 4 hours,Medium,Friendly,Cat,Small,Compatible
+House,Yes,Beginner,Low,Calm,Cats,Under 4 hours,Low,Friendly,Dog,Small,Compatible
+House,Yes,Beginner,Medium,Friendly,Dogs,Under 4 hours,Medium,Active,Dog,Large,Not Compatible
+Apartment,No,Experienced,High,Active,None,Under 4 hours,High,Friendly,Dog,Medium,Compatible
+House,Yes,Beginner,High,Active,Cats,Over 8 hours,Medium,Aggressive,Cat,Small,Not Compatible
+Apartment,No,Experienced,Low,Calm,Dogs,Over 8 hours,High,Active,Dog,Small,Not Compatible
+Apartment,Yes,Experienced,Medium,Friendly,None,Over 8 hours,High,Active,Cat,Medium,Not Compatible
+House,No,Experienced,Medium,Friendly,Both,Under 4 hours,Medium,Friendly,Cat,Medium,Compatible
+House,Yes,Beginner,High,Active,Both,4-8 hours,Low,Calm,Cat,Small,Not Compatible
+Apartment,No,Experienced,High,Active,None,4-8 hours,Medium,Active,Cat,Medium,Compatible
+Apartment,Yes,Beginner,Medium,Friendly,Both,4-8 hours,Medium,Friendly,Cat,Small,Compatible
+House,Yes,Beginner,Medium,Friendly,Both,4-8 hours,Low,Friendly,Dog,Medium,Compatible
+Apartment,No,Beginner,Medium,Friendly,Cats,Under 4 hours,High,Friendly,Cat,Small,Compatible
+House,Yes,Experienced,Low,Calm,Cats,4-8 hours,Low,Calm,Cat,Small,Compatible
+Apartment,Yes,Beginner,High,Active,Both,Over 8 hours,Low,Calm,Dog,Medium,Not Compatible
+Apartment,No,Experienced,High,Active,None,4-8 hours,Medium,Active,Cat,Small,Compatible
+Apartment,No,Experienced,High,Active,Both,4-8 hours,Low,Active,Cat,Small,Not Compatible
+House,Yes,Experienced,Medium,Friendly,None,Over 8 hours,Medium,Calm,Dog,Large,Not Compatible
+House,No,Beginner,High,Active,None,Under 4 hours,Low,Active,Dog,Small,Not Compatible
+Apartment,Yes,Experienced,Low,Calm,None,4-8 hours,Low,Friendly,Dog,Large,Compatible
+Apartment,No,Experienced,Low,Calm,None,Under 4 hours,Low,Calm,Dog,Medium,Compatible
+House,Yes,Experienced,High,Active,Cats,Under 4 hours,High,Active,Dog,Small,Not Compatible
+House,Yes,Experienced,Low,Calm,None,4-8 hours,High,Friendly,Dog,Large,Not Compatible
