@@ -1,38 +1,24 @@
 
 <?php
-/*
-|--------------------------------------------------------------------------
-| PAW CARE - LOGIN
-| Railway MySQL Connection + Session Fix
-|--------------------------------------------------------------------------
-*/
+// PAW CARE LOGIN SYSTEM
+// Start session before any HTML output
 
-// Prevent whitespace or BOM output from breaking sessions.
-ob_start();
-
-// Start the session before processing login requests.
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Use the existing Railway MySQL connection.
+// Railway MySQL Database Connection
 require_once __DIR__ . '/config/db.php';
 
 $error = "";
 
 if (isset($_POST['login'])) {
 
-    $email = mysqli_real_escape_string(
-        $conn,
-        $_POST['email']
-    );
-
+    $email = mysqli_real_escape_string($conn, $_POST['email']);
     $password = $_POST['password'];
 
     $stmt = $conn->prepare(
-        "SELECT id, username, password, role, email
-         FROM users
-         WHERE email = ?"
+        "SELECT id, username, password, role, email FROM users WHERE email = ?"
     );
 
     if ($stmt) {
@@ -43,13 +29,7 @@ if (isset($_POST['login'])) {
         $result = $stmt->get_result();
         $user = $result->fetch_assoc();
 
-        if (
-            $user &&
-            password_verify(
-                $password,
-                $user['password']
-            )
-        ) {
+        if ($user && password_verify($password, $user['password'])) {
 
             $_SESSION['user_id'] = $user['id'];
             $_SESSION['name'] = $user['username'];
@@ -57,33 +37,21 @@ if (isset($_POST['login'])) {
             $_SESSION['email'] = $user['email'];
 
             if ($user['role'] === 'admin') {
-
                 header("Location: admin_dashboard.php");
-
             } else {
-
                 header("Location: client_dashboard.php");
-
             }
 
             exit();
 
         } else {
-
             $error = "Invalid email or password!";
-
         }
 
         $stmt->close();
 
     } else {
-
-        error_log(
-            "Login database error: " . $conn->error
-        );
-
-        $error = "A database error occurred. Please try again.";
-
+        $error = "Database error: " . $conn->error;
     }
 }
 ?>
@@ -91,26 +59,13 @@ if (isset($_POST['login'])) {
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login | PAW Care</title>
 
-    <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
-        rel="stylesheet"
-    >
-
-    <link
-        rel="stylesheet"
-        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-    >
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
-
         :root {
             --primary: #ffd54f;
             --primary-hover: #ffc107;
@@ -219,9 +174,7 @@ if (isset($_POST['login'])) {
             outline: none;
             border-color: var(--primary);
             background: var(--white);
-
-            box-shadow:
-                0 0 0 4px rgba(255, 213, 79, 0.15);
+            box-shadow: 0 0 0 4px rgba(255, 213, 79, 0.15);
         }
 
         .error-msg {
@@ -250,17 +203,13 @@ if (isset($_POST['login'])) {
             cursor: pointer;
             transition: 0.3s;
             margin-top: 10px;
-
-            box-shadow:
-                0 4px 12px rgba(255, 213, 79, 0.3);
+            box-shadow: 0 4px 12px rgba(255, 213, 79, 0.3);
         }
 
         button:hover {
             background: var(--primary-hover);
             transform: translateY(-2px);
-
-            box-shadow:
-                0 6px 15px rgba(255, 213, 79, 0.4);
+            box-shadow: 0 6px 15px rgba(255, 213, 79, 0.4);
         }
 
         .footer-links {
@@ -292,7 +241,6 @@ if (isset($_POST['login'])) {
         }
 
         @media (max-width: 480px) {
-
             body {
                 padding: 16px;
             }
@@ -301,9 +249,7 @@ if (isset($_POST['login'])) {
                 padding: 35px 24px;
                 border-radius: 20px;
             }
-
         }
-
     </style>
 </head>
 
@@ -312,79 +258,52 @@ if (isset($_POST['login'])) {
 <div class="login-card">
 
     <div class="logo-area">
-
         <i class="fa-solid fa-paw"></i>
-
         <h2>Welcome Back</h2>
-
-        <p class="subtitle">
-            Log in to manage your pet adoptions
-        </p>
-
+        <p class="subtitle">Log in to manage your pet adoptions</p>
     </div>
 
     <?php if ($error != ""): ?>
-
         <div class="error-msg">
-
             <i class="fa-solid fa-circle-exclamation"></i>
-
             <?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?>
-
         </div>
-
     <?php endif; ?>
 
     <form method="POST" action="login.php">
 
         <div class="input-group">
-
             <label>Email Address</label>
-
             <input
                 type="email"
                 name="email"
                 placeholder="e.g. alex@example.com"
                 required
             >
-
         </div>
 
         <div class="input-group">
-
             <label>Password</label>
-
             <input
                 type="password"
                 name="password"
                 placeholder="••••••••"
                 required
             >
-
         </div>
 
-        <button type="submit" name="login">
-            Sign In
-        </button>
+        <button type="submit" name="login">Sign In</button>
 
     </form>
 
     <div class="footer-links">
-
         <a href="register.php" class="register-link">
-
-            Don't have an account?
-            <span>Register here</span>
-
+            Don't have an account? <span>Register here</span>
         </a>
 
         <a href="index.php" class="back-home">
-
-            <i class="fa-solid fa-arrow-left"></i>
-            Back to Website
-
+            <i class="fa-solid fa-arrow-left"></i> Back to Website
         </a>
-
     </div>
 
 </div>
