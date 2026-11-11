@@ -3,6 +3,16 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+// Process redirects before loading any files that might output content.
+if (isset($_GET['logout'])) {
+    header('Location: /logout.php', true, 302);
+    exit;
+}
+if (isset($_GET['reset_match'])) {
+    header('Location: ?#ai_match');
+    exit;
+}
+
 require_once __DIR__ . '/config/db.php';
 
 /* ================= AJAX: MARK TUTORIAL AS SEEN ================= */
@@ -17,8 +27,7 @@ if (isset($_POST['mark_tutorial_seen'])) {
 }
 
 /* ================= LOGOUT & RESET HANDLERS ================= */
-if(isset($_GET['logout'])){ session_unset(); session_destroy(); header("Location: index.php"); exit(); }
-if (isset($_GET['reset_match'])) { header("Location: ?#ai_match"); exit(); }
+// Redirect handlers run before the database connection above.
 
 // Database Connection
 // Railway MySQL connection is initialized above via config/db.php.
@@ -742,7 +751,7 @@ label { font-weight: 700; font-size: 0.85rem; color: var(--text-muted); text-tra
             <a href="#notifications" class="nav-link" onclick="toggleMenu()"><i class="fas fa-bell"></i> Alerts (<?php echo $unread_notifications; ?>)</a>
             <a href="#donations" class="nav-link" onclick="toggleMenu()"><i class="fas fa-hand-holding-heart"></i> Donations</a>
             <a href="#profile" class="nav-link" onclick="toggleMenu()"><i class="fas fa-user-circle"></i> Profile</a>
-            <a href="?logout=true" class="nav-link" style="color: var(--danger);"><i class="fas fa-sign-out-alt"></i> Logout</a>
+            <a href="/logout.php" class="nav-link" style="color: var(--danger);"><i class="fas fa-sign-out-alt"></i> Logout</a>
             
         </div>
     </nav>
@@ -761,7 +770,7 @@ label { font-weight: 700; font-size: 0.85rem; color: var(--text-muted); text-tra
             <?php endif; ?>
         </a>
         
-        <a href="?logout=true" class="icon-btn logout-btn" title="Logout">
+        <a href="/logout.php" class="icon-btn logout-btn" title="Logout">
             <i class="fas fa-sign-out-alt"></i>
         </a>
     </div>
