@@ -1,0 +1,22 @@
+<?php
+session_start();
+$conn = mysqli_connect("localhost","root","","pet_adoption_rescue");
+
+$pet_id = $_GET['pet_id'];
+$user_id = $_SESSION['user_id'];
+
+if(isset($_POST['request'])){
+    $message = $_POST['message'];
+
+    $sql = "INSERT INTO adoption_requests (user_id, pet_id, message)
+            VALUES ('$user_id','$pet_id','$message')";
+
+    mysqli_query($conn,$sql);
+    echo "Adoption Request Sent!";
+}
+?>
+
+<form method="POST">
+    <textarea name="message" placeholder="Why do you want to adopt?"></textarea><br>
+    <button name="request">Submit Request</button>
+</form>

@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+    <title>Pet AI Test</title>
+
+</head>
+
+<body>
+
+    <h1>Pet Adoption AI Test</h1>
+
+    <button onclick="testAI()">
+        Test AI
+    </button>
+
+    <pre id="result"></pre>
+
+
+<script>
+
+async function testAI() {
+
+    const result =
+        document.getElementById("result");
+
+
+    result.textContent =
+        "Connecting to AI...";
+
+
+    try {
+
+        const response =
+            await fetch(
+                "http://127.0.0.1:5000/predict",
+                {
+
+                    method: "POST",
+
+                    headers: {
+
+                        "Content-Type":
+                            "application/json"
+
+                    },
+
+                    body: JSON.stringify({
+
+                        living_space:
+                            "Apartment",
+
+                        children:
+                            "Yes",
+
+                        experience:
+                            "Beginner",
+
+                        activity:
+                            "Low",
+
+                        temperament:
+                            "Calm",
+
+                        species:
+                            "Dog"
+
+                    })
+
+                }
+            );
+
+
+        const data =
+            await response.json();
+
+
+        result.textContent =
+            JSON.stringify(
+                data,
+                null,
+                2
+            );
+
+
+    } catch (error) {
+
+        result.textContent =
+            "ERROR:\n" +
+            error;
+
+    }
+
+}
+
+</script>
+
+</body>
+
+</html>

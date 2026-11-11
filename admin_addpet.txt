@@ -1,0 +1,32 @@
+<?php
+$conn = mysqli_connect("localhost","root","","pet_adoption_rescue");
+
+if(isset($_POST['add_pet'])){
+    $name = $_POST['name'];
+    $breed = $_POST['breed'];
+    $age = $_POST['age'];
+    $gender = $_POST['gender'];
+    $size = $_POST['size'];
+    $desc = $_POST['description'];
+
+    $image = $_FILES['image']['name'];
+    move_uploaded_file($_FILES['image']['tmp_name'],"../uploads/".$image);
+
+    $sql = "INSERT INTO pets (name,breed,age,gender,size,description,image)
+            VALUES ('$name','$breed','$age','$gender','$size','$desc','$image')";
+
+    mysqli_query($conn,$sql);
+    echo "Pet Added Successfully!";
+}
+?>
+
+<form method="POST" enctype="multipart/form-data">
+    <input type="text" name="name" placeholder="Pet Name" required><br>
+    <input type="text" name="breed" placeholder="Breed" required><br>
+    <input type="number" name="age" placeholder="Age" required><br>
+    <input type="text" name="gender" placeholder="Gender"><br>
+    <input type="text" name="size" placeholder="Size"><br>
+    <textarea name="description" placeholder="Description"></textarea><br>
+    <input type="file" name="image" required><br>
+    <button type="submit" name="add_pet">Add Pet</button>
+</form>
