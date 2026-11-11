@@ -1,9 +1,21 @@
-?php
-session_start();
-session_unset();
+<?php
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+$_SESSION = [];
+if (ini_get('session.use_cookies')) {
+    $params = session_get_cookie_params();
+    setcookie(session_name(), '', [
+        'expires' => time() - 42000,
+        'path' => $params['path'],
+        'domain' => $params['domain'],
+        'secure' => $params['secure'],
+        'httponly' => $params['httponly'],
+        'samesite' => $params['samesite'] ?? 'Lax',
+    ]);
+}
 session_destroy();
-
-
-header("Location: /mywebsite/index.php"); 
-exit();
-?>
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+header('Location: /index.php', true, 302);
+exit;
