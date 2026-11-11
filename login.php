@@ -1,56 +1,66 @@
 <?php
-// PAW CARE LOGIN SYSTEM
-// Start session before any HTML output
+ob_start();
 
 if (session_status() === PHP_SESSION_NONE) {
-    session_start();
+    if (!headers_sent()) {
+        session_start();
+    } else {
+        error_log("Login session could not start: headers already sent.");
+    }
 }
 
-// Railway MySQL Database Connection
 require_once __DIR__ . '/config/db.php';
 
 $error = "";
 
 if (isset($_POST['login'])) {
 
-    $email = mysqli_real_escape_string($conn, $_POST['email']);
-    $password = $_POST['password'];
+    if (session_status() !== PHP_SESSION_ACTIVE) {
+        $error = "Unable to start login session. Please try again.";
+    } else {
 
-    $stmt = $conn->prepare(
-        "SELECT id, username, password, role, email FROM users WHERE email = ?"
-    );
+        $email = trim($_POST['email'] ?? '');
+        $password = $_POST['password'] ?? '';
 
-    if ($stmt) {
+        $stmt = $conn->prepare(
+            "SELECT id, username, password, role, email FROM users WHERE email = ?"
+        );
 
-        $stmt->bind_param("s", $email);
-        $stmt->execute();
+        if ($stmt) {
 
-        $result = $stmt->get_result();
-        $user = $result->fetch_assoc();
+            $stmt->bind_param("s", $email);
+            $stmt->execute();
 
-        if ($user && password_verify($password, $user['password'])) {
+            $result = $stmt->get_result();
+            $user = $result->fetch_assoc();
 
-            $_SESSION['user_id'] = $user['id'];
-            $_SESSION['name'] = $user['username'];
-            $_SESSION['role'] = $user['role'];
-            $_SESSION['email'] = $user['email'];
+            if ($user && password_verify($password, $user['password'])) {
 
-            if ($user['role'] === 'admin') {
-                header("Location: admin_dashboard.php");
+                session_regenerate_id(true);
+
+                $_SESSION['user_id'] = $user['id'];
+                $_SESSION['name'] = $user['username'];
+                $_SESSION['role'] = $user['role'];
+                $_SESSION['email'] = $user['email'];
+
+                if ($user['role'] === 'admin') {
+                    header("Location: admin_dashboard.php");
+                } else {
+                    header("Location: client_dashboard.php");
+                }
+
+                exit();
+
             } else {
-                header("Location: client_dashboard.php");
+                $error = "Invalid email or password!";
             }
 
-            exit();
+            $stmt->close();
 
         } else {
-            $error = "Invalid email or password!";
+            error_log("Login SQL error: " . $conn->error);
+            $error = "Database error. Please try again.";
         }
-
-        $stmt->close();
-
-    } else {
-        $error = "Database error: " . $conn->error;
     }
 }
 ?>
@@ -89,26 +99,15 @@ if (isset($_POST['login'])) {
 
         body {
             background: var(--bg);
-
             background-image:
-                radial-gradient(
-                    circle at 20% 30%,
-                    rgba(255, 213, 79, 0.1) 0%,
-                    transparent 40%
-                ),
-                radial-gradient(
-                    circle at 80% 70%,
-                    rgba(255, 213, 79, 0.1) 0%,
-                    transparent 40%
-                );
+                radial-gradient(circle at 20% 30%, rgba(255, 213, 79, 0.1) 0%, transparent 40%),
+                radial-gradient(circle at 80% 70%, rgba(255, 213, 79, 0.1) 0%, transparent 40%);
 
             display: flex;
             justify-content: center;
             align-items: center;
-
             min-height: 100vh;
             min-height: 100dvh;
-
             width: 100%;
             padding: 20px;
         }
@@ -118,10 +117,8 @@ if (isset($_POST['login'])) {
             padding: 50px 40px;
             border-radius: 24px;
             box-shadow: var(--shadow);
-
             width: 100%;
             max-width: 420px;
-
             text-align: center;
             margin: auto;
         }
@@ -184,7 +181,6 @@ if (isset($_POST['login'])) {
             font-size: 13px;
             margin-bottom: 20px;
             border: 1px solid #feb2b2;
-
             display: flex;
             align-items: center;
             gap: 8px;
