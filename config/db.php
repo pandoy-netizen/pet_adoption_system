@@ -2,19 +2,14 @@
 <?php
 // Railway MySQL Database Connection
 
-$host = getenv('MYSQLHOST');
-$user = getenv('MYSQLUSER');
-$password = getenv('MYSQLPASSWORD');
-$database = getenv('MYSQLDATABASE');
-$port = (int) (getenv('MYSQLPORT') ?: 3306);
+mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
-// Check required environment variables
-if (!$host || !$user || !$password || !$database) {
-    error_log("Missing Railway MySQL environment variables.");
-    die("Database configuration error.");
-}
+$host = getenv('MYSQLHOST') ?: getenv('MYSQL_HOST') ?: 'localhost';
+$port = (int)(getenv('MYSQLPORT') ?: getenv('MYSQL_PORT') ?: 3306);
+$user = getenv('MYSQLUSER') ?: getenv('MYSQL_USER') ?: 'root';
+$password = getenv('MYSQLPASSWORD') ?: getenv('MYSQL_PASSWORD') ?: '';
+$database = getenv('MYSQLDATABASE') ?: getenv('MYSQL_DATABASE') ?: 'pet_adoption_rescue';
 
-// Connect to Railway MySQL
 try {
     $conn = new mysqli(
         $host,
@@ -24,11 +19,13 @@ try {
         $port
     );
 
-    // Set character encoding
-    $conn->set_charset("utf8mb4");
+    $conn->set_charset('utf8mb4');
 
 } catch (mysqli_sql_exception $e) {
-    error_log("MySQL connection error: " . $e->getMessage());
-    die("Database connection failed. Check Railway MySQL settings.");
+    error_log("Database connection error: " . $e->getMessage());
+
+    http_response_code(500);
+    exit("Database connection failed. Please check Railway MySQL variables.");
 }
-?>
+
+// Do not add a closing PHP tag.
