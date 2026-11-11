@@ -1,44 +1,47 @@
 
 <?php
-session_start();
+// Start session before any HTML or output
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
-// Railway MySQL Database Connection
-// Uses the existing connection from config/db.php
+// Use the existing Railway MySQL connection
 require_once __DIR__ . '/config/db.php';
 
 $error = "";
 
-if(isset($_POST['login'])) {
+if (isset($_POST['login'])) {
     $email = mysqli_real_escape_string($conn, $_POST['email']);
     $password = $_POST['password'];
 
-    
     $stmt = $conn->prepare("SELECT id, username, password, role, email FROM users WHERE email = ?");
-    
-    if($stmt) {
+
+    if ($stmt) {
         $stmt->bind_param("s", $email);
         $stmt->execute();
+
         $result = $stmt->get_result();
         $user = $result->fetch_assoc();
 
-        if($user && password_verify($password, $user['password'])) {
-            
-            
+        if ($user && password_verify($password, $user['password'])) {
+
             $_SESSION['user_id'] = $user['id'];
-            $_SESSION['name']    = $user['username']; // Using the database column 'username'
+            $_SESSION['name']    = $user['username'];
             $_SESSION['role']    = $user['role'];
             $_SESSION['email']   = $user['email'];
 
-            
-            if($user['role'] === 'admin') {
+            if ($user['role'] === 'admin') {
                 header("Location: admin_dashboard.php");
             } else {
                 header("Location: client_dashboard.php");
             }
             exit();
+
         } else {
             $error = "Invalid email or password!";
         }
+
+        $stmt->close();
     } else {
         $error = "Database error: " . $conn->error;
     }
@@ -63,11 +66,11 @@ if(isset($_POST['login'])) {
             --shadow: 0 10px 25px rgba(0,0,0,0.05);
         }
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
-        body { 
-            background: var(--bg); 
+        body {
+            background: var(--bg);
             background-image: radial-gradient(circle at 20% 30%, rgba(255, 213, 79, 0.1) 0%, transparent 40%),
                               radial-gradient(circle at 80% 70%, rgba(255, 213, 79, 0.1) 0%, transparent 40%);
-            display: flex; justify-content: center; align-items: center; height: 100vh; 
+            display: flex; justify-content: center; align-items: center; height: 100vh;
         }
         .login-card { background: var(--white); padding: 50px 40px; border-radius: 24px; box-shadow: var(--shadow); width: 100%; max-width: 420px; text-align: center; }
         .logo-area i { font-size: 40px; color: var(--primary); margin-bottom: 10px; }
