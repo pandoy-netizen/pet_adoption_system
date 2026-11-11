@@ -1,18 +1,10 @@
+
 <?php
 session_start();
 
-
-$host = "localhost";
-$user = "root";
-$password = "";
-$database = "pet_adoption_rescue";
-
-$conn = mysqli_connect($host, $user, $password, $database);
-
-if (!$conn) {
-    die("Connection failed: " . mysqli_connect_error());
-}
-
+// Railway MySQL Database Connection
+// Uses the existing connection from config/db.php
+require_once __DIR__ . '/config/db.php';
 
 $error = "";
 
@@ -136,4 +128,3 @@ if(isset($_POST['login'])) {
 
 </body>
 </html>
-
