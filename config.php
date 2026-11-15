@@ -1,4 +1,3 @@
-
 <?php
 $host = getenv('MYSQLHOST') ?: getenv('MYSQL_HOST');
 $user = getenv('MYSQLUSER') ?: getenv('MYSQL_USER');
