@@ -1,85 +1,59 @@
 <?php
-session_start();
+ob_start();
 
-require 'PHPMailer/src/Exception.php';
-require 'PHPMailer/src/PHPMailer.php';
-require 'PHPMailer/src/SMTP.php';
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+require_once __DIR__ . '/config/db.php';
+
+require_once __DIR__ . '/PHPMailer/src/Exception.php';
+require_once __DIR__ . '/PHPMailer/src/PHPMailer.php';
+require_once __DIR__ . '/PHPMailer/src/SMTP.php';
 
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
-require_once __DIR__ . '/config/db.php';
-
-$name_column = "";
-
-$check_full_name = mysqli_query(
-    $conn,
-    "SHOW COLUMNS FROM users LIKE 'full_name'"
-);
-
-if ($check_full_name && mysqli_num_rows($check_full_name) > 0) {
-    $name_column = "full_name";
-} else {
-    $check_name = mysqli_query(
-        $conn,
-        "SHOW COLUMNS FROM users LIKE 'name'"
-    );
-
-    if ($check_name && mysqli_num_rows($check_name) > 0) {
-        $name_column = "name";
-    } else {
-        die("
-            <h2>Database Error</h2>
-            <p>Your <b>users</b> table does not have either <b>full_name</b> or <b>name</b>.</p>
-            <p>Please check your users table in phpMyAdmin.</p>
-        ");
-    }
-}
-
-$check = mysqli_query(
-    $conn,
-    "SHOW COLUMNS FROM users LIKE 'email_verified'"
-);
-
-if ($check && mysqli_num_rows($check) == 0) {
-    mysqli_query(
-        $conn,
-        "ALTER TABLE users
-         ADD COLUMN email_verified TINYINT(1) NOT NULL DEFAULT 0"
-    );
-}
-
-$check = mysqli_query(
-    $conn,
-    "SHOW COLUMNS FROM users LIKE 'verification_code'"
-);
-
-if ($check && mysqli_num_rows($check) == 0) {
-    mysqli_query(
-        $conn,
-        "ALTER TABLE users
-         ADD COLUMN verification_code VARCHAR(10) NULL"
-    );
-}
-
-$check = mysqli_query(
-    $conn,
-    "SHOW COLUMNS FROM users LIKE 'verification_expires'"
-);
-
-if ($check && mysqli_num_rows($check) == 0) {
-    mysqli_query(
-        $conn,
-        "ALTER TABLE users
-         ADD COLUMN verification_expires DATETIME NULL"
-    );
-}
-
+$message = "";
+$message_type = "";
 $smtp_error = "";
+
+$name_column = "username";
 
 if (isset($_SESSION['smtp_error'])) {
     $smtp_error = $_SESSION['smtp_error'];
     unset($_SESSION['smtp_error']);
+}
+
+try {
+    $required_columns = [
+        "email_verified" =>
+            "TINYINT(1) NOT NULL DEFAULT 0",
+        "verification_code" =>
+            "VARCHAR(10) NULL",
+        "verification_expires" =>
+            "DATETIME NULL"
+    ];
+
+    foreach ($required_columns as $column => $definition) {
+        $check = $conn->query(
+            "SHOW COLUMNS FROM users LIKE '$column'"
+        );
+
+        if ($check->num_rows == 0) {
+            $conn->query(
+                "ALTER TABLE users ADD COLUMN `$column` $definition"
+            );
+        }
+
+        $check->free();
+    }
+
+} catch (mysqli_sql_exception $e) {
+    error_log("Database schema error: " . $e->getMessage());
+
+    http_response_code(500);
+    exit("Database configuration error. Please check the Railway users table.");
 }
 
 function sendVerificationEmail($email, $fullname, $verification_code)
@@ -87,24 +61,28 @@ function sendVerificationEmail($email, $fullname, $verification_code)
     $mail = new PHPMailer(true);
 
     try {
+        $smtp_user = getenv('SMTP_USER') ?: '';
+        $smtp_password = getenv('SMTP_PASSWORD') ?: '';
+
+        if ($smtp_user === '' || $smtp_password === '') {
+            throw new \RuntimeException(
+                "SMTP credentials are missing."
+            );
+        }
+
         $mail->isSMTP();
         $mail->Host = 'smtp.gmail.com';
         $mail->SMTPAuth = true;
 
-        $mail->Username = getenv('SMTP_USER') ?: '';
-        $mail->Password = getenv('SMTP_PASSWORD') ?: '';
-
-        if ($mail->Username === '' || $mail->Password === '') {
-            $_SESSION['smtp_error'] = "SMTP credentials are not configured.";
-            return false;
-        }
+        $mail->Username = $smtp_user;
+        $mail->Password = $smtp_password;
 
         $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
         $mail->Port = 587;
         $mail->SMTPDebug = 0;
 
         $mail->setFrom(
-            $mail->Username,
+            $smtp_user,
             'PAW Care'
         );
 
@@ -130,6 +108,7 @@ function sendVerificationEmail($email, $fullname, $verification_code)
                 padding: 20px;
                 color: #333;
             '>
+
                 <h2 style='
                     color:#d4a017;
                     text-align:center;
@@ -159,6 +138,7 @@ function sendVerificationEmail($email, $fullname, $verification_code)
                     border-radius:10px;
                     border:1px solid #eeeeee;
                 '>
+
                     <p style='
                         margin:0 0 10px 0;
                         color:#555;
@@ -174,6 +154,7 @@ function sendVerificationEmail($email, $fullname, $verification_code)
                     '>
                         $verification_code
                     </span>
+
                 </div>
 
                 <p>
@@ -192,6 +173,7 @@ function sendVerificationEmail($email, $fullname, $verification_code)
                     Thank you,<br>
                     <b>PAW Care</b>
                 </p>
+
             </div>
         ";
 
@@ -205,93 +187,84 @@ function sendVerificationEmail($email, $fullname, $verification_code)
             "PAW Care";
 
         $mail->send();
+
         return true;
 
-    } catch (Exception $e) {
-        error_log("PHPMailer Error: " . $mail->ErrorInfo);
+    } catch (\Throwable $e) {
+        error_log("SMTP Error: " . $e->getMessage());
 
         $_SESSION['smtp_error'] =
-            "The verification email could not be sent. Please check the SMTP settings.";
+            "The verification email could not be sent. Please check the SMTP configuration.";
 
         return false;
     }
 }
 
-$message = "";
-$message_type = "";
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register'])) {
 
-if (isset($_POST['register'])) {
-
-    $fullname = trim(
-        $_POST['fullname'] ?? ""
-    );
-
-    $email = trim(
-        $_POST['email'] ?? ""
-    );
-
+    $fullname = trim($_POST['fullname'] ?? "");
+    $email = trim($_POST['email'] ?? "");
     $pass = $_POST['password'] ?? "";
     $confirm_pass = $_POST['confirm_password'] ?? "";
 
     if (empty($fullname)) {
+
         $message = "Full name is required.";
         $message_type = "error";
 
     } elseif (strlen($fullname) < 2) {
+
         $message = "Name must be at least 2 characters.";
         $message_type = "error";
 
     } elseif (!preg_match("/^[a-zA-Z ]+$/", $fullname)) {
+
         $message = "Name can only contain letters and spaces.";
         $message_type = "error";
 
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+
         $message = "Please enter a valid email address.";
         $message_type = "error";
 
     } elseif ($pass !== $confirm_pass) {
+
         $message = "Passwords do not match!";
         $message_type = "error";
 
     } elseif (strlen($pass) < 6) {
+
         $message = "Password must be at least 6 characters.";
         $message_type = "error";
 
     } else {
 
-        $stmt = $conn->prepare(
-            "SELECT id, email_verified
-             FROM users
-             WHERE email = ?"
-        );
-
-        if (!$stmt) {
-            $message = "Database error: " . $conn->error;
-            $message_type = "error";
-
-        } else {
-
-            $stmt->bind_param(
-                "s",
-                $email
+        try {
+            $stmt = $conn->prepare(
+                "SELECT id, email_verified
+                 FROM users
+                 WHERE email = ?"
             );
 
+            $stmt->bind_param("s", $email);
             $stmt->execute();
+
             $result = $stmt->get_result();
 
             if ($result->num_rows > 0) {
 
                 $existing_user = $result->fetch_assoc();
 
-                if (
-                    (int)$existing_user['email_verified'] === 1
-                ) {
-                    $message = "Email is already registered! Please login.";
+                if ((int)$existing_user['email_verified'] === 1) {
+
+                    $message =
+                        "Email is already registered! Please login.";
+
                     $message_type = "error";
 
                 } else {
 
-                    $user_id = $existing_user['id'];
+                    $user_id = (int)$existing_user['id'];
 
                     $verification_code = sprintf(
                         "%06d",
@@ -310,50 +283,44 @@ if (isset($_POST['register'])) {
                          WHERE id = ?"
                     );
 
-                    if (!$update) {
-                        $message = "Database error while creating verification code.";
-                        $message_type = "error";
+                    $update->bind_param(
+                        "ssi",
+                        $verification_code,
+                        $verification_expires,
+                        $user_id
+                    );
 
-                    } else {
+                    if ($update->execute()) {
 
-                        $update->bind_param(
-                            "ssi",
-                            $verification_code,
-                            $verification_expires,
-                            $user_id
-                        );
+                        $_SESSION['verification_user_id'] = $user_id;
+                        $_SESSION['verification_email'] = $email;
 
-                        if ($update->execute()) {
+                        if (sendVerificationEmail(
+                            $email,
+                            $fullname,
+                            $verification_code
+                        )) {
 
-                            $_SESSION['verification_user_id'] = $user_id;
-                            $_SESSION['verification_email'] = $email;
-
-                            if (
-                                sendVerificationEmail(
-                                    $email,
-                                    $fullname,
-                                    $verification_code
-                                )
-                            ) {
-                                header("Location: verify_email.php");
-                                exit;
-
-                            } else {
-                                $message =
-                                    "The verification code was generated, but the verification email could not be sent.";
-
-                                $message_type = "error";
-                            }
+                            header("Location: verify_email.php");
+                            exit;
 
                         } else {
+
                             $message =
-                                "Unable to create verification code. Please try again.";
+                                "The verification code was generated, but the verification email could not be sent.";
 
                             $message_type = "error";
                         }
 
-                        $update->close();
+                    } else {
+
+                        $message =
+                            "Unable to create verification code. Please try again.";
+
+                        $message_type = "error";
                     }
+
+                    $update->close();
                 }
 
             } else {
@@ -373,10 +340,10 @@ if (isset($_POST['register'])) {
                     strtotime("+10 minutes")
                 );
 
-                $sql =
-                    "INSERT INTO users
+                $sql = "
+                    INSERT INTO users
                     (
-                        `$name_column`,
+                        username,
                         email,
                         password,
                         role,
@@ -393,16 +360,10 @@ if (isset($_POST['register'])) {
                         0,
                         ?,
                         ?
-                    )";
+                    )
+                ";
 
                 $insert = $conn->prepare($sql);
-
-                if (!$insert) {
-                    die(
-                        "Database error while preparing registration: "
-                        . $conn->error
-                    );
-                }
 
                 $insert->bind_param(
                     "sssss",
@@ -420,17 +381,17 @@ if (isset($_POST['register'])) {
                     $_SESSION['verification_user_id'] = $user_id;
                     $_SESSION['verification_email'] = $email;
 
-                    if (
-                        sendVerificationEmail(
-                            $email,
-                            $fullname,
-                            $verification_code
-                        )
-                    ) {
+                    if (sendVerificationEmail(
+                        $email,
+                        $fullname,
+                        $verification_code
+                    )) {
+
                         header("Location: verify_email.php");
                         exit;
 
                     } else {
+
                         $message =
                             "Account created, but the verification email could not be sent.";
 
@@ -438,6 +399,7 @@ if (isset($_POST['register'])) {
                     }
 
                 } else {
+
                     $message =
                         "Something went wrong while creating your account.";
 
@@ -448,6 +410,15 @@ if (isset($_POST['register'])) {
             }
 
             $stmt->close();
+
+        } catch (mysqli_sql_exception $e) {
+
+            error_log("Registration Error: " . $e->getMessage());
+
+            $message =
+                "Registration failed due to a database error. Please try again.";
+
+            $message_type = "error";
         }
     }
 }
@@ -587,9 +558,7 @@ button:hover {
 
         <div class="<?php echo htmlspecialchars($message_type); ?>">
 
-            <?php
-            echo htmlspecialchars($message);
-            ?>
+            <?php echo htmlspecialchars($message); ?>
 
         </div>
 
@@ -605,15 +574,13 @@ button:hover {
 
             <br><br>
 
-            <?php
-            echo htmlspecialchars($smtp_error);
-            ?>
+            <?php echo htmlspecialchars($smtp_error); ?>
 
             <br><br>
 
             <small>
-                Please check your Gmail address and Google
-                App Password in Railway SMTP variables.
+                Please check your Gmail SMTP settings
+                in Railway Variables.
             </small>
 
         </div>
@@ -628,7 +595,9 @@ button:hover {
             placeholder="Full Name"
             value="<?php
                 echo htmlspecialchars(
-                    $_POST['fullname'] ?? ''
+                    $_POST['fullname'] ?? '',
+                    ENT_QUOTES,
+                    'UTF-8'
                 );
             ?>"
             required
@@ -640,7 +609,9 @@ button:hover {
             placeholder="Email Address"
             value="<?php
                 echo htmlspecialchars(
-                    $_POST['email'] ?? ''
+                    $_POST['email'] ?? '',
+                    ENT_QUOTES,
+                    'UTF-8'
                 );
             ?>"
             required
