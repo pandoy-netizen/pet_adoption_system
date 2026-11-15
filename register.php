@@ -1,9 +1,7 @@
+
 <?php
 session_start();
 
-/* =========================
-   REQUIRE PHPMAILER
-========================= */
 require 'PHPMailer/src/Exception.php';
 require 'PHPMailer/src/PHPMailer.php';
 require 'PHPMailer/src/SMTP.php';
@@ -11,26 +9,7 @@ require 'PHPMailer/src/SMTP.php';
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
-
-/* =========================
-   DATABASE CONNECTION
-========================= */
-
-$host = "localhost";
-$user = "root";
-$password = "";
-$database = "pet_adoption_rescue";
-
-$conn = mysqli_connect($host, $user, $password, $database);
-
-if (!$conn) {
-    die("Connection failed: " . mysqli_connect_error());
-}
-
-
-/* =========================================================
-   AUTOMATICALLY DETERMINE NAME COLUMN
-========================================================= */
+require_once __DIR__ . '/config/db.php';
 
 $name_column = "";
 
@@ -40,22 +19,16 @@ $check_full_name = mysqli_query(
 );
 
 if ($check_full_name && mysqli_num_rows($check_full_name) > 0) {
-
     $name_column = "full_name";
-
 } else {
-
     $check_name = mysqli_query(
         $conn,
         "SHOW COLUMNS FROM users LIKE 'name'"
     );
 
     if ($check_name && mysqli_num_rows($check_name) > 0) {
-
         $name_column = "name";
-
     } else {
-
         die("
             <h2>Database Error</h2>
             <p>Your <b>users</b> table does not have either <b>full_name</b> or <b>name</b>.</p>
@@ -64,19 +37,12 @@ if ($check_full_name && mysqli_num_rows($check_full_name) > 0) {
     }
 }
 
-
-/* =========================================================
-   CREATE EMAIL VERIFICATION COLUMNS
-========================================================= */
-
-/* email_verified */
 $check = mysqli_query(
     $conn,
     "SHOW COLUMNS FROM users LIKE 'email_verified'"
 );
 
 if ($check && mysqli_num_rows($check) == 0) {
-
     mysqli_query(
         $conn,
         "ALTER TABLE users
@@ -84,15 +50,12 @@ if ($check && mysqli_num_rows($check) == 0) {
     );
 }
 
-
-/* verification_code */
 $check = mysqli_query(
     $conn,
     "SHOW COLUMNS FROM users LIKE 'verification_code'"
 );
 
 if ($check && mysqli_num_rows($check) == 0) {
-
     mysqli_query(
         $conn,
         "ALTER TABLE users
@@ -100,15 +63,12 @@ if ($check && mysqli_num_rows($check) == 0) {
     );
 }
 
-
-/* verification_expires */
 $check = mysqli_query(
     $conn,
     "SHOW COLUMNS FROM users LIKE 'verification_expires'"
 );
 
 if ($check && mysqli_num_rows($check) == 0) {
-
     mysqli_query(
         $conn,
         "ALTER TABLE users
@@ -116,129 +76,46 @@ if ($check && mysqli_num_rows($check) == 0) {
     );
 }
 
-
-/* =========================================================
-   GET PREVIOUS SMTP ERROR
-   This is displayed only AFTER PHP processing.
-   It prevents "headers already sent".
-========================================================= */
-
 $smtp_error = "";
 
 if (isset($_SESSION['smtp_error'])) {
-
     $smtp_error = $_SESSION['smtp_error'];
-
     unset($_SESSION['smtp_error']);
 }
-
-
-/* =========================================================
-   PHPMAILER HELPER FUNCTION
-========================================================= */
 
 function sendVerificationEmail($email, $fullname, $verification_code)
 {
     $mail = new PHPMailer(true);
 
     try {
-
-        /* =========================
-           SMTP SERVER SETTINGS
-        ========================= */
-
         $mail->isSMTP();
-
         $mail->Host = 'smtp.gmail.com';
-
         $mail->SMTPAuth = true;
 
+        $mail->Username = getenv('SMTP_USER') ?: '';
+        $mail->Password = getenv('SMTP_PASSWORD') ?: '';
 
-        /*
-         * =====================================================
-         * YOUR GMAIL ADDRESS
-         * =====================================================
-         */
-
-        $mail->Username = 'lesterneildinojales@gmail.com';
-
-
-        /*
-         * =====================================================
-         * YOUR NEW GOOGLE APP PASSWORD
-         *
-         * IMPORTANT:
-         * DO NOT USE YOUR NORMAL GMAIL PASSWORD.
-         *
-         * Example format:
-         * xxxx xxxx xxxx xxxx
-         *
-         * Remove spaces if necessary.
-         * =====================================================
-         */
-
-        $mail->Password = 'pvmc rbew vrxq dokg';
-
-
-        /*
-         * Gmail TLS
-         */
+        if ($mail->Username === '' || $mail->Password === '') {
+            $_SESSION['smtp_error'] = "SMTP credentials are not configured.";
+            return false;
+        }
 
         $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-
         $mail->Port = 587;
-
-
-        /*
-         * =====================================================
-         * IMPORTANT
-         *
-         * SMTPDebug MUST be 0.
-         *
-         * If SMTPDebug outputs directly to the page,
-         * it can cause:
-         *
-         * "Cannot modify header information"
-         *
-         * because header() must happen before page output.
-         * =====================================================
-         */
-
         $mail->SMTPDebug = 0;
 
-
-        /* =========================
-           SENDER
-        ========================= */
-
         $mail->setFrom(
-            'lesterneildinojales@gmail.com',
+            $mail->Username,
             'PAW Care'
         );
-
-
-        /* =========================
-           RECEIVER
-        ========================= */
 
         $mail->addAddress(
             $email,
             $fullname
         );
 
-
-        /* =========================
-           EMAIL CONTENT
-        ========================= */
-
         $mail->isHTML(true);
-
         $mail->Subject = 'PAW Care - Email Verification';
-
-
-        /*
-         * Protect the user's name from HTML injection.
-         */
 
         $safe_name = htmlspecialchars(
             $fullname,
@@ -246,13 +123,7 @@ function sendVerificationEmail($email, $fullname, $verification_code)
             'UTF-8'
         );
 
-
-        /*
-         * EMAIL BODY
-         */
-
         $mail->Body = "
-
             <div style='
                 font-family: Arial, sans-serif;
                 max-width: 600px;
@@ -260,7 +131,6 @@ function sendVerificationEmail($email, $fullname, $verification_code)
                 padding: 20px;
                 color: #333;
             '>
-
                 <h2 style='
                     color:#d4a017;
                     text-align:center;
@@ -282,7 +152,6 @@ function sendVerificationEmail($email, $fullname, $verification_code)
                     to verify your email address.
                 </p>
 
-
                 <div style='
                     background:#f8f8f8;
                     padding:25px;
@@ -291,7 +160,6 @@ function sendVerificationEmail($email, $fullname, $verification_code)
                     border-radius:10px;
                     border:1px solid #eeeeee;
                 '>
-
                     <p style='
                         margin:0 0 10px 0;
                         color:#555;
@@ -307,38 +175,26 @@ function sendVerificationEmail($email, $fullname, $verification_code)
                     '>
                         $verification_code
                     </span>
-
                 </div>
-
 
                 <p>
                     This verification code will expire
                     in <b>10 minutes</b>.
                 </p>
 
-
                 <p>
                     If you did not create this account,
                     please ignore this email.
                 </p>
 
-
                 <br>
-
 
                 <p>
                     Thank you,<br>
                     <b>PAW Care</b>
                 </p>
-
             </div>
-
         ";
-
-
-        /* =========================
-           PLAIN TEXT EMAIL
-        ========================= */
 
         $mail->AltBody =
             "Hello $fullname,\n\n" .
@@ -349,56 +205,23 @@ function sendVerificationEmail($email, $fullname, $verification_code)
             "Thank you,\n" .
             "PAW Care";
 
-
-        /* =========================
-           SEND EMAIL
-        ========================= */
-
         $mail->send();
-
         return true;
 
-
     } catch (Exception $e) {
-
-        /*
-         * =====================================================
-         * IMPORTANT FIX
-         *
-         * DO NOT USE echo HERE.
-         *
-         * echo would send output before header()
-         * and cause:
-         *
-         * Cannot modify header information
-         *
-         * Instead, save the error in SESSION.
-         * =====================================================
-         */
+        error_log("PHPMailer Error: " . $mail->ErrorInfo);
 
         $_SESSION['smtp_error'] =
-            "PHPMailer Error: " .
-            $mail->ErrorInfo;
+            "The verification email could not be sent. Please check the SMTP settings.";
 
         return false;
     }
 }
 
-
-/* =========================================================
-   REGISTER LOGIC
-========================================================= */
-
 $message = "";
 $message_type = "";
 
-
 if (isset($_POST['register'])) {
-
-
-    /* =========================
-       GET FORM DATA
-    ========================= */
 
     $fullname = trim(
         $_POST['fullname'] ?? ""
@@ -409,74 +232,33 @@ if (isset($_POST['register'])) {
     );
 
     $pass = $_POST['password'] ?? "";
-
     $confirm_pass = $_POST['confirm_password'] ?? "";
 
-
-    /* =========================
-       VALIDATIONS
-    ========================= */
-
     if (empty($fullname)) {
-
-        $message =
-            "Full name is required.";
-
-        $message_type =
-            "error";
-
+        $message = "Full name is required.";
+        $message_type = "error";
 
     } elseif (strlen($fullname) < 2) {
-
-        $message =
-            "Name must be at least 2 characters.";
-
-        $message_type =
-            "error";
-
+        $message = "Name must be at least 2 characters.";
+        $message_type = "error";
 
     } elseif (!preg_match("/^[a-zA-Z ]+$/", $fullname)) {
-
-        $message =
-            "Name can only contain letters and spaces.";
-
-        $message_type =
-            "error";
-
+        $message = "Name can only contain letters and spaces.";
+        $message_type = "error";
 
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-
-        $message =
-            "Please enter a valid email address.";
-
-        $message_type =
-            "error";
-
+        $message = "Please enter a valid email address.";
+        $message_type = "error";
 
     } elseif ($pass !== $confirm_pass) {
-
-        $message =
-            "Passwords do not match!";
-
-        $message_type =
-            "error";
-
+        $message = "Passwords do not match!";
+        $message_type = "error";
 
     } elseif (strlen($pass) < 6) {
-
-        $message =
-            "Password must be at least 6 characters.";
-
-        $message_type =
-            "error";
-
+        $message = "Password must be at least 6 characters.";
+        $message_type = "error";
 
     } else {
-
-
-        /* =================================================
-           CHECK IF EMAIL ALREADY EXISTS
-        ================================================= */
 
         $stmt = $conn->prepare(
             "SELECT id, email_verified
@@ -484,14 +266,9 @@ if (isset($_POST['register'])) {
              WHERE email = ?"
         );
 
-
         if (!$stmt) {
-
-            $message =
-                "Database error: " . $conn->error;
-
-            $message_type =
-                "error";
+            $message = "Database error: " . $conn->error;
+            $message_type = "error";
 
         } else {
 
@@ -501,77 +278,31 @@ if (isset($_POST['register'])) {
             );
 
             $stmt->execute();
-
-            $result =
-                $stmt->get_result();
-
-
-            /* =================================================
-               EMAIL ALREADY EXISTS
-            ================================================= */
+            $result = $stmt->get_result();
 
             if ($result->num_rows > 0) {
 
-                $existing_user =
-                    $result->fetch_assoc();
-
-
-                /* =========================
-                   ALREADY VERIFIED
-                ========================= */
+                $existing_user = $result->fetch_assoc();
 
                 if (
-                    (int)$existing_user['email_verified']
-                    === 1
+                    (int)$existing_user['email_verified'] === 1
                 ) {
+                    $message = "Email is already registered! Please login.";
+                    $message_type = "error";
 
-                    $message =
-                        "Email is already registered! Please login.";
+                } else {
 
-                    $message_type =
-                        "error";
+                    $user_id = $existing_user['id'];
 
-                }
+                    $verification_code = sprintf(
+                        "%06d",
+                        random_int(0, 999999)
+                    );
 
-
-                /* =========================
-                   EXISTS BUT NOT VERIFIED
-                ========================= */
-
-                else {
-
-                    $user_id =
-                        $existing_user['id'];
-
-
-                    /*
-                     * Generate new 6 digit OTP
-                     */
-
-                    $verification_code =
-                        sprintf(
-                            "%06d",
-                            random_int(
-                                0,
-                                999999
-                            )
-                        );
-
-
-                    /*
-                     * OTP expires after 10 minutes
-                     */
-
-                    $verification_expires =
-                        date(
-                            "Y-m-d H:i:s",
-                            strtotime("+10 minutes")
-                        );
-
-
-                    /* =========================
-                       UPDATE OTP
-                    ========================= */
+                    $verification_expires = date(
+                        "Y-m-d H:i:s",
+                        strtotime("+10 minutes")
+                    );
 
                     $update = $conn->prepare(
                         "UPDATE users
@@ -580,14 +311,9 @@ if (isset($_POST['register'])) {
                          WHERE id = ?"
                     );
 
-
                     if (!$update) {
-
-                        $message =
-                            "Database error while creating verification code.";
-
-                        $message_type =
-                            "error";
+                        $message = "Database error while creating verification code.";
+                        $message_type = "error";
 
                     } else {
 
@@ -598,20 +324,10 @@ if (isset($_POST['register'])) {
                             $user_id
                         );
 
-
                         if ($update->execute()) {
 
-
-                            $_SESSION['verification_user_id'] =
-                                $user_id;
-
-                            $_SESSION['verification_email'] =
-                                $email;
-
-
-                            /* =========================
-                               SEND EMAIL
-                            ========================= */
+                            $_SESSION['verification_user_id'] = $user_id;
+                            $_SESSION['verification_email'] = $email;
 
                             if (
                                 sendVerificationEmail(
@@ -620,101 +336,43 @@ if (isset($_POST['register'])) {
                                     $verification_code
                                 )
                             ) {
-
-
-                                /*
-                                 * IMPORTANT:
-                                 *
-                                 * Nothing has been echoed.
-                                 *
-                                 * Therefore header() is safe.
-                                 */
-
-                                header(
-                                    "Location: verify_email.php"
-                                );
-
+                                header("Location: verify_email.php");
                                 exit;
 
-
                             } else {
-
-
-                                /*
-                                 * Email failed.
-                                 *
-                                 * sendVerificationEmail()
-                                 * already saved the SMTP error
-                                 * inside the session.
-                                 */
-
                                 $message =
                                     "The verification code was generated, but the verification email could not be sent.";
 
-                                $message_type =
-                                    "error";
+                                $message_type = "error";
                             }
 
                         } else {
-
                             $message =
                                 "Unable to create verification code. Please try again.";
 
-                            $message_type =
-                                "error";
+                            $message_type = "error";
                         }
+
+                        $update->close();
                     }
                 }
 
-            }
+            } else {
 
+                $hashed_password = password_hash(
+                    $pass,
+                    PASSWORD_DEFAULT
+                );
 
-            /* =================================================
-               NEW USER
-            ================================================= */
+                $verification_code = sprintf(
+                    "%06d",
+                    random_int(0, 999999)
+                );
 
-            else {
-
-
-                /*
-                 * Secure password hash
-                 */
-
-                $hashed_password =
-                    password_hash(
-                        $pass,
-                        PASSWORD_DEFAULT
-                    );
-
-
-                /*
-                 * Generate 6 digit OTP
-                 */
-
-                $verification_code =
-                    sprintf(
-                        "%06d",
-                        random_int(
-                            0,
-                            999999
-                        )
-                    );
-
-
-                /*
-                 * OTP expires in 10 minutes
-                 */
-
-                $verification_expires =
-                    date(
-                        "Y-m-d H:i:s",
-                        strtotime("+10 minutes")
-                    );
-
-
-                /* =========================
-                   INSERT NEW USER
-                ========================= */
+                $verification_expires = date(
+                    "Y-m-d H:i:s",
+                    strtotime("+10 minutes")
+                );
 
                 $sql =
                     "INSERT INTO users
@@ -738,19 +396,14 @@ if (isset($_POST['register'])) {
                         ?
                     )";
 
-
-                $insert =
-                    $conn->prepare($sql);
-
+                $insert = $conn->prepare($sql);
 
                 if (!$insert) {
-
                     die(
                         "Database error while preparing registration: "
                         . $conn->error
                     );
                 }
-
 
                 $insert->bind_param(
                     "sssss",
@@ -761,24 +414,12 @@ if (isset($_POST['register'])) {
                     $verification_expires
                 );
 
-
                 if ($insert->execute()) {
 
+                    $user_id = $insert->insert_id;
 
-                    $user_id =
-                        $insert->insert_id;
-
-
-                    $_SESSION['verification_user_id'] =
-                        $user_id;
-
-                    $_SESSION['verification_email'] =
-                        $email;
-
-
-                    /* =========================
-                       SEND VERIFICATION EMAIL
-                    ========================= */
+                    $_SESSION['verification_user_id'] = $user_id;
+                    $_SESSION['verification_email'] = $email;
 
                     if (
                         sendVerificationEmail(
@@ -787,48 +428,36 @@ if (isset($_POST['register'])) {
                             $verification_code
                         )
                     ) {
-
-
-                        /*
-                         * No output happened before this.
-                         * Redirect is safe.
-                         */
-
-                        header(
-                            "Location: verify_email.php"
-                        );
-
+                        header("Location: verify_email.php");
                         exit;
 
-
                     } else {
-
-
-                        /*
-                         * SMTP error is stored in SESSION.
-                         */
-
                         $message =
                             "Account created, but the verification email could not be sent.";
 
-                        $message_type =
-                            "error";
+                        $message_type = "error";
                     }
 
                 } else {
-
                     $message =
                         "Something went wrong while creating your account.";
 
-                    $message_type =
-                        "error";
+                    $message_type = "error";
                 }
+
+                $insert->close();
             }
+
+            $stmt->close();
         }
     }
 }
-?>
 
+if (isset($_SESSION['smtp_error'])) {
+    $smtp_error = $_SESSION['smtp_error'];
+    unset($_SESSION['smtp_error']);
+}
+?>
 
 <!DOCTYPE html>
 <html lang="en">
@@ -843,7 +472,6 @@ if (isset($_POST['register'])) {
 >
 
 <title>Register - PAW Care</title>
-
 
 <style>
 
@@ -929,11 +557,6 @@ button:hover {
     font-size: 13px;
 }
 
-
-/* =========================
-   SMTP ERROR BOX
-========================= */
-
 .smtp-error-box {
     background: #fff0f0;
     border: 2px solid #d00000;
@@ -955,15 +578,11 @@ button:hover {
 
 </head>
 
-
 <body>
-
 
 <div class="login-container">
 
-
     <h2>Create Your Account</h2>
-
 
     <?php if ($message != ""): ?>
 
@@ -977,19 +596,7 @@ button:hover {
 
     <?php endif; ?>
 
-
-    <?php
-    /*
-     * =====================================================
-     * SHOW SMTP ERROR HERE
-     *
-     * This is SAFE because PHP has already finished
-     * all header redirects before reaching this HTML.
-     * =====================================================
-     */
-
-    if ($smtp_error != ""):
-    ?>
+    <?php if ($smtp_error != ""): ?>
 
         <div class="smtp-error-box">
 
@@ -1007,16 +614,14 @@ button:hover {
 
             <small>
                 Please check your Gmail address and Google
-                App Password in register.php.
+                App Password in Railway SMTP variables.
             </small>
 
         </div>
 
     <?php endif; ?>
 
-
     <form method="POST">
-
 
         <input
             type="text"
@@ -1030,7 +635,6 @@ button:hover {
             required
         >
 
-
         <input
             type="email"
             name="email"
@@ -1043,14 +647,12 @@ button:hover {
             required
         >
 
-
         <input
             type="password"
             name="password"
             placeholder="Create Password"
             required
         >
-
 
         <input
             type="password"
@@ -1059,7 +661,6 @@ button:hover {
             required
         >
 
-
         <button
             type="submit"
             name="register"
@@ -1067,9 +668,7 @@ button:hover {
             Register
         </button>
 
-
     </form>
-
 
     <a
         href="login.php"
@@ -1078,7 +677,6 @@ button:hover {
         Already have an account? Login here →
     </a>
 
-
     <a
         href="index.php"
         class="back-home"
@@ -1086,10 +684,7 @@ button:hover {
         ← Back to Website
     </a>
 
-
 </div>
 
-
 </body>
-
 </html>
