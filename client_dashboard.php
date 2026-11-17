@@ -392,10 +392,10 @@ $has_approved_application = ($check_approval && mysqli_num_rows($check_approval)
 <style>
 
 :root {
-    --primary: #F59E0B; /* Amber */
+    --primary: #F59E0B; 
     --primary-hover: #D97706; 
     --primary-light: #FEF3C7;
-    --secondary: #3B82F6; /* Blue */
+    --secondary: #3B82F6; 
     --secondary-hover: #2563EB;
     
     --bg-main: #F8FAFC; 
@@ -764,6 +764,53 @@ label { font-weight: 700; font-size: 0.85rem; color: var(--text-muted); text-tra
 .lost-modal-buttons{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px}
 .lost-modal-buttons button{padding:12px 16px;border-radius:11px;cursor:pointer;font-weight:700}
 @media(max-width:550px){.lost-alert-card{grid-template-columns:100px minmax(0,1fr);gap:12px;padding:11px}.lost-photo-button{width:100px;height:145px}.lost-alert-content h4{font-size:1.05rem}.lost-alert-actions button{font-size:11px;padding:8px}.lost-modal-body{padding:18px}}
+
+[hidden]{display:none!important}
+:root{--dashboard-ease:cubic-bezier(.2,.8,.2,1)}
+html{scroll-behavior:smooth;scroll-padding-top:94px}
+body{line-height:1.55}
+body::selection{background:var(--primary-light);color:var(--text-dark)}
+.header{box-shadow:0 8px 35px rgba(15,23,42,.055);gap:14px}
+.nav-links{max-width:100%;flex-wrap:wrap;justify-content:center}
+.nav-link{padding:9px 12px;font-size:.82rem;white-space:nowrap}
+.nav-link.is-current{background:var(--bg-surface);color:var(--primary-hover);box-shadow:var(--shadow-sm)}
+.nav-link:focus-visible,.btn:focus-visible,.icon-btn:focus-visible,.dashboard-filter:focus-visible,.dashboard-search:focus-visible{outline:3px solid var(--secondary);outline-offset:3px}
+.hero{position:relative;overflow:hidden}
+.hero::after{content:'';position:absolute;width:390px;height:390px;right:-145px;top:-155px;background:radial-gradient(circle,rgba(245,158,11,.12),transparent 70%);pointer-events:none}
+.hero .container{position:relative;z-index:1}
+.hero h1{letter-spacing:-.045em;line-height:1.13}
+.hero-btn-group{flex-wrap:wrap}
+section{scroll-margin-top:90px}
+.section-title{letter-spacing:-.035em}
+.section-subtitle{max-width:720px}
+.pet-card,.post-card,.monitor-panel,.lost-alert-card{transition:transform .28s var(--dashboard-ease),box-shadow .28s var(--dashboard-ease),border-color .28s ease}
+.pet-card:hover,.post-card:hover,.lost-alert-card:hover{transform:translateY(-5px);box-shadow:0 18px 40px rgba(15,23,42,.12)}
+.pet-card{overflow:hidden;border:1px solid var(--border-color)}
+.pet-card-img{transition:transform .45s var(--dashboard-ease)}
+.pet-card:hover .pet-card-img{transform:scale(1.045)}
+.pet-card-content{gap:9px}
+.pet-card .btn{min-height:44px}
+.btn{transition:transform .2s var(--dashboard-ease),background .2s,box-shadow .2s}
+.btn:active{transform:scale(.97)}
+.dashboard-tools{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:0 0 26px;padding:16px;background:var(--bg-main);border:1px solid var(--border-color);border-radius:20px}
+.dashboard-search-wrap{position:relative;flex:1 1 240px}
+.dashboard-search-wrap i{position:absolute;left:17px;top:50%;transform:translateY(-50%);color:var(--text-muted);pointer-events:none}
+.dashboard-search,.dashboard-filter{margin:0!important;min-height:46px;background:var(--bg-surface)!important;border-radius:12px!important}
+.dashboard-search{padding-left:43px!important}
+.dashboard-filter{width:auto!important;min-width:155px;flex:0 1 180px}
+.dashboard-result-count{font-size:.83rem;color:var(--text-muted);font-weight:800;white-space:nowrap}
+.dashboard-empty{grid-column:1/-1;padding:40px 20px;text-align:center;border:1px dashed var(--border-color);border-radius:20px;color:var(--text-muted);background:var(--bg-main)}
+.dashboard-quick{display:flex;gap:12px;flex-wrap:wrap;margin:26px auto 0;justify-content:center}
+.dashboard-quick a{display:inline-flex;align-items:center;gap:9px;padding:10px 16px;border:1px solid var(--border-color);border-radius:999px;background:var(--bg-surface);color:var(--text-dark);font-weight:800;font-size:.85rem;transition:.2s}
+.dashboard-quick a:hover{transform:translateY(-2px);border-color:var(--primary);color:var(--primary-hover)}
+.dashboard-toast{position:fixed;bottom:25px;left:50%;transform:translate(-50%,30px);background:var(--text-dark);color:var(--bg-surface);padding:13px 20px;border-radius:14px;z-index:99999;opacity:0;pointer-events:none;transition:.25s;box-shadow:var(--shadow-lg);max-width:90vw;text-align:center;font-weight:700}
+.dashboard-toast.show{opacity:1;transform:translate(-50%,0)}
+.dashboard-to-top{position:fixed;bottom:22px;right:22px;width:46px;height:46px;border-radius:15px;border:1px solid var(--border-color);background:var(--bg-surface);color:var(--text-dark);box-shadow:var(--shadow-lg);z-index:900;cursor:pointer;opacity:0;visibility:hidden;transform:translateY(15px);transition:.25s}
+.dashboard-to-top.show{opacity:1;visibility:visible;transform:translateY(0)}
+.dashboard-to-top:hover{background:var(--primary);color:white}
+@media(max-width:1100px){.header{padding:12px 18px}.nav-link{padding:8px 9px;font-size:.78rem}}
+@media(max-width:760px){section{padding:60px 0}.dashboard-tools{padding:12px}.dashboard-filter{flex:1 1 130px}.dashboard-result-count{width:100%;text-align:right}.dashboard-quick a{flex:1 1 130px;justify-content:center}.dashboard-to-top{right:14px;bottom:14px}.hero-btn-group .btn{flex:1 1 180px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
 </style>
 </head>
 
@@ -841,6 +888,12 @@ label { font-weight: 700; font-size: 0.85rem; color: var(--text-muted); text-tra
                 <a href="#ai_match" class="btn btn-primary"><i class="fas fa-magic"></i> AI Pet Matcher</a>
                 <a href="#pets" class="btn btn-secondary"><i class="fas fa-search"></i> Browse All Pets</a>
                 <a href="#favorites" class="btn btn-outline"><i class="fas fa-heart"></i> My Favorites (<?php echo $favorite_count; ?>)</a>
+            </div>
+            <div class="dashboard-quick" aria-label="Quick dashboard navigation">
+                <a href="#pets"><i class="fas fa-paw"></i> Find a pet</a>
+                <a href="#ai_match"><i class="fas fa-brain"></i> AI matching</a>
+                <a href="#appointments"><i class="fas fa-calendar-check"></i> My visits</a>
+                <a href="#lost_found"><i class="fas fa-search-location"></i> Missing pets</a>
             </div>
         </div>
     </section>
@@ -982,7 +1035,13 @@ label { font-weight: 700; font-size: 0.85rem; color: var(--text-muted); text-tra
 
             <?php if($app_success) echo "<div class='alert alert-success'><i class='fas fa-check-circle'></i> $app_success</div>"; ?>
 
-            <div class="grid">
+            <div class="dashboard-tools" role="search" aria-label="Find available pets">
+                <div class="dashboard-search-wrap"><i class="fas fa-search"></i><input id="dashboardPetSearch" class="dashboard-search" type="search" placeholder="Search by pet name or breed..." aria-label="Search available pets"></div>
+                <select id="dashboardPetSpecies" class="dashboard-filter" aria-label="Filter by species"><option value="">All species</option><option value="dog">Dogs</option><option value="cat">Cats</option></select>
+                <select id="dashboardPetSize" class="dashboard-filter" aria-label="Filter by size"><option value="">All sizes</option><option value="small">Small</option><option value="medium">Medium</option><option value="large">Large</option></select>
+                <span id="dashboardPetCount" class="dashboard-result-count" aria-live="polite"></span>
+            </div>
+            <div class="grid" id="dashboardPetGrid">
                 <?php 
                 $result_pets = @mysqli_query($conn, $sql_pets); 
                 if($result_pets && mysqli_num_rows($result_pets) > 0) {
@@ -998,7 +1057,7 @@ label { font-weight: 700; font-size: 0.85rem; color: var(--text-muted); text-tra
                         $safe_act = addslashes(htmlspecialchars($row['activity_level'] ?? 'Moderate'));
                         $safe_traits = addslashes(htmlspecialchars($row['characteristics'] ?? ($row['description'] ?? 'No specific traits provided.')));
                 ?>
-                <div class="pet-card">
+                <div class="pet-card" data-pet-search="<?php echo htmlspecialchars(strtolower(($row['name'] ?? '').' '.($row['breed'] ?? '')), ENT_QUOTES, 'UTF-8'); ?>" data-pet-species="<?php echo htmlspecialchars(strtolower($row['species'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" data-pet-size="<?php echo htmlspecialchars(strtolower($row['size'] ?? 'medium'), ENT_QUOTES, 'UTF-8'); ?>">
                     <form method="POST" action="" class="favorite-form">
                         <input type="hidden" name="favorite_pet_id" value="<?php echo (int)$row['id']; ?>">
                         <input type="hidden" name="favorite_action" value="<?php echo in_array((int)$row['id'], $favorite_pet_ids, true) ? 'remove' : 'add'; ?>">
@@ -1028,6 +1087,7 @@ label { font-weight: 700; font-size: 0.85rem; color: var(--text-muted); text-tra
                     </div>
                 </div>
                 <?php } } else { echo "<div style='grid-column: 1 / -1; text-align:center; padding: 60px; background:var(--bg-main); border-radius:var(--radius-lg); border:1px dashed var(--border-color);'><p style='font-size: 1.1rem; color: var(--text-muted); font-weight:700;'>No available pets right now. Please check back later.</p></div>"; } ?>
+                <div id="dashboardPetEmpty" class="dashboard-empty" hidden><i class="fas fa-search" style="font-size:1.7rem;margin-bottom:10px"></i><p>No pets match these filters. Try a different search.</p><button type="button" class="btn btn-outline" id="dashboardResetFilters">Clear filters</button></div>
             </div>
         </div>
     </section>
@@ -2693,6 +2753,52 @@ async function shareLostPet(){
     }catch(e){if(e.name!=='AbortError')window.prompt('Copy this missing pet alert:',message);}
 }
 document.addEventListener('keydown',function(e){if(e.key==='Escape')closeLostPet();});
+</script>
+
+<div id="dashboardToast" class="dashboard-toast" role="status" aria-live="polite"></div>
+<button type="button" id="dashboardToTop" class="dashboard-to-top" aria-label="Back to top" title="Back to top"><i class="fas fa-arrow-up"></i></button>
+<script>
+(function(){
+    const grid=document.getElementById('dashboardPetGrid');
+    const search=document.getElementById('dashboardPetSearch');
+    const species=document.getElementById('dashboardPetSpecies');
+    const size=document.getElementById('dashboardPetSize');
+    const count=document.getElementById('dashboardPetCount');
+    const empty=document.getElementById('dashboardPetEmpty');
+    const reset=document.getElementById('dashboardResetFilters');
+    const cards=grid?Array.from(grid.querySelectorAll('.pet-card')):[];
+    function filterPets(){
+        const query=(search?.value||'').trim().toLowerCase();
+        const sp=species?.value||'';
+        const sz=size?.value||'';
+        let visible=0;
+        cards.forEach(card=>{
+            const matches=(!query||(card.dataset.petSearch||'').includes(query))&&(!sp||(card.dataset.petSpecies||'')===sp)&&(!sz||(card.dataset.petSize||'')===sz);
+            card.hidden=!matches;
+            if(matches)visible++;
+        });
+        if(count)count.textContent=visible+' of '+cards.length+' pets';
+        if(empty)empty.hidden=visible!==0||cards.length===0;
+    }
+    [search,species,size].forEach(control=>{if(control)control.addEventListener(control===search?'input':'change',filterPets);});
+    if(reset)reset.addEventListener('click',()=>{search.value='';species.value='';size.value='';filterPets();search.focus();});
+    filterPets();
+    const toTop=document.getElementById('dashboardToTop');
+    function updateScroll(){if(toTop)toTop.classList.toggle('show',window.scrollY>450);}
+    window.addEventListener('scroll',updateScroll,{passive:true});updateScroll();
+    if(toTop)toTop.addEventListener('click',()=>window.scrollTo({top:0,behavior:'smooth'}));
+    const links=Array.from(document.querySelectorAll('.nav-links a[href^="#"]'));
+    const sections=links.map(a=>document.getElementById(a.getAttribute('href').slice(1))).filter(Boolean);
+    if('IntersectionObserver' in window&&sections.length){
+        const observer=new IntersectionObserver(entries=>{
+            const active=entries.filter(e=>e.isIntersecting).sort((a,b)=>b.intersectionRatio-a.intersectionRatio)[0];
+            if(!active)return;
+            links.forEach(a=>{const current=a.getAttribute('href')==='#'+active.target.id;a.classList.toggle('is-current',current);if(current)a.setAttribute('aria-current','location');else a.removeAttribute('aria-current');});
+        },{rootMargin:'-18% 0px -62% 0px',threshold:[0,.1,.3]});
+        sections.forEach(section=>observer.observe(section));
+    }
+    document.querySelectorAll('img').forEach(img=>{if(!img.hasAttribute('loading')&&!img.closest('.hero'))img.loading='lazy';});
+})();
 </script>
 </body> 
 </html>
