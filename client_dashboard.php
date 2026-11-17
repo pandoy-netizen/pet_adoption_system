@@ -1052,12 +1052,14 @@ section{scroll-margin-top:90px}
     <?php endif; ?>
 
 
-<section id="donation-section" style="
-    background:#ffffff;
+<section id="donation-section" class="donation-theme-section" style="
+    background:var(--bg-surface);
     padding:28px;
     margin:25px 0;
     border-radius:18px;
-    box-shadow:0 5px 20px rgba(0,0,0,.07);
+    box-shadow:var(--shadow-lg);
+    border:1px solid var(--border-color);
+    color:var(--text-dark);
     text-align:center;
 ">
     <div style="font-size:40px;">🐾</div>
@@ -1069,7 +1071,7 @@ section{scroll-margin-top:90px}
     <p style="
         max-width:620px;
         margin:0 auto 22px;
-        color:#666;
+        color:var(--text-muted);
         line-height:1.8;
     ">
         Your donation helps provide food, medicine, shelter,
@@ -1080,12 +1082,12 @@ section{scroll-margin-top:90px}
     <div style="
         display:inline-block;
         max-width:100%;
-        background:#fff8ef;
-        border:1px solid #ffe2bf;
+        background:var(--primary-light);
+        border:1px solid var(--border-color);
         border-radius:16px;
         padding:22px;
     ">
-        <h3 style="margin:0 0 16px;color:#333;">
+        <h3 style="margin:0 0 16px;color:var(--text-dark);">
             Scan to Donate via GCash or Maya
         </h3>
 
@@ -1113,7 +1115,7 @@ section{scroll-margin-top:90px}
             QR image not found. Please check the file path.
         </p>
 
-        <p style="color:#555;font-size:14px;">
+        <p style="color:var(--text-muted);font-size:14px;">
             Verify the recipient name before paying.
         </p>
     </div>
