@@ -86,7 +86,7 @@ $petDetails = [
         'breed' => 'Siamese Cat',
         'age' => 1,
         'description' => 'Luna is a vocal and affectionate cat.',
-        'image' => 'cat.jpgg',
+        'image' => 'cat.jpg',
     ],
     3 => [
         'name' => 'Max',
