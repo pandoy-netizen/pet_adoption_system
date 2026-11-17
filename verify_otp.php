@@ -1,9 +1,25 @@
-
 <?php
-ob_start();
+if (ob_get_level() === 0) {
+    ob_start();
+}
 
 if (session_status() === PHP_SESSION_NONE) {
-    session_start();
+    if (headers_sent($file, $line)) {
+        error_log(
+            "OTP session error: Headers already sent at " .
+            $file . ":" . $line
+        );
+
+        http_response_code(500);
+        exit("Session initialization error. Check PHP file encoding.");
+    }
+
+    if (!session_start()) {
+        error_log("OTP session error: session_start failed.");
+
+        http_response_code(500);
+        exit("Unable to initialize session.");
+    }
 }
 
 require_once __DIR__ . '/config/db.php';
@@ -19,8 +35,8 @@ if (
     exit;
 }
 
-$user_id = (int)$_SESSION['verification_user_id'];
-$email = $_SESSION['verification_email'];
+$user_id = (int) $_SESSION['verification_user_id'];
+$email = (string) $_SESSION['verification_email'];
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
@@ -46,7 +62,12 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                  LIMIT 1"
             );
 
-            $stmt->bind_param("is", $user_id, $email);
+            $stmt->bind_param(
+                "is",
+                $user_id,
+                $email
+            );
+
             $stmt->execute();
 
             $result = $stmt->get_result();
@@ -58,7 +79,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
                 $message = "User not found.";
 
-            } elseif ((int)$row['email_verified'] === 1) {
+            } elseif ((int) $row['email_verified'] === 1) {
 
                 $message = "Account already verified.";
                 $verified = true;
@@ -71,6 +92,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 $message = "No verification code found.";
 
             } elseif (
+                strtotime($row['verification_expires']) === false ||
                 strtotime($row['verification_expires']) < time()
             ) {
 
@@ -78,7 +100,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
             } elseif (
                 !hash_equals(
-                    (string)$row['verification_code'],
+                    (string) $row['verification_code'],
                     $entered_otp
                 )
             ) {
@@ -105,7 +127,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
                 $update_stmt->execute();
 
-                $verified = $update_stmt->affected_rows === 1;
+                $verified = (
+                    $update_stmt->affected_rows === 1
+                );
 
                 $update_stmt->close();
 
@@ -121,28 +145,41 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 } else {
 
                     $message = "Verification failed. Please try again.";
+
                 }
             }
 
         } catch (mysqli_sql_exception $e) {
 
-            error_log("OTP Error: " . $e->getMessage());
+            error_log(
+                "OTP Database Error: " . $e->getMessage()
+            );
 
             $message = "Database error. Please try again.";
+
+        } catch (Throwable $e) {
+
+            error_log(
+                "OTP Verification Error: " . $e->getMessage()
+            );
+
+            $message = "Verification failed. Please try again.";
         }
     }
 }
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8">
 
-<title>Verify OTP - PAW Care</title>
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
 
+    <title>Verify OTP - PAW Care</title>
 </head>
 
 <body>
@@ -150,7 +187,13 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 <?php if ($message !== ""): ?>
 
     <p>
-        <?php echo htmlspecialchars($message); ?>
+        <?php
+        echo htmlspecialchars(
+            $message,
+            ENT_QUOTES,
+            'UTF-8'
+        );
+        ?>
     </p>
 
 <?php endif; ?>
