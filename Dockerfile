@@ -1,39 +1,17 @@
 
-FROM php:8.2-apache
+FROM python:3.11-slim
 
-# Install PHP MySQL extensions
-RUN docker-php-ext-install mysqli pdo pdo_mysql
+WORKDIR /app
 
-# Enable Apache rewrite
-RUN a2enmod rewrite
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
 
-# Set application directory
-WORKDIR /var/www/html
+COPY requirements.txt .
 
-# Copy application files
-COPY . /var/www/html/
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Set file permissions
-RUN chown -R www-data:www-data /var/www/html
+COPY . .
 
-# Create startup script to fix MPM conflict
-RUN printf '%s\n' \
-    '#!/bin/sh' \
-    'set -e' \
-    'echo "Fixing Apache MPM configuration..."' \
-    'rm -f /etc/apache2/mods-enabled/mpm_event.load' \
-    'rm -f /etc/apache2/mods-enabled/mpm_event.conf' \
-    'rm -f /etc/apache2/mods-enabled/mpm_worker.load' \
-    'rm -f /etc/apache2/mods-enabled/mpm_worker.conf' \
-    'ln -sf ../mods-available/mpm_prefork.load /etc/apache2/mods-enabled/mpm_prefork.load' \
-    'ln -sf ../mods-available/mpm_prefork.conf /etc/apache2/mods-enabled/mpm_prefork.conf' \
-    'echo "Checking Apache configuration..."' \
-    'apache2ctl -t' \
-    'echo "Starting Apache..."' \
-    'exec apache2-foreground' \
-    > /usr/local/bin/start-app \
-    && chmod +x /usr/local/bin/start-app
+EXPOSE 8000
 
-EXPOSE 80
-
-CMD ["/usr/local/bin/start-app"]
+CMD ["sh", "-c", "gunicorn --bind 0.0.0.0:${PORT:-8000} --workers 2 --timeout 120 predict_api:app"]
