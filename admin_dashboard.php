@@ -436,6 +436,19 @@ if ($check_staff) {
    HANDLE POST ACTIONS
 ========================= */
 
+
+foreach (['profile_photo' => 'VARCHAR(255) DEFAULT NULL', 'phone' => 'VARCHAR(30) DEFAULT NULL', 'address' => 'VARCHAR(255) DEFAULT NULL', 'bio' => 'TEXT NULL'] as $column => $definition) {
+    try {
+        $safeColumn = str_replace('`', '', $column);
+        $check = $conn->query("SHOW COLUMNS FROM users LIKE '$safeColumn'");
+        if ($check && $check->num_rows === 0) {
+            $conn->query("ALTER TABLE users ADD COLUMN `$safeColumn` $definition");
+        }
+    } catch (Throwable $e) {
+        error_log('Profile field setup: ' . $e->getMessage());
+    }
+}
+
 /* USER ACTIONS (ADD, EDIT, DELETE) */
 
 if (isset($_POST['add_user'])) {
@@ -3284,7 +3297,7 @@ if ($hq) {
         <div class="grid" style="grid-template-columns: repeat(auto-fill,minmax(350px,1fr));">
             
             <?php
-            $app_query = mysqli_query($conn, "SELECT a.*, p.name AS pet_name, p.image AS pet_image, u.$u_name_field AS applicant_name, u.email FROM adoption_applications a JOIN pets p ON a.pet_id = p.id JOIN users u ON a.user_id = u.id ORDER BY a.id DESC");
+            $app_query = mysqli_query($conn, "SELECT a.*, p.name AS pet_name, p.image AS pet_image, u.$u_name_field AS applicant_name, u.email, u.profile_photo, u.phone, u.address, u.bio FROM adoption_applications a JOIN pets p ON a.pet_id = p.id JOIN users u ON a.user_id = u.id ORDER BY a.id DESC");
             
             if($app_query && mysqli_num_rows($app_query) > 0) {
                 
@@ -3330,6 +3343,23 @@ if ($hq) {
                                 <?php echo htmlspecialchars($app['pet_name'] ?? ''); ?>
                             </b>
                         </p>
+                    </div>
+                </div>
+
+                <div style="background:var(--bg-main);border:1px solid var(--border-color);border-radius:16px;padding:16px;margin-bottom:20px;">
+                    <div style="display:flex;gap:14px;align-items:center;margin-bottom:12px;">
+                        <?php if (!empty($app['profile_photo'])): ?>
+                            <img src="<?php echo htmlspecialchars($app['profile_photo'], ENT_QUOTES); ?>" alt="Applicant photo" style="width:72px;height:72px;object-fit:cover;border-radius:50%;border:3px solid var(--primary);" onerror="this.style.display='none'">
+                        <?php else: ?>
+                            <div class="avatar-small" style="width:72px;height:72px;font-size:25px;flex-shrink:0;"><?php echo htmlspecialchars(strtoupper(substr($app['applicant_name'] ?? '?',0,1))); ?></div>
+                        <?php endif; ?>
+                        <div><strong style="font-size:1.05rem;">Client Profile</strong><div style="color:var(--text-muted);font-size:.85rem;">Account #<?php echo (int)$app['user_id']; ?></div></div>
+                    </div>
+                    <div style="overflow-wrap:anywhere;font-size:.9rem;line-height:1.8;">
+                        <div><i class="fas fa-envelope"></i> <?php echo htmlspecialchars($app['email'] ?? 'Not provided'); ?></div>
+                        <div><i class="fas fa-phone"></i> <?php echo htmlspecialchars($app['phone'] ?: 'Phone not provided'); ?></div>
+                        <div><i class="fas fa-map-marker-alt"></i> <?php echo htmlspecialchars($app['address'] ?: 'Address not provided'); ?></div>
+                        <div style="margin-top:8px;"><strong>About / Pet Care Experience:</strong><p style="margin:4px 0;white-space:pre-wrap;overflow-wrap:anywhere;"><?php echo htmlspecialchars($app['bio'] ?: 'Not provided'); ?></p></div>
                     </div>
                 </div>
 
