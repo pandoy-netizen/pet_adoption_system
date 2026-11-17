@@ -93,7 +93,7 @@ $petDetails = [
         'breed' => 'Beagle',
         'age' => 3,
         'description' => 'Max is a playful companion.',
-        'image' => '1773547653_stray dog.jpg',
+        'image' => '1791566358_beag.png',
     ],
     4 => [
         'name' => 'Milo',
@@ -107,7 +107,7 @@ $petDetails = [
         'breed' => 'French Bulldog',
         'age' => 2,
         'description' => 'Charlie is a friendly dog.',
-        'image' => '1773547952_stray dog.jpg',
+        'image' => '1791540871_aso',
     ],
     6 => [
         'name' => 'Daisy',
