@@ -1,54 +1,68 @@
 <?php
+
+ob_start();
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Process redirects before loading any files that might output content.
+
+
 if (isset($_GET['logout'])) {
-    header('Location: /logout.php', true, 302);
+    $_SESSION = [];
+
+    if (ini_get('session.use_cookies')) {
+        $params = session_get_cookie_params();
+        setcookie(session_name(), '', time() - 42000, [
+            'expires' => time() - 42000,
+            'path' => $params['path'],
+            'domain' => $params['domain'],
+            'secure' => $params['secure'],
+            'httponly' => $params['httponly'],
+            'samesite' => $params['samesite'] ?? 'Lax',
+        ]);
+    }
+
+    session_destroy();
+    header('Location: /index.php', true, 302);
     exit;
 }
+
 if (isset($_GET['reset_match'])) {
-    header('Location: ?#ai_match');
+    header('Location: client_dashboard.php#ai_match', true, 302);
     exit;
 }
+
 
 require_once __DIR__ . '/config/db.php';
 
-/* ================= AJAX: MARK TUTORIAL AS SEEN ================= */
-// This catches the background request when a user finishes the tutorial
+
 if (isset($_POST['mark_tutorial_seen'])) {
-    $conn_ajax = $conn;
-    if ($conn_ajax) {
-        $u_id = (int)($_SESSION['user_id'] ?? 1);
-        mysqli_query($conn_ajax, "UPDATE users SET tutorial_seen = 1 WHERE id = '$u_id'");
+    if (empty($_SESSION['user_id'])) {
+        http_response_code(401);
+        exit;
     }
-    exit; // Stop execution for AJAX
+
+    $u_id = (int) $_SESSION['user_id'];
+    try {
+        $stmt = $conn->prepare('UPDATE users SET tutorial_seen = 1 WHERE id = ?');
+        $stmt->bind_param('i', $u_id);
+        $stmt->execute();
+        $stmt->close();
+    } catch (Throwable $e) {
+        error_log('Tutorial update failed: ' . $e->getMessage());
+        http_response_code(500);
+    }
+    exit;
 }
 
-/* ================= LOGOUT & RESET HANDLERS ================= */
-// Redirect handlers run before the database connection above.
 
-// Database Connection
-// Railway MySQL connection is initialized above via config/db.php.
-
-// Ensure the tutorial flag exists before reading the user record.
-try {
-    $tutorialColumn = $conn->query("SHOW COLUMNS FROM users LIKE 'tutorial_seen'");
-    if ($tutorialColumn && $tutorialColumn->num_rows === 0) {
-        $conn->query("ALTER TABLE users ADD COLUMN tutorial_seen TINYINT(1) NOT NULL DEFAULT 0");
-    }
-} catch (mysqli_sql_exception $e) {
-    error_log('Tutorial column check failed: ' . $e->getMessage());
-}
-
-/* ================= IDENTIFY USER FIRST ================= */
 $user_id = $_SESSION['user_id'] ?? 1; 
 
-// Fetch User Info
+
 $full_name = "User"; 
 $contact_info = "Registered User";
-$tutorial_seen = 1; // Existing users without a tracking column do not auto-start.
+$tutorial_seen = 1;
 
 try {
     $user_query = @mysqli_query($conn, "SELECT * FROM users WHERE id = '$user_id'");
@@ -60,11 +74,11 @@ try {
         elseif (!empty($user_data['first_name'])) { $full_name = $user_data['first_name'] . (!empty($user_data['last_name']) ? ' ' . $user_data['last_name'] : ''); }
         if (!empty($user_data['email'])) { $contact_info = $user_data['email']; }
         
-        // Check if tutorial is seen
+
         if (isset($user_data['tutorial_seen'])) {
             $tutorial_seen = (int)$user_data['tutorial_seen'];
         } else {
-            $tutorial_seen = 0; // If column exists but is null/not set
+            $tutorial_seen = 0;
         }
     }
 } catch (Exception $e) {}
@@ -72,7 +86,7 @@ try {
 $first_name = explode(' ', trim($full_name))[0]; 
 $initials = strtoupper(substr($first_name, 0, 1) . (strpos($full_name, ' ') !== false ? substr($full_name, strpos($full_name, ' ') + 1, 1) : ''));
 
-/* ================= INITIALIZE UI VARIABLES ================= */
+
 $scroll_target = ""; 
 $client_feature_msg = "";
 $profile_msg = "";
@@ -81,14 +95,14 @@ $stray_success = "";
 $lost_success = "";
 $sponsor_success = "";
 
-// Ensure uploads folder exists for photos
+
 if (!is_dir('uploads')) {
     @mkdir('uploads', 0777, true);
 }
 
-/* ================= DATABASE AUTO-MIGRATION ================= */
-// Add Tutorial Tracking Column to Users Table
-// Tutorial tracking column is checked before loading user information.
+
+
+try { @mysqli_query($conn, "ALTER TABLE users ADD COLUMN tutorial_seen TINYINT(1) DEFAULT 0"); } catch (Exception $e) {}
 
 mysqli_query($conn, "CREATE TABLE IF NOT EXISTS adoption_applications (
     id INT AUTO_INCREMENT PRIMARY KEY, user_id INT, pet_id INT, living_space VARCHAR(255),
@@ -134,7 +148,7 @@ mysqli_query($conn, "CREATE TABLE IF NOT EXISTS lost_pets (
     reported_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 )");
 
-// Ensure structural columns exist
+
 try { @mysqli_query($conn, "ALTER TABLE adoption_applications ADD COLUMN living_space VARCHAR(255) AFTER pet_id"); } catch (Exception $e) {}
 try { @mysqli_query($conn, "ALTER TABLE adoption_applications ADD COLUMN experience_level VARCHAR(255) AFTER living_space"); } catch (Exception $e) {}
 try { @mysqli_query($conn, "ALTER TABLE adoption_applications ADD COLUMN activity_level VARCHAR(255) AFTER experience_level"); } catch (Exception $e) {}
@@ -144,9 +158,9 @@ try { @mysqli_query($conn, "ALTER TABLE pets ADD COLUMN size VARCHAR(50) DEFAULT
 try { @mysqli_query($conn, "ALTER TABLE pets ADD COLUMN temperament VARCHAR(100) DEFAULT 'Friendly'"); } catch (Exception $e) {}
 try { @mysqli_query($conn, "ALTER TABLE rescue_reports ADD COLUMN reported_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP"); } catch (Exception $e) {}
 
-/* ========================= CLIENT FEATURE HANDLERS ========================= */
 
-// Handle Sponsorship/Donation Submission
+
+
 if(isset($_POST['submit_sponsorship'])) {
     $sponsor_amount = (float)$_POST['sponsor_amount'];
     $sponsor_pet = mysqli_real_escape_string($conn, $_POST['sponsor_pet_name']);
@@ -160,7 +174,7 @@ if(isset($_POST['submit_sponsorship'])) {
     }
 }
 
-// Handle Lost & Found Upload
+
 if(isset($_POST['submit_lost_pet'])){
     $l_pet_name = mysqli_real_escape_string($conn, $_POST['l_pet_name']);
     $l_desc = mysqli_real_escape_string($conn, $_POST['l_description']);
@@ -180,7 +194,7 @@ if(isset($_POST['submit_lost_pet'])){
     }
 }
 
-// Handle Appointment Scheduling
+
 if (isset($_POST['schedule_appointment'])) {
     $appointment_pet = (int)($_POST['appointment_pet_id'] ?? 0);
     $appointment_date = mysqli_real_escape_string($conn, $_POST['appointment_date'] ?? '');
@@ -203,7 +217,7 @@ if (isset($_POST['schedule_appointment'])) {
     }
 }
 
-// Generate simple notifications from application status
+
 if (!isset($_POST['mark_notifications_read'])) {
     $notif_check = mysqli_query($conn, "SELECT a.id, a.status, p.name AS pet_name
         FROM adoption_applications a JOIN pets p ON a.pet_id=p.id
@@ -223,14 +237,14 @@ if (!isset($_POST['mark_notifications_read'])) {
     }
 }
 
-// Clear Notifications
+
 if (isset($_POST['mark_notifications_read'])) {
     mysqli_query($conn, "UPDATE client_notifications SET is_read=1 WHERE user_id='$user_id'");
     header("Location: ".$_SERVER['PHP_SELF']."#notifications");
     exit();
 }
 
-// Fetch Appointments & Notifications Data for Dashboard
+
 $unread_notifications = 0;
 $notif_rows = [];
 $notif_res = mysqli_query($conn, "SELECT * FROM client_notifications WHERE user_id='$user_id' ORDER BY id DESC LIMIT 8");
@@ -247,7 +261,7 @@ $appt_res = mysqli_query($conn, "SELECT aa.*, p.name AS pet_name, p.breed, p.ima
     WHERE aa.user_id='$user_id' ORDER BY aa.appointment_date DESC, aa.appointment_time DESC");
 if ($appt_res) { while ($ar = mysqli_fetch_assoc($appt_res)) $appointment_rows[] = $ar; }
 
-/* ================= HANDLE FAVORITE / UNFAVORITE ================= */
+
 if (isset($_POST['favorite_action'])) {
     $favorite_pet_id = (int)($_POST['favorite_pet_id'] ?? 0);
     $favorite_action = $_POST['favorite_action'];
@@ -269,7 +283,7 @@ $favorite_res = mysqli_query($conn, "SELECT pet_id FROM pet_favorites WHERE user
 if ($favorite_res) { while ($fav = mysqli_fetch_assoc($favorite_res)) { $favorite_pet_ids[] = (int)$fav['pet_id']; } }
 $favorite_count = count($favorite_pet_ids);
 
-/* ================= HANDLE NEW COMMUNITY POST UPLOAD ================= */
+
 if(isset($_POST['submit_community_post'])){
     $content = mysqli_real_escape_string($conn, $_POST['post_content']);
     $location = mysqli_real_escape_string($conn, $_POST['post_location']);
@@ -283,10 +297,10 @@ if(isset($_POST['submit_community_post'])){
     $scroll_target = "community_feed";
 }
 
-/* ================= PROFILE UPDATE ================= */
+
 if(isset($_POST['update_profile'])){ $profile_msg = "Profile updated successfully!"; $scroll_target = "profile"; }
 
-/* ================= ADOPTION APPLICATION ================= */
+
 if(isset($_POST['submit_application'])){
     $pet_id = mysqli_real_escape_string($conn, $_POST['pet_id']);
     $living_space = mysqli_real_escape_string($conn, $_POST['app_home']);
@@ -301,7 +315,7 @@ if(isset($_POST['submit_application'])){
     $scroll_target = "profile"; 
 }
 
-/* ================= HANDLE STRAY REPORT UPLOAD ================= */
+
 if(isset($_POST['submit_stray'])){
     $address = mysqli_real_escape_string($conn, $_POST['address']);
     $lat = mysqli_real_escape_string($conn, $_POST['lat']);
@@ -320,7 +334,7 @@ if(isset($_POST['submit_stray'])){
     $scroll_target = "report_stray"; 
 }
 
-/* ================= PREPARE DATA FOR LOCAL MACHINE LEARNING ================= */
+
 $all_pets_for_ai = [];
 $ai_sql = "SELECT * FROM pets WHERE status='Available' OR status='available'";
 $ai_res = mysqli_query($conn, $ai_sql);
@@ -342,9 +356,9 @@ if($ai_res && mysqli_num_rows($ai_res) > 0){
 }
 $pets_json_data = json_encode($all_pets_for_ai);
 
-/* ================= PET FETCHING ================= */
-// Removed the redundant filter bar SQL logic based on user request. 
-// Just fetching all available pets directly now.
+
+
+
 $sql_pets = "SELECT * FROM pets WHERE (status='Available' OR status='available') ORDER BY id DESC";
 
 $check_approval = mysqli_query($conn, "SELECT a.*, p.name as pet_name, p.image, p.breed FROM adoption_applications a JOIN pets p ON a.pet_id = p.id WHERE a.user_id='$user_id' AND (a.status='Approved' OR a.status='Adopted')");
@@ -358,25 +372,25 @@ $has_approved_application = ($check_approval && mysqli_num_rows($check_approval)
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Pet Rescue - Client Dashboard</title>
 
-<!-- External Resources -->
+
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-<!-- Leaflet Maps for Routing Feature -->
+
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
 
-<!-- Intro.js Spotlight Tour CSS -->
+
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intro.js@7.2.0/minified/introjs.min.css">
 
-<!-- PRE-LOAD THEME SCRIPT TO PREVENT FLASH -->
+
 <script>
     const storedTheme = localStorage.getItem('theme') || 'light';
     document.documentElement.setAttribute('data-theme', storedTheme);
 </script>
 
 <style>
-/* ================= GLOBAL LIGHT/DARK THEME VARIABLES ================= */
+
 :root {
     --primary: #F59E0B; /* Amber */
     --primary-hover: #D97706; 
@@ -460,7 +474,7 @@ section { padding: 90px 0; }
 .section-title { font-size: clamp(2rem, 4vw, 2.5rem); font-weight: 800; color: var(--text-dark); margin-bottom: 15px; }
 .section-subtitle { color: var(--text-muted); font-size: 1.1rem; max-width: 600px; margin: 0 auto 40px auto; line-height: 1.6; }
 
-/* ================= UTILITY CLASSES ================= */
+
 .bg-white { background-color: var(--bg-surface); }
 .bg-light { background-color: var(--bg-main); }
 .badge { display: inline-flex; align-items: center; padding: 4px 10px; border-radius: var(--radius-full); font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
@@ -468,11 +482,11 @@ section { padding: 90px 0; }
 .badge-pending { background: var(--badge-pending-bg); color: var(--badge-pending-text); }
 .badge-danger { background: var(--badge-danger-bg); color: var(--badge-danger-text); }
 
-/* ================= ALERT MESSAGES ================= */
+
 .alert { padding: 16px 20px; border-radius: var(--radius-md); font-weight: 600; margin-bottom: 30px; display: flex; align-items: center; gap: 10px; box-shadow: var(--shadow-sm); }
 .alert-success { background-color: var(--badge-success-bg); color: var(--badge-success-text); border: 1px solid var(--success); }
 
-/* ================= BUTTONS ================= */
+
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-family: inherit; font-weight: 700; border: none; cursor: pointer; transition: all 0.25s ease; padding: 12px 24px; border-radius: var(--radius-full); font-size: 0.95rem; }
 .btn-primary { background: var(--primary); color: #fff; box-shadow: 0 4px 10px rgba(245, 158, 11, 0.2); }
 .btn-primary:hover { background: var(--primary-hover); transform: translateY(-2px); box-shadow: 0 6px 15px rgba(245, 158, 11, 0.3); }
@@ -481,12 +495,12 @@ section { padding: 90px 0; }
 .btn-outline { background: transparent; border: 2px solid var(--border-color); color: var(--text-dark); }
 .btn-outline:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-light); }
 
-/* ================= FORMS & INPUTS ================= */
+
 input, select, textarea { width: 100%; padding: 14px 18px; margin: 8px 0 20px; border-radius: var(--radius-md); border: 1px solid var(--border-color); font-family: inherit; font-size: 0.95rem; background-color: var(--bg-main); color: var(--text-dark); box-sizing: border-box; transition: all 0.2s ease; outline: none; }
 input:focus, select:focus, textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.15); background-color: var(--bg-surface); }
 label { font-weight: 700; font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
 
-/* ================= NAVIGATION & HEADER ================= */
+
 .topbar { background: #0F172A; color: #F8FAFC; text-align: center; padding: 10px; font-size: 13px; font-weight: 600; letter-spacing: 0.5px; }
 .topbar span { color: var(--primary); margin-right: 5px; }
 
@@ -508,7 +522,7 @@ label { font-weight: 700; font-size: 0.85rem; color: var(--text-muted); text-tra
 .user-profile-btn:hover { background: var(--bg-surface); border-color: var(--primary); box-shadow: var(--shadow-sm); }
 .avatar-small { width: 34px; height: 34px; background: var(--primary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.8rem; }
 
-/* Mobile Menu Setup */
+
 .mobile-toggle { display: none; background: none; border: none; font-size: 24px; color: var(--text-dark); cursor: pointer; transition: 0.2s; }
 .mobile-only-links { display: none; }
 
@@ -528,7 +542,7 @@ label { font-weight: 700; font-size: 0.85rem; color: var(--text-muted); text-tra
 }
 @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
 
-/* ================= HERO SECTION ================= */
+
 .hero { background: linear-gradient(to bottom, var(--hero-bg-top), var(--hero-bg-bottom)); text-align: center; padding: 120px 20px; position: relative; overflow: hidden; transition: background 0.3s; }
 .hero::before { content: ''; position: absolute; top: -50px; right: -50px; width: 300px; height: 300px; background: rgba(245, 158, 11, 0.2); border-radius: 50%; filter: blur(60px); z-index: 0; }
 .hero::after { content: ''; position: absolute; bottom: 0; left: -100px; width: 400px; height: 400px; background: rgba(59, 130, 246, 0.15); border-radius: 50%; filter: blur(80px); z-index: 0; }
@@ -538,7 +552,7 @@ label { font-weight: 700; font-size: 0.85rem; color: var(--text-muted); text-tra
 .hero p { max-width: 650px; margin: 0 auto 40px; font-size: 1.15rem; color: var(--text-muted); line-height: 1.7; }
 .hero-btn-group { display: flex; justify-content: center; gap: 15px; flex-wrap: wrap; margin-top: 20px; }
 
-/* ================= POST-ADOPTION SMART MONITOR ================= */
+
 .monitor-panel { background: var(--bg-surface); border-radius: var(--radius-lg); padding: clamp(25px, 4vw, 40px); box-shadow: var(--shadow-lg); margin-bottom: 50px; position: relative; overflow: hidden; border: 1px solid var(--border-color); }
 .monitor-grid { display: grid; grid-template-columns: 1fr 2fr; gap: 40px; align-items: center; }
 .pet-vital-card { background: var(--bg-main); padding: 25px; border-radius: var(--radius-lg); border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 15px; transition: 0.3s; }
@@ -546,7 +560,7 @@ label { font-weight: 700; font-size: 0.85rem; color: var(--text-muted); text-tra
 .vital-row { display: flex; justify-content: space-between; align-items: center; font-weight: 700; font-size: 0.95rem; color: var(--text-dark); }
 .pulse-dot { height: 12px; width: 12px; background-color: var(--success); border-radius: 50%; display: inline-block; animation: pulse 2s infinite; margin-right: 8px; box-shadow: 0 0 0 rgba(16, 185, 129, 0.4); }
 
-/* ================= COMMUNITY FEED & LOST/FOUND ================= */
+
 .feed-container { max-width: 650px; margin: 0 auto; }
 .feed-input-card { background: var(--bg-surface); border-radius: var(--radius-lg); padding: 25px; box-shadow: var(--shadow); margin-bottom: 30px; border: 1px solid var(--border-color); }
 .feed-input-top { display: flex; align-items: center; gap: 15px; border-bottom: 1px solid var(--border-color); padding-bottom: 20px; }
@@ -563,14 +577,14 @@ label { font-weight: 700; font-size: 0.85rem; color: var(--text-muted); text-tra
 .img-remove-btn { position: absolute; top: -10px; right: -10px; background: var(--danger); color: white; border: none; border-radius: 50%; width: 28px; height: 28px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow); transition: 0.2s; }
 .img-remove-btn:hover { background: #DC2626; transform: scale(1.1); }
 
-/* ================= AVAILABLE PETS & FILTER ================= */
+
 .filter-bar { background: var(--bg-surface); padding: 15px 25px; border-radius: var(--radius-full); display: flex; gap: 15px; align-items: center; box-shadow: var(--shadow); border: 1px solid var(--border-color); margin-bottom: 40px; justify-content: center; flex-wrap: wrap; }
 .filter-bar input, .filter-bar select { padding: 12px 20px; border: 1px solid transparent; border-radius: var(--radius-full); background: var(--bg-main); font-family: inherit; color: var(--text-dark); font-weight: 600; outline: none; min-width: 180px; margin: 0; box-shadow: inset 0 1px 2px rgba(0,0,0,0.02); }
 .filter-bar input:focus, .filter-bar select:focus { border-color: var(--primary); background: var(--bg-surface); }
 .reset-link { color: var(--text-muted); font-size: 0.9rem; cursor: pointer; font-weight: 700; transition: 0.2s; margin-left: 10px; }
 .reset-link:hover { color: var(--danger); }
 
-/* ================= PET CARDS ================= */
+
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 30px; }
 .pet-card { background: var(--bg-surface); border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow); display: flex; flex-direction: column; transition: all 0.3s ease; position: relative; border: 1px solid var(--border-color); }
 .pet-card:hover { transform: translateY(-8px); box-shadow: var(--shadow-hover); border-color: rgba(245, 158, 11, 0.3); }
@@ -588,17 +602,17 @@ label { font-weight: 700; font-size: 0.85rem; color: var(--text-muted); text-tra
 .favorite-btn.active { color: var(--danger); background: var(--danger-light); border: 1px solid #FECACA; }
 .favorite-btn.active i { animation: favoritePop 0.4s ease; }
 
-/* AI Match Badges */
+
 .match-badge { position: absolute; top: 15px; right: 15px; padding: 6px 14px; border-radius: var(--radius-full); font-weight: 800; color: white; font-size: 0.75rem; box-shadow: var(--shadow); z-index: 10; letter-spacing: 0.5px; text-transform: uppercase; }
 .match-score { position: absolute; top: 15px; left: 15px; padding: 6px 14px; border-radius: var(--radius-full); background: rgba(255,255,255,0.95); font-weight: 900; color: #0F172A; font-size: 0.85rem; box-shadow: var(--shadow); z-index: 10; backdrop-filter: blur(4px); }
 
-/* ================= FAVORITES & REMOVE FORM ================= */
+
 .favorite-remove-btn { width: 100%; border: 1px dashed #FECACA; background: var(--danger-light); color: #B91C1C; padding: 12px; border-radius: var(--radius-md); font-family: inherit; font-weight: 800; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 15px; }
 .favorite-remove-btn:hover { background: #FEE2E2; border-style: solid; }
 .favorite-empty { text-align: center; padding: 60px 20px; color: var(--text-muted); background: var(--bg-surface); border-radius: var(--radius-lg); border: 1px dashed var(--border-color); }
 .favorite-empty i { font-size: 50px; color: #FDA4AF; margin-bottom: 20px; }
 
-/* ================= AI PET MATCHER ================= */
+
 .ai-section { background: linear-gradient(135deg, #0F172A, #1E293B); color: white; position: relative; overflow: hidden; padding: 100px 0; }
 .ai-section::before { content:''; position:absolute; width: 500px; height: 500px; background: rgba(59, 130, 246, 0.15); border-radius: 50%; filter: blur(80px); top: -100px; left: -100px; }
 .ai-box { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); padding: 40px; border-radius: var(--radius-lg); max-width: 900px; margin: 0 auto; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); }
@@ -607,31 +621,31 @@ label { font-weight: 700; font-size: 0.85rem; color: var(--text-muted); text-tra
 .ai-box select, .ai-box input { background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 16px; border-radius: var(--radius-md); font-size: 1rem; box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); }
 .ai-box select:focus, .ai-box input:focus { border-color: var(--secondary); box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3); }
 
-/* ================= ABOUT, EVENTS & PROCESS ================= */
+
 .process-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 30px; margin-top: 50px; }
 .process-card { background: var(--bg-surface); padding: 40px 30px; border-radius: var(--radius-lg); text-align: center; box-shadow: var(--shadow); border: 1px solid var(--border-color); transition: 0.3s; }
 .process-card:hover { transform: translateY(-5px); box-shadow: var(--shadow-hover); border-color: var(--primary-light); }
 .process-icon { font-size: 40px; color: var(--primary); margin-bottom: 20px; background: rgba(245, 158, 11, 0.1); width: 80px; height: 80px; line-height: 80px; border-radius: 50%; display: inline-block; }
 
-/* ================= PROFILE & FORMS ================= */
+
 .profile-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 450px), 1fr)); gap: 40px; margin-top: 40px; }
 .form-container { background: var(--bg-surface); padding: clamp(30px, 4vw, 40px); border-radius: var(--radius-lg); box-shadow: var(--shadow); border: 1px solid var(--border-color); }
 .form-container h3 { font-size: 1.4rem; color: var(--text-dark); margin-top: 0; margin-bottom: 25px; padding-bottom: 15px; border-bottom: 2px dashed var(--border-color); display: flex; align-items: center; gap: 10px; }
 .form-group { margin-bottom: 20px; }
 
-/* ================= TABLES ================= */
+
 .history-table { width: 100%; border-collapse: separate; border-spacing: 0; border-radius: var(--radius-md); overflow: hidden; border: 1px solid var(--border-color); }
 .history-table th, .history-table td { padding: 16px 20px; text-align: left; font-size: 0.95rem; }
 .history-table th { background: var(--bg-main); font-weight: 800; color: var(--text-muted); text-transform: uppercase; font-size: 0.8rem; letter-spacing: 0.5px; border-bottom: 1px solid var(--border-color); }
 .history-table td { background: var(--bg-surface); border-bottom: 1px solid var(--border-color); color: var(--text-dark); font-weight: 600; }
 .history-table tr:last-child td { border-bottom: none; }
 
-/* ================= MAP & ROUTING UI ================= */
+
 .map-container-stray { background: var(--bg-surface); padding: 30px; border-radius: var(--radius-lg); box-shadow: var(--shadow); border: 1px solid var(--border-color); }
 #strayMapLive { height: 500px; width: 100%; border-radius: var(--radius-md); margin-top: 20px; border: 1px solid var(--border-color); z-index: 1; }
 #strayMapLive:fullscreen { width: 100vw !important; height: 100vh !important; border-radius: 0 !important; }
 
-/* ================= MODAL STYLES ================= */
+
 .sf-modal-overlay { display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(15, 23, 42, 0.8); backdrop-filter: blur(5px); overflow-y: auto; padding: 40px 0; opacity: 0; transition: opacity 0.3s ease; }
 .sf-modal-overlay.show { opacity: 1; }
 .sf-modal-container { background: var(--bg-surface); width: clamp(300px, 92%, 1000px); margin: auto; border-radius: var(--radius-lg); position: relative; box-shadow: 0 30px 60px rgba(0,0,0,0.5); transform: scale(0.95) translateY(20px); opacity: 0; transition: all 0.3s ease; overflow: hidden; border: 1px solid var(--border-color); }
@@ -641,7 +655,7 @@ label { font-weight: 700; font-size: 0.85rem; color: var(--text-muted); text-tra
 
 .sponsor-amt.active { background: var(--primary); color: white; border-color: var(--primary); }
 
-/* ================= INTRO.JS CUSTOM THEME STYLES ================= */
+
 .introjs-tooltip {
     font-family: 'Nunito', sans-serif !important;
     background: var(--bg-surface) !important;
@@ -691,7 +705,7 @@ label { font-weight: 700; font-size: 0.85rem; color: var(--text-muted); text-tra
 .introjs-arrow.right { border-left-color: var(--bg-surface) !important; }
 .introjs-helperLayer { background-color: rgba(255, 255, 255, 0.1) !important; border-radius: var(--radius-md) !important;}
 
-/* ================= AI THINKING PANEL ================= */
+
 .ai-thinking { margin-top: 25px; padding: 25px; border-radius: var(--radius-lg); background: rgba(15,23,42,0.6); border: 1px solid rgba(96,165,250,0.35); box-shadow: 0 0 30px rgba(99,102,241,0.15) inset; animation: thinkIn .4s ease; }
 .ai-thinking.fade-out { opacity: 0; transform: translateY(-6px); transition: .4s ease; }
 .ai-thinking-head { display: flex; align-items: center; gap: 18px; margin-bottom: 18px; }
@@ -720,29 +734,6 @@ label { font-weight: 700; font-size: 0.85rem; color: var(--text-muted); text-tra
     .monitor-grid, .profile-grid { grid-template-columns: 1fr; } 
     .map-container-stray { padding: 20px; }
 }
-
-/* Guided tour: clear highlighted target and animated directional pointer */
-.client-tour-pointer {
-    position: fixed;
-    z-index: 2147483647;
-    width: 50px;
-    height: 50px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    pointer-events: none;
-    color: #f59e0b;
-    font-size: 40px;
-    filter: drop-shadow(0 2px 2px #111827) drop-shadow(0 0 8px #fff);
-    animation: clientTourBounce 0.85s ease-in-out infinite alternate;
-}
-.client-tour-pointer i { transform: rotate(var(--tour-arrow-angle, 0deg)); }
-@keyframes clientTourBounce { from { translate: 0 0; } to { translate: 0 -7px; } }
-.client-tour-tooltip { max-width: min(400px, 88vw) !important; }
-.client-tour-tooltip .introjs-tooltiptext { line-height: 1.65; }
-.introjs-helperLayer { box-shadow: 0 0 0 5000px rgba(7, 16, 33, 0.72) !important; border: 3px solid #f59e0b !important; }
-@media (max-width: 600px) { .client-tour-pointer { font-size: 30px; width: 42px; height: 42px; } }
-
 </style>
 </head>
 
@@ -750,17 +741,17 @@ label { font-weight: 700; font-size: 0.85rem; color: var(--text-muted); text-tra
 
 <div class="topbar"><span><i class="fas fa-heart"></i></span> Make a difference today. Help us save abandoned paws and find them a home.</div>
 <header class="header" id="navbar">
-    <!-- Logo -->
+    
     <a href="#home" class="logo">
         <div class="logo-icon"><i class="fas fa-paw"></i></div> PetRescue
     </a>
 
-    <!-- Mobile Hamburger Toggle -->
+    
     <button class="mobile-toggle" onclick="toggleMenu()">
         <i class="fas fa-bars"></i>
     </button>
 
-    <!-- Center Navigation Links -->
+    
     <nav class="nav-links" id="navLinks">
         <a href="#home" class="nav-link" onclick="toggleMenu()">Home</a>
         <a href="#pets" class="nav-link" onclick="toggleMenu()">Adopt</a>
@@ -771,10 +762,10 @@ label { font-weight: 700; font-size: 0.85rem; color: var(--text-muted); text-tra
         <a href="#donation-section" class="nav-link" onclick="toggleMenu()"> Donate</a>
         <a href="#report_stray" class="nav-link" onclick="toggleMenu()">Report Stray</a>
         
-        <!-- App Guide Trigger -->
+        
         <a class="nav-link" onclick="startTutorial(); toggleMenu();" style="color: var(--secondary); font-weight: 800; cursor:pointer;"><i class="fas fa-question-circle"></i> Tour</a>
         
-        <!-- These only show inside the mobile menu drawer -->
+        
         <div class="mobile-only-links">
             <button id="theme-toggle-mobile" class="nav-link" style="text-align:left; border:none; background:transparent; width:100%; cursor:pointer;">
                 <i class="fas fa-moon"></i> Toggle Dark Mode
@@ -784,12 +775,12 @@ label { font-weight: 700; font-size: 0.85rem; color: var(--text-muted); text-tra
             <a href="#notifications" class="nav-link" onclick="toggleMenu()"><i class="fas fa-bell"></i> Alerts (<?php echo $unread_notifications; ?>)</a>
             <a href="#donations" class="nav-link" onclick="toggleMenu()"><i class="fas fa-hand-holding-heart"></i> Donations</a>
             <a href="#profile" class="nav-link" onclick="toggleMenu()"><i class="fas fa-user-circle"></i> Profile</a>
-            <a href="/logout.php" class="nav-link" style="color: var(--danger);"><i class="fas fa-sign-out-alt"></i> Logout</a>
+            <a href="?logout=true" class="nav-link" style="color: var(--danger);"><i class="fas fa-sign-out-alt"></i> Logout</a>
             
         </div>
     </nav>
 
-    <!-- Right Utility Icons (Desktop) -->
+    
     <div class="nav-utils">
         <button id="theme-toggle" class="icon-btn" title="Toggle Dark/Light Mode">
             <i class="fas fa-moon"></i>
@@ -803,14 +794,14 @@ label { font-weight: 700; font-size: 0.85rem; color: var(--text-muted); text-tra
             <?php endif; ?>
         </a>
         
-        <a href="/logout.php" class="icon-btn logout-btn" title="Logout">
+        <a href="?logout=true" class="icon-btn logout-btn" title="Logout">
             <i class="fas fa-sign-out-alt"></i>
         </a>
     </div>
 </header>
 
 <main>
-    <!-- ================= HERO SECTION ================= -->
+    
     <section class="hero" id="home">
         <div class="container">
             <h1>Adopt Your <span>Perfect Friend</span> Today</h1>
@@ -824,7 +815,7 @@ label { font-weight: 700; font-size: 0.85rem; color: var(--text-muted); text-tra
         </div>
     </section>
 
-    <!-- ================= POST-ADOPTION SMART MONITOR ================= -->
+    
     <?php if($has_approved_application): ?>
     <section id="smart_monitor" class="bg-white">
         <div class="container">
@@ -878,9 +869,7 @@ label { font-weight: 700; font-size: 0.85rem; color: var(--text-muted); text-tra
     </section>
     <?php endif; ?>
 
-<!-- =========================
-     DONATION QR CODE SECTION
-========================= -->
+
 <section id="donation-section" style="
     background:#ffffff;
     padding:28px;
@@ -954,8 +943,8 @@ label { font-weight: 700; font-size: 0.85rem; color: var(--text-muted); text-tra
         Donations remain pending until reviewed by the admin.
     </p>
 </section>
-<!-- END DONATION QR CODE SECTION --></div>
-    <!-- ================= AVAILABLE PETS ================= -->
+</div>
+    
     <section id="pets" class="bg-white">
         <div class="container">
             <h2 class="section-title text-center">Available Pets</h2>
@@ -1013,7 +1002,7 @@ label { font-weight: 700; font-size: 0.85rem; color: var(--text-muted); text-tra
         </div>
     </section>
 
-    <!-- ================= HAPPY TAILS (SUCCESS STORIES) ================= -->
+    
     <section id="success_stories" class="bg-light">
         <div class="container">
             <h2 class="section-title text-center"><i class="fas fa-award" style="color:var(--primary);"></i> Happy Tails</h2>
@@ -1041,7 +1030,7 @@ label { font-weight: 700; font-size: 0.85rem; color: var(--text-muted); text-tra
         </div>
     </section>
 
-    <!-- ================= MY FAVORITE PETS ================= -->
+    
     <section id="favorites" class="bg-white">
         <div class="container">
             <h2 class="section-title text-center">
@@ -1136,7 +1125,7 @@ label { font-weight: 700; font-size: 0.85rem; color: var(--text-muted); text-tra
         </div>
     </section>
 
-    <!-- ================= AI PET MATCHER (COMBO BOXES - EXPANDED) ================= -->
+    
     <section id="ai_match" class="ai-section">
         <div class="container" style="position: relative; z-index: 2;">
             <div class="text-center">
@@ -1195,7 +1184,7 @@ label { font-weight: 700; font-size: 0.85rem; color: var(--text-muted); text-tra
                         </select>
                     </div>
 
-                    <!-- Added fields based on prompt request -->
+                    
                     <div class="form-group" style="margin-bottom: 0;">
                         <label>Other Pets in Home?</label>
                         <select id="ai-other-pets">
@@ -1226,7 +1215,7 @@ label { font-weight: 700; font-size: 0.85rem; color: var(--text-muted); text-tra
                     <i class="fas fa-magic"></i> Find My Perfect Match via AI
                 </button>
 
-                <!-- AI THINKING PANEL -->
+                
                 <div id="ai-thinking" class="ai-thinking" style="display:none;">
                     <div class="ai-thinking-head">
                         <div class="ai-orb"><i class="fas fa-brain"></i></div>
@@ -1240,12 +1229,12 @@ label { font-weight: 700; font-size: 0.85rem; color: var(--text-muted); text-tra
                 </div>
             </div>
 
-            <!-- AI MATCH RESULTS CONTAINER -->
+            
             <div id="ai-results-container" class="grid" style="margin-top: 50px; display: none;"></div>
         </div>
     </section>
 
-    <!-- ================= COMMUNITY FEED & LOST AND FOUND ================= -->
+    
     <section id="community_feed" class="bg-light">
         <div class="container">
             <h2 class="section-title text-center">Community Board</h2>
@@ -1253,7 +1242,7 @@ label { font-weight: 700; font-size: 0.85rem; color: var(--text-muted); text-tra
             
             <div class="grid" style="grid-template-columns: 2fr 1fr; gap: 40px;" id="lost_found">
                 
-                <!-- Main Feed (Left Side) -->
+                
                 <div>
                     <h3 style="margin-top:0; color:var(--text-dark); display:flex; align-items:center; gap:10px;"><i class="fas fa-comments" style="color:var(--secondary);"></i> Activity Feed</h3>
                     
@@ -1268,7 +1257,7 @@ label { font-weight: 700; font-size: 0.85rem; color: var(--text-muted); text-tra
                             </form>
                         </div>
                         
-                        <!-- Dynamic VISUAL Image Preview & Tag Notifications -->
+                        
                         <div id="attachment-notif" style="padding: 20px 0 0 60px; display: none;">
                             <div style="position: relative; display: inline-block;">
                                 <img id="image-preview" src="" style="max-width: 250px; max-height: 250px; border-radius: var(--radius-md); box-shadow: var(--shadow-sm); object-fit: cover; border: 1px solid var(--border-color);">
@@ -1287,7 +1276,7 @@ label { font-weight: 700; font-size: 0.85rem; color: var(--text-muted); text-tra
                         </div>
                     </div>
 
-                    <!-- POSTS LIST -->
+                    
                     <?php 
                     $fetch_sql = "SELECT * FROM community_posts ORDER BY id DESC";
                     $fetch_res = mysqli_query($conn, $fetch_sql);
@@ -1317,7 +1306,7 @@ label { font-weight: 700; font-size: 0.85rem; color: var(--text-muted); text-tra
                     <?php } } else { echo "<div class='text-center' style='color:var(--text-muted); font-size:1rem; padding:40px; border:1px dashed var(--border-color); border-radius:var(--radius-lg);'>No posts yet. Start the conversation!</div>"; } ?>
                 </div>
 
-                <!-- Lost & Found Sidebar (Right Side) -->
+                
                 <div>
                     <h3 style="margin-top:0; color:var(--text-dark); display:flex; align-items:center; gap:10px;"><i class="fas fa-search-location" style="color:var(--danger);"></i> Lost Pets Alerts</h3>
                     
@@ -1358,7 +1347,7 @@ label { font-weight: 700; font-size: 0.85rem; color: var(--text-muted); text-tra
         </div>
     </section>
 
-    <!-- ================= CLIENT NOTIFICATION CENTER ================= -->
+    
     <section id="notifications" class="bg-white">
         <div class="container">
             <div style="display:flex; justify-content:space-between; align-items:center; gap:20px; flex-wrap:wrap; margin-bottom:35px;">
@@ -1406,7 +1395,7 @@ label { font-weight: 700; font-size: 0.85rem; color: var(--text-muted); text-tra
         </div>
     </section>
 
-    <!-- ================= APPOINTMENT / VISIT BOOKING ================= -->
+    
     <section id="appointments" class="bg-light">
         <div class="container">
             <div class="text-center">
@@ -1496,14 +1485,14 @@ label { font-weight: 700; font-size: 0.85rem; color: var(--text-muted); text-tra
         </div>
     </section>
 
-    <!-- ================= PET CARE CENTER & NAME GENERATOR ================= -->
+    
     <section id="pet_care" class="bg-white">
         <div class="container">
             <h2 class="section-title text-center"><i class="fas fa-book-medical" style="color:var(--success);"></i> Pet Care Center</h2>
             <p class="section-subtitle text-center">Resources and fun tools for responsible pet ownership.</p>
             
             <div class="grid" style="grid-template-columns: 2fr 1fr; gap: 40px; margin-bottom: 50px;" id="name_generator">
-                <!-- Name Generator -->
+                
                 <div class="form-container" style="background: linear-gradient(135deg, var(--primary-light), #FFFFFF);">
                     <h3 style="border-bottom:none; margin-bottom: 10px;"><i class="fas fa-dice" style="color:var(--primary);"></i> Pet Name Generator</h3>
                     <p style="color:var(--text-muted); margin-bottom: 25px;">Need inspiration for your new friend's name? Click below to generate a cute and popular pet name!</p>
@@ -1514,7 +1503,7 @@ label { font-weight: 700; font-size: 0.85rem; color: var(--text-muted); text-tra
                     </div>
                 </div>
 
-                <!-- Fast Care tips -->
+                
                 <div style="display:flex; flex-direction:column; gap: 20px;">
                     <div style="background: rgba(139, 92, 246, 0.1); padding: 20px; border-radius: var(--radius-md); border-left: 4px solid #8B5CF6;">
                         <h4 style="margin:0 0 5px; color:var(--text-dark);"><i class="fas fa-syringe" style="color:#8B5CF6;"></i> Vaccinations</h4>
@@ -1534,7 +1523,7 @@ label { font-weight: 700; font-size: 0.85rem; color: var(--text-muted); text-tra
         </div>
     </section>
 
-    <!-- ================= USER PROFILE, HISTORY & DONATIONS ================= -->
+    
     <section id="profile" class="bg-light">
         <div class="container">
             <h2 class="section-title text-center"><i class="fas fa-user-circle"></i> My Account & History</h2>
@@ -1545,7 +1534,7 @@ label { font-weight: 700; font-size: 0.85rem; color: var(--text-muted); text-tra
             
             <div class="profile-grid">
                 
-                <!-- Profile Settings -->
+                
                 <div class="form-container">
                     <h3><i class="fas fa-user-edit" style="color:var(--primary);"></i> Account Details</h3>
                     <form method="POST" action="">
@@ -1565,7 +1554,7 @@ label { font-weight: 700; font-size: 0.85rem; color: var(--text-muted); text-tra
                     </form>
                 </div>
 
-                <!-- Adoption History -->
+                
                 <div class="form-container" style="overflow-x:auto;">
                     <h3><i class="fas fa-file-alt" style="color:var(--secondary);"></i> Adoption History</h3>
                     <table class="history-table">
@@ -1605,7 +1594,7 @@ label { font-weight: 700; font-size: 0.85rem; color: var(--text-muted); text-tra
                     </table>
                 </div>
 
-                <!-- Donation & Sponsorship History -->
+                
                 <div class="form-container" style="overflow-x:auto;" id="donations">
                     <h3><i class="fas fa-hand-holding-heart" style="color:var(--danger);"></i> My Sponsorships & Donations</h3>
                     <table class="history-table">
@@ -1633,7 +1622,7 @@ label { font-weight: 700; font-size: 0.85rem; color: var(--text-muted); text-tra
                     </table>
                 </div>
 
-                <!-- Rescue Reports History -->
+                
                 <div class="form-container" style="overflow-x:auto;">
                     <h3><i class="fas fa-ambulance" style="color:var(--primary);"></i> My Rescue Reports</h3>
                     <table class="history-table">
@@ -1677,7 +1666,7 @@ label { font-weight: 700; font-size: 0.85rem; color: var(--text-muted); text-tra
         </div>
     </section>
 
-    <!-- ================= REPORT STRAY & LIVE MAP SECTION ================= -->
+    
     <section id="report_stray" class="bg-white">
         <div class="container">
             <h2 class="section-title text-center"><i class="fas fa-camera" style="color:var(--primary);"></i> Report an Emergency Stray</h2>
@@ -1686,7 +1675,7 @@ label { font-weight: 700; font-size: 0.85rem; color: var(--text-muted); text-tra
             <?php if($stray_success) echo "<div class='alert alert-success'><i class='fas fa-check-circle'></i> $stray_success</div>"; ?>
             
             <div class="profile-grid">
-                <!-- FORM -->
+                
                 <div class="form-container">
                     <h3><i class="fas fa-exclamation-triangle" style="color:var(--danger);"></i> Submit Details</h3>
                     <form method="POST" enctype="multipart/form-data" action="">
@@ -1713,7 +1702,7 @@ label { font-weight: 700; font-size: 0.85rem; color: var(--text-muted); text-tra
                     </form>
                 </div>
 
-                <!-- LIVE MAP -->
+                
                 <div class="map-container-stray">
                     <h3 style="margin-top:0; font-size: 1.4rem; display:flex; align-items:center; gap:10px; color: var(--text-dark); border-bottom: 2px dashed var(--border-color); padding-bottom: 15px; margin-bottom: 15px;"><i class="fas fa-map-marked-alt" style="color:var(--secondary);"></i> Live Tracking Map</h3>
                     <p style="font-size:0.95rem; color:var(--text-muted); margin-bottom:0;">Click the reported pin on the map to generate the fastest route.</p>
@@ -1725,7 +1714,7 @@ label { font-weight: 700; font-size: 0.85rem; color: var(--text-muted); text-tra
 
 </main>
 
-<!-- ================= FOOTER ================= -->
+
 <div class="footer" style="background: #0F172A; color: #94A3B8; padding: clamp(60px, 8vw, 100px) 20px 40px;">
     <div class="container" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 40px;">
         <div>
@@ -1753,7 +1742,7 @@ label { font-weight: 700; font-size: 0.85rem; color: var(--text-muted); text-tra
     <div style="text-align:center; margin-top:80px; padding-top:30px; border-top:1px solid rgba(255,255,255,0.1); font-size: 0.9rem;">© <?php echo date("Y"); ?> Pet Rescue Platform. All rights reserved.</div>
 </div>
 
-<!-- ================= FULL-SCREEN SALESFORCE MODAL (EXPANDED INFO) ================= -->
+
 <div id="sfModal" class="sf-modal-overlay">
     <div class="sf-modal-container">
         <span class="sf-modal-close" onclick="closeSFModal()">&times;</span>
@@ -1765,7 +1754,7 @@ label { font-weight: 700; font-size: 0.85rem; color: var(--text-muted); text-tra
                 
                 <div style="flex:1; min-width:280px;">
                     
-                    <!-- Expanded Details Grid -->
+                    
                     <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap:15px; margin-bottom: 20px;">
                         <div style="background:var(--bg-main); padding:15px; border-radius:var(--radius-md); border:1px solid var(--border-color);">
                             <label style="font-size:0.75rem; color:var(--text-muted); font-weight:800; text-transform:uppercase; letter-spacing: 0.5px;">Breed</label>
@@ -1793,7 +1782,7 @@ label { font-weight: 700; font-size: 0.85rem; color: var(--text-muted); text-tra
                         </div>
                     </div>
                     
-                    <!-- Health status generic row -->
+                    
                     <div style="display:flex; gap:10px; margin-bottom: 25px; flex-wrap:wrap;">
                         <span class="badge badge-success"><i class="fas fa-syringe"></i> Vaccinated</span>
                         <span class="badge badge-success"><i class="fas fa-heartbeat"></i> Vet Checked</span>
@@ -1807,7 +1796,7 @@ label { font-weight: 700; font-size: 0.85rem; color: var(--text-muted); text-tra
                 </div>
             </div>
 
-            <!-- ADOPTION FORM -->
+            
             <div style="margin-top: 40px; border-top: 2px dashed var(--border-color); padding-top: 40px;">
                 <h3 style="font-size: 1.6rem; font-weight: 900; margin-top: 0; margin-bottom: 25px; color: var(--text-dark);"><i class="fas fa-clipboard-check" style="color: var(--primary);"></i> Finalize Adoption Request</h3>
                 <form method="POST" action="">
@@ -1835,7 +1824,7 @@ label { font-weight: 700; font-size: 0.85rem; color: var(--text-muted); text-tra
     </div>
 </div>
 
-<!-- ================= SPONSORSHIP MODAL ================= -->
+
 <div id="sponsorModal" class="sf-modal-overlay">
     <div class="sf-modal-container" style="max-width: 500px;">
         <span class="sf-modal-close" onclick="closeSponsorModal()">&times;</span>
@@ -1862,14 +1851,14 @@ label { font-weight: 700; font-size: 0.85rem; color: var(--text-muted); text-tra
     </div>
 </div>
 
-<!-- SCRIPTS -->
+
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
-<!-- Intro.js Script for the Smart Highlight Tour -->
+
 <script src="https://cdn.jsdelivr.net/npm/intro.js@7.2.0/intro.min.js"></script>
 
 <script>
-    // ================= LIGHT / DARK MODE HANDLER ================= 
+
     const themeBtn = document.getElementById('theme-toggle');
     const themeBtnMobile = document.getElementById('theme-toggle-mobile');
     
@@ -1883,7 +1872,7 @@ label { font-weight: 700; font-size: 0.85rem; color: var(--text-muted); text-tra
         }
     }
     
-    // Initial UI sync
+
     updateThemeUI(document.documentElement.getAttribute('data-theme'));
 
     function toggleTheme() {
@@ -1898,7 +1887,7 @@ label { font-weight: 700; font-size: 0.85rem; color: var(--text-muted); text-tra
     themeBtn.addEventListener('click', toggleTheme);
     themeBtnMobile.addEventListener('click', toggleTheme);
 
-    // Mobile Hamburger Menu Toggle
+
     function toggleMenu() {
         const nav = document.getElementById('navLinks');
         nav.classList.toggle('active');
@@ -1910,144 +1899,102 @@ label { font-weight: 700; font-size: 0.85rem; color: var(--text-muted); text-tra
         window.addEventListener('load', () => { document.getElementById('pets').scrollIntoView({behavior: 'smooth', block: 'start'}); });
     <?php endif; ?>
 
-    // ================= INTERACTIVE CLIENT DASHBOARD GUIDED TOUR =================
-    let clientTourActive = false;
-    let clientTourArrow = null;
-    let clientTourTarget = null;
-    let clientTourResizeHandler = null;
 
     window.addEventListener('DOMContentLoaded', () => {
-        const seen = <?php echo (int)$tutorial_seen; ?>;
-        if (seen === 0) {
-            window.setTimeout(() => startTutorial(), 1200);
+        let dbTutorialSeen = <?php echo $tutorial_seen; ?>;
+
+        if (dbTutorialSeen === 0) {
+            setTimeout(startTutorial, 1000);
         }
     });
 
-    function positionClientTourArrow() {
-        if (!clientTourArrow || !clientTourTarget) return;
-        const rect = clientTourTarget.getBoundingClientRect();
-        if (!rect.width || !rect.height) {
-            clientTourArrow.style.display = 'none';
-            return;
-        }
-        clientTourArrow.style.display = 'flex';
-        const margin = 68;
-        const vw = window.innerWidth;
-        const vh = window.innerHeight;
-        let x, y, angle;
-        if (rect.right + margin < vw) {
-            x = rect.right + 14;
-            y = rect.top + rect.height / 2 - 25;
-            angle = 180; // points left to highlighted feature
-        } else if (rect.left > margin) {
-            x = rect.left - 64;
-            y = rect.top + rect.height / 2 - 25;
-            angle = 0; // points right to highlighted feature
-        } else if (rect.bottom + margin < vh) {
-            x = rect.left + rect.width / 2 - 25;
-            y = rect.bottom + 10;
-            angle = -90; // points up
-        } else {
-            x = rect.left + rect.width / 2 - 25;
-            y = rect.top - 60;
-            angle = 90; // points down
-        }
-        x = Math.max(8, Math.min(vw - 58, x));
-        y = Math.max(8, Math.min(vh - 58, y));
-        clientTourArrow.style.left = x + 'px';
-        clientTourArrow.style.top = y + 'px';
-        clientTourArrow.style.setProperty('--tour-arrow-angle', angle + 'deg');
-    }
-
-    function showClientTourArrow(element) {
-        clientTourTarget = element || null;
-        if (!clientTourArrow) {
-            clientTourArrow = document.createElement('div');
-            clientTourArrow.className = 'client-tour-pointer';
-            clientTourArrow.setAttribute('aria-hidden', 'true');
-            clientTourArrow.innerHTML = '<i class="fas fa-long-arrow-alt-right"></i>';
-            document.body.appendChild(clientTourArrow);
-        }
-        positionClientTourArrow();
-        window.setTimeout(positionClientTourArrow, 350);
-        window.setTimeout(positionClientTourArrow, 700);
-    }
-
-    function cleanupClientTour() {
-        clientTourActive = false;
-        clientTourTarget = null;
-        if (clientTourArrow) {
-            clientTourArrow.remove();
-            clientTourArrow = null;
-        }
-        if (clientTourResizeHandler) {
-            window.removeEventListener('resize', clientTourResizeHandler);
-            window.removeEventListener('scroll', clientTourResizeHandler, true);
-            clientTourResizeHandler = null;
-        }
-    }
-
     function startTutorial() {
-        if (clientTourActive) return;
-        if (typeof introJs !== 'function') {
-            alert('The interactive guide could not load. Check your internet connection and try again.');
-            return;
-        }
-        const features = [
-            { selector: '#navbar', title: '🧭 Navigation Menu', intro: 'Use the menu to jump to Adopt, Community, AI Match, Donate, and Report Stray. On a phone, open the hamburger menu first.' },
-            { selector: '#pets .pet-card', fallback: '#pets', title: '🐾 Browse Available Pets', intro: 'Look at each pet card. Open a pet profile to read its details and begin an adoption application. Tap the heart to add a pet to Favorites.' },
-            { selector: '#favorites', title: '❤️ Saved Favorites', intro: 'Pets you saved with the heart button appear here. You can review them or remove them from your favorites.' },
-            { selector: '#ai_match .ai-box', fallback: '#ai_match', title: '🧠 AI Pet Matching', intro: 'Choose your living situation and preferences in the matching form, then run the matcher to see recommended pets.' },
-            { selector: '#community_feed .feed-input-card', fallback: '#community_feed', title: '💬 Community Posts', intro: 'Write a post here, optionally add a photo and location, then submit to share it with the community.' },
-            { selector: '#lost_found', title: '🔎 Lost and Found', intro: 'Use this area to share missing-pet alerts and check community reports. Enter details and attach a photo when available.' },
-            { selector: '#appointments', title: '📅 Adoption Appointments', intro: 'Request a visit by choosing a pet, date, time, and purpose. Track the appointment status here after submitting.' },
-            { selector: '#notifications', title: '🔔 Notifications', intro: 'Read updates about your adoption requests and appointments. You can mark notifications as read.' },
-            { selector: '#donation-section', title: '💛 Donations and Sponsorship', intro: 'Follow the donation instructions displayed here. Check the payment and confirmation information before submitting.' },
-            { selector: '#report_stray .form-container', fallback: '#report_stray', title: '🚑 Report a Stray Animal', intro: 'Enter the location and description, attach a photo if possible, and use the map or location control to help the rescue team locate the animal.' },
-            { selector: '#profile', title: '👤 Your Profile', intro: 'Visit your profile to review your adoption activity and account information.' },
-            { selector: '.nav-utils .logout-btn', fallback: '#navbar', title: '🚪 Log Out Safely', intro: 'When finished, use Logout to end your session. On mobile, the Logout link is in the navigation menu.' }
-        ];
-        const steps = [{ title: '👋 Welcome to Pet Rescue!', intro: 'This interactive walkthrough highlights each important part of your client dashboard. Follow the glowing arrow and click Next to learn how to use the system.' }];
-        features.forEach(feature => {
-            const element = document.querySelector(feature.selector) || (feature.fallback ? document.querySelector(feature.fallback) : null);
-            if (element) steps.push({ element, title: feature.title, intro: feature.intro, position: 'auto' });
-        });
-        steps.push({ title: '🎉 You are ready!', intro: 'You now know how to explore pets, use AI Match, post to the community, request appointments, donate, report strays, and check your profile. You can replay this guide anytime from Tour in the menu.' });
-
         const intro = introJs();
-        clientTourActive = true;
-        clientTourResizeHandler = () => window.requestAnimationFrame(positionClientTourArrow);
-        window.addEventListener('resize', clientTourResizeHandler);
-        window.addEventListener('scroll', clientTourResizeHandler, true);
         intro.setOptions({
-            steps,
+            steps: [
+                {
+                    title: "👋 Welcome to Pet Rescue, <?php echo addslashes($first_name); ?>!",
+                    intro: "We are thrilled to have you here. Let's take a comprehensive tour of your new dashboard so you know exactly how to find your perfect pet, use our AI tools, and report emergencies. Click 'Next' to begin!"
+                },
+                {
+                    element: document.querySelector('#navbar'),
+                    title: "🧭 Main Navigation",
+                    intro: "This is your control center. Use these links to quickly jump to different sections like Adoption, Community, or AI Match. On mobile devices, tap the menu icon.",
+                    position: "bottom"
+                },
+                {
+                    element: document.querySelector('#pets .grid'),
+                    title: "🐶 Find Your New Best Friend",
+                    intro: "Browse all our available rescues here. Click 'View Full Profile' to see detailed medical and behavior info, or click the heart icon to save them for later.",
+                    position: "top"
+                },
+                {
+                    element: document.querySelector('#ai_match .ai-box'),
+                    title: "🧠 Neural Pet Matcher",
+                    intro: "Want the perfect recommendation? Select your living space, experience level, and other lifestyle preferences from these dropdowns. Our AI will analyze the entire database and match you with the absolute best pets for your situation.",
+                    position: "auto"
+                },
+                {
+                    element: document.querySelector('#community_feed .feed-input-card'),
+                    title: "💬 Community Board",
+                    intro: "Join our active community! Share updates about your adopted pets, ask for advice, or post cute photos. You can even tag your location.",
+                    position: "bottom"
+                },
+                {
+                    element: document.querySelector('#lost_found > div:last-child > .form-container'),
+                    title: "🔍 Lost & Found Alerts",
+                    intro: "If you lose a pet or find a stray, post an alert right here. It instantly notifies the community to keep an eye out and help reunite families.",
+                    position: "left"
+                },
+                {
+                    element: document.querySelector('#appointments'),
+                    title: "📅 Schedule a Visit",
+                    intro: "Found a pet you like? Request a Meet & Greet or Adoption Interview here. Select the pet, pick a date and time, and we'll prepare for your visit.",
+                    position: "top"
+                },
+                {
+                    element: document.querySelector('#pet_care'),
+                    title: "🩺 Pet Care & Fun Tools",
+                    intro: "Check out our fast care tips for keeping your pet healthy. Stuck on a name? Try our Pet Name Generator for some cute and popular ideas!",
+                    position: "top"
+                },
+                {
+                    element: document.querySelector('#report_stray .form-container'),
+                    title: "🚑 Emergency Stray Report",
+                    intro: "This is a critical tool. If you see an animal in immediate danger, upload a photo, use the 'Get My Location' button to lock your GPS, and submit. Our live map will route a rescue van to you.",
+                    position: "right"
+                },
+                {
+                    element: document.querySelector('#tour-profile-btn'),
+                    title: "👤 Your Profile Hub",
+                    intro: "Finally, click your Profile button anytime to check your unread alerts, view saved favorites, manage your adoption history, and track your donations. You are all set to start saving lives!",
+                    position: "left"
+                }
+            ],
             showProgress: true,
-            showStepNumbers: true,
             showBullets: false,
             exitOnOverlayClick: false,
             disableInteraction: true,
-            scrollToElement: true,
-            scrollTo: 'element',
-            scrollPadding: 140,
-            nextLabel: 'Next →',
-            prevLabel: '← Back',
-            doneLabel: 'Finish ✓',
-            tooltipClass: 'client-tour-tooltip'
+            nextLabel: 'Next <i class="fas fa-arrow-right" style="font-size:12px;"></i>',
+            prevLabel: '<i class="fas fa-arrow-left" style="font-size:12px;"></i> Back',
+            doneLabel: 'Get Started <i class="fas fa-rocket"></i>',
+            scrollTo: 'tooltip', // This ensures the TOOLTIP is visible, not just the element top
+            scrollPadding: 150 
         });
-        intro.onafterchange(function(target) { showClientTourArrow(target); });
-        intro.oncomplete(function() { cleanupClientTour(); markTutorialDone(); });
-        intro.onexit(function() { cleanupClientTour(); markTutorialDone(); });
+
+        intro.oncomplete(markTutorialDone);
+        intro.onexit(markTutorialDone);
         intro.start();
     }
 
     function markTutorialDone() {
-        const formData = new FormData();
+
+        let formData = new FormData();
         formData.append('mark_tutorial_seen', '1');
-        fetch(window.location.pathname, { method: 'POST', body: formData, credentials: 'same-origin' })
-            .catch(error => console.warn('Tutorial progress could not be saved:', error));
+        fetch('', { method: 'POST', body: formData });
     }
 
-    // Adoption Modal Logic - Updated for expanded info
+
     const sfModal = document.getElementById("sfModal");
     function openSFModal(id, name, breed, age, gender, size, temp, activity, traits, image) {
         document.getElementById("sf-pet-id").value = id; 
@@ -2076,7 +2023,7 @@ label { font-weight: 700; font-size: 0.85rem; color: var(--text-muted); text-tra
         setTimeout(() => sfModal.style.display = "none", 300); 
     }
 
-    // Sponsorship Modal Logic
+
     const sponsorModal = document.getElementById("sponsorModal");
     function openSponsorModal(petName) {
         document.getElementById("sponsor-pet-display").innerText = petName;
@@ -2104,7 +2051,7 @@ label { font-weight: 700; font-size: 0.85rem; color: var(--text-muted); text-tra
         }
     }
 
-    // Name Generator Logic
+
     function generatePetName() {
         const names = [
             "Bella", "Luna", "Charlie", "Lucy", "Cooper", "Max", "Bailey", "Daisy", 
@@ -2118,7 +2065,7 @@ label { font-weight: 700; font-size: 0.85rem; color: var(--text-muted); text-tra
         setTimeout(() => { document.getElementById("generated-name").style.transform = "scale(1)"; }, 200);
     }
 
-    // Feed Image Preview
+
     function showImagePreview(input) {
         if (input.files && input.files[0]) {
             var reader = new FileReader();
@@ -2136,7 +2083,7 @@ label { font-weight: 700; font-size: 0.85rem; color: var(--text-muted); text-tra
         document.getElementById('attachment-notif').style.display = 'none'; 
     }
 
-    // Community Location
+
     function getCommunityLocation() {
         if (navigator.geolocation) {
             document.getElementById('location-name-text').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Tagging...';
@@ -2157,7 +2104,7 @@ label { font-weight: 700; font-size: 0.85rem; color: var(--text-muted); text-tra
         }
     }
 
-    // MAP LOGIC
+
     var map = L.map('strayMapLive').setView([14.35, 121.05], 13);
     L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', { attribution: 'Tiles &copy; Esri' }).addTo(map);
 
@@ -2250,14 +2197,14 @@ label { font-weight: 700; font-size: 0.85rem; color: var(--text-muted); text-tra
 
 <script>
 const petsData = <?php echo isset($pets_json_data) ? $pets_json_data : '[]'; ?>;
-const AI_API_URL = "http://127.0.0.1:5000/predict";
+const AI_API_URL = "https://python-ai-production-0d406cb6.up.railway.app/predict";
 
 function escapeHTML(value) {
     if (value === null || value === undefined) { return ""; }
     return String(value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
 }
 
-/* ================= FIXED: SPECIES DETECTION (breed first) ================= */
+
 function determinePetSpecies(pet) {
     const dogWords = ["dog","puppy","canine","aspin","retriever","husky","beagle","poodle","bulldog","chihuahua","pug","corgi","terrier","labrador","shepherd","rottweiler","shih tzu","dachshund","dalmatian","pomeranian","maltese","samoyed","akita","doberman","boxer","collie","golden"];
     const catWords = ["cat","kitten","feline","puspin","tabby","siamese","persian","ragdoll","sphynx","shorthair","longhair","maine coon","bengal","munchkin","scottish fold","russian blue","birman","burmese","calico"];
@@ -2273,16 +2220,16 @@ function determinePetSpecies(pet) {
         return null;
     };
 
-    // 1) Breed is the most reliable
+
     let result = detect(pet.breed);
     if (result) return result;
 
-    // 2) Database species column
+
     const dbSpecies = String(pet.species || "").trim().toLowerCase();
     if (/^(dog|dogs|puppy|puppies|canine)$/.test(dbSpecies)) return "dog";
     if (/^(cat|cats|kitten|kittens|feline)$/.test(dbSpecies)) return "cat";
 
-    // 3) Description / traits / name
+
     return detect([pet.name, pet.safe_traits, pet.characteristics, pet.description].join(" ")) || "unknown";
 }
 
@@ -2316,7 +2263,7 @@ function analyzeUserPrompt(prompt) {
     return { species, living_space, children, experience, activity, temperament };
 }
 
-/* ================= FIXED: PAYLOAD KEYS NOW MATCH predict_api.py ================= */
+
 async function askTrainedAI(adopterData, pet) {
     const payload = {
         adopter_living_space: adopterData.living_space,
@@ -2346,7 +2293,7 @@ function getMatchStyle(score) {
     return { color: "#3B82F6", label: "Good Match" };
 }
 
-/* ================= AI THINKING ANIMATION ================= */
+
 const AI_STEPS = [
     "Reading your lifestyle profile",
     "Understanding your living space & schedule",
@@ -2383,7 +2330,7 @@ function startThinking() {
     renderAiSteps();
     aiStepIndex = 0;
     clearInterval(aiStepTimer);
-    // Auto-advance the first 3 steps; the rest follow real progress
+
     aiStepTimer = setInterval(() => {
         if (aiStepIndex < 2) { aiStepIndex++; setAiStep(aiStepIndex); }
     }, 1200);
@@ -2402,7 +2349,7 @@ async function finishThinking() {
     document.getElementById("ai-thinking-sub").innerText = "Ranking the best matches…";
     setAiStep(5);
     await sleep(700);
-    setAiStep(AI_STEPS.length);              // marks everything done
+    setAiStep(AI_STEPS.length);
     document.getElementById("ai-progress-bar").style.width = "100%";
     document.getElementById("ai-thinking-sub").innerText = "Done!";
     await sleep(600);
@@ -2420,10 +2367,10 @@ function stopThinking(animate) {
     }
 }
 
-// AI Match Button Click Listener
+
 document.getElementById("btn-run-ai").addEventListener("click", async function() {
 
-    // BUILD PROMPT FROM COMBO BOXES
+
     const uiSpecies = document.getElementById("ai-species").value;
     const uiLiving = document.getElementById("ai-living").value;
     const uiActivity = document.getElementById("ai-activity").value;
@@ -2460,10 +2407,10 @@ document.getElementById("btn-run-ai").addEventListener("click", async function()
     startThinking();
 
     try {
-        const healthCheck = await fetch("http://127.0.0.1:5000/");
+        const healthCheck = await fetch("https://python-ai-production-0d406cb6.up.railway.app/");
         if (!healthCheck.ok) { throw new Error("AI server is not responding."); }
 
-        /* ===== FIXED: use dropdown values directly instead of regex guessing ===== */
+
         const activityMap = { Calm: "Low", Moderate: "Medium", Active: "High" };
         const tempMap = { Calm: "Calm", Moderate: "Friendly", Active: "Active" };
 
@@ -2485,7 +2432,7 @@ document.getElementById("btn-run-ai").addEventListener("click", async function()
         const matches = [];
         for (const [idx, pet] of candidatePets.entries()) {
             setThinkingProgress(idx, candidatePets.length, pet.name);
-            await sleep(250); // small pause so each pet is visibly "considered"
+            await sleep(250);
             try {
                 const aiResult = await askTrainedAI(adopter, pet);
                 if (!aiResult.success) { continue; }
@@ -2498,7 +2445,7 @@ document.getElementById("btn-run-ai").addEventListener("click", async function()
                 if (wantsSmall && petSize === "small") { score += 5; }
                 if (wantsLarge && petSize === "large") { score += 5; }
 
-                // Time away adjustments
+
                 if (uiTimeAway === "High" && (pet.activity_level === "High" || pet.activity_level === "Active")) { score -= 15; }
                 if (uiTimeAway === "High" && pet.temperament === "Calm") { score += 5; }
 
@@ -2526,7 +2473,7 @@ document.getElementById("btn-run-ai").addEventListener("click", async function()
             } catch (petError) { console.error("AI error for pet:", pet.name, petError); }
         }
 
-        // Guarantee a minimum "thinking" time of ~3.5s
+
         const elapsed = Date.now() - thinkStart;
         if (elapsed < 3500) await sleep(3500 - elapsed);
         await finishThinking();
@@ -2614,7 +2561,7 @@ document.getElementById("btn-run-ai").addEventListener("click", async function()
         status.style.borderColor = "#EF4444";
         status.style.color = "#FCA5A5";
         status.innerHTML = `<i class="fas fa-exclamation-triangle"></i> AI server is unavailable.`;
-        alert("Can't Connect to the AI Server.\n\nPlease Try Again Later, Or try checking if the following is running:\n\npython predict_api.py");
+        alert("Unable to reach the Railway AI service. Please try again later.");
     } finally {
         stopThinking(false);
         btn.disabled = false; btn.style.opacity = "1";
@@ -2628,7 +2575,7 @@ function petSpeciesLabel(species) {
     return "🐾 Pet compatibility analyzed";
 }
 
-/* ================= FAVORITES UI ================= */
+
 document.addEventListener("DOMContentLoaded", function () {
     const favoriteButtons = document.querySelectorAll(".favorite-btn");
     favoriteButtons.forEach(function (button) {
