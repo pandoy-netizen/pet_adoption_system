@@ -454,6 +454,100 @@ foreach (['profile_photo' => 'VARCHAR(255) DEFAULT NULL', 'phone' => 'VARCHAR(30
     }
 }
 
+
+if (empty($_SESSION['user_id']) || strtolower((string)($_SESSION['role'] ?? '')) !== 'admin') {
+    header('Location: login.php');
+    exit;
+}
+
+$adminId = (int)$_SESSION['user_id'];
+$adminProfileMessage = '';
+$adminProfileError = '';
+$adminNameColumn = $u_name_field === 'username' ? 'username' : 'name';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_admin_profile'])) {
+    if (!hash_equals((string)($_SESSION['admin_profile_csrf'] ?? ''), (string)($_POST['admin_profile_csrf'] ?? ''))) {
+        $adminProfileError = 'Your session expired. Refresh the page and try again.';
+    } else {
+        $newName = trim((string)($_POST['admin_profile_name'] ?? ''));
+        $newPhone = trim((string)($_POST['admin_profile_phone'] ?? ''));
+        $newBio = trim((string)($_POST['admin_profile_bio'] ?? ''));
+        if ($newName === '' || mb_strlen($newName) > 100 || mb_strlen($newPhone) > 30 || mb_strlen($newBio) > 1000) {
+            $adminProfileError = 'Please enter a valid name, phone number and short bio.';
+        } else {
+            $newPhoto = null;
+            if (isset($_FILES['admin_profile_photo']) && $_FILES['admin_profile_photo']['error'] !== UPLOAD_ERR_NO_FILE) {
+                $upload = $_FILES['admin_profile_photo'];
+                if ($upload['error'] !== UPLOAD_ERR_OK || $upload['size'] > 2 * 1024 * 1024) {
+                    $adminProfileError = 'Profile image must be smaller than 2 MB.';
+                } else {
+                    $finfo = new finfo(FILEINFO_MIME_TYPE);
+                    $mime = $finfo->file($upload['tmp_name']);
+                    $extensions = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
+                    if (!isset($extensions[$mime])) {
+                        $adminProfileError = 'Only JPG, PNG and WebP images are allowed.';
+                    } else {
+                        $dir = __DIR__ . '/uploads/admin_profiles';
+                        if (!is_dir($dir) && !mkdir($dir, 0755, true)) {
+                            $adminProfileError = 'Could not create the profile photo folder.';
+                        } else {
+                            $filename = 'admin_' . $adminId . '_' . bin2hex(random_bytes(8)) . '.' . $extensions[$mime];
+                            if (move_uploaded_file($upload['tmp_name'], $dir . '/' . $filename)) {
+                                $newPhoto = 'uploads/admin_profiles/' . $filename;
+                            } else {
+                                $adminProfileError = 'Could not save the profile photo.';
+                            }
+                        }
+                    }
+                }
+            }
+            if ($adminProfileError === '') {
+                try {
+                    if ($newPhoto !== null) {
+                        $update = $conn->prepare("UPDATE users SET `$adminNameColumn`=?, phone=?, bio=?, profile_photo=? WHERE id=? AND LOWER(role)='admin'");
+                        $update->bind_param('ssssi', $newName, $newPhone, $newBio, $newPhoto, $adminId);
+                    } else {
+                        $update = $conn->prepare("UPDATE users SET `$adminNameColumn`=?, phone=?, bio=? WHERE id=? AND LOWER(role)='admin'");
+                        $update->bind_param('sssi', $newName, $newPhone, $newBio, $adminId);
+                    }
+                    $update->execute();
+                    $update->close();
+                    $_SESSION['name'] = $newName;
+                    header('Location: admin_dashboard.php?tab=' . urlencode($activeTab) . '&profile_saved=1');
+                    exit;
+                } catch (Throwable $e) {
+                    error_log('Admin profile save: ' . $e->getMessage());
+                    $adminProfileError = 'Unable to update profile. Please try again.';
+                }
+            }
+        }
+    }
+}
+
+if (empty($_SESSION['admin_profile_csrf'])) {
+    $_SESSION['admin_profile_csrf'] = bin2hex(random_bytes(32));
+}
+$adminProfile = ['display_name' => $_SESSION['name'] ?? 'Administrator', 'email' => $_SESSION['email'] ?? '', 'phone' => '', 'bio' => '', 'profile_photo' => ''];
+try {
+    $adminQuery = $conn->prepare("SELECT `$adminNameColumn` AS display_name, email, phone, bio, profile_photo FROM users WHERE id=? AND LOWER(role)='admin' LIMIT 1");
+    $adminQuery->bind_param('i', $adminId);
+    $adminQuery->execute();
+    $adminRecord = $adminQuery->get_result()->fetch_assoc();
+    $adminQuery->close();
+    if (!$adminRecord) {
+        header('Location: login.php');
+        exit;
+    }
+    $adminProfile = $adminRecord;
+} catch (Throwable $e) {
+    error_log('Admin profile load: ' . $e->getMessage());
+}
+$adminDisplayName = trim((string)($adminProfile['display_name'] ?? '')) ?: 'Administrator';
+$adminInitials = strtoupper(substr($adminDisplayName, 0, 1));
+$adminPhoto = trim((string)($adminProfile['profile_photo'] ?? ''));
+if ($adminPhoto && !preg_match('~^uploads/[a-zA-Z0-9_./-]+$~', $adminPhoto)) $adminPhoto = '';
+$adminEscape = static function ($value) { return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8'); };
+
 /* USER ACTIONS (ADD, EDIT, DELETE) */
 
 if (isset($_POST['add_user'])) {
@@ -2146,6 +2240,19 @@ if ($hq) {
 .application-identity-details strong{color:var(--primary)}
 .application-pet-photo{width:62px;height:62px;border-radius:14px}
 @media(max-width:420px){.application-identity{gap:10px}.application-avatar{width:54px;height:54px}.application-pet-photo{width:50px;height:50px}}
+
+.admin-nav-avatar{overflow:hidden;flex-shrink:0}.admin-nav-avatar img{width:100%;height:100%;object-fit:cover}
+.admin-nav-name{max-width:130px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.admin-profile-overlay{display:none;position:fixed;inset:0;background:rgba(2,6,23,.72);z-index:9999;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(5px)}
+.admin-profile-overlay.is-open{display:flex}
+.admin-profile-panel{width:min(100%,510px);max-height:90vh;overflow:auto;background:var(--bg-surface);color:var(--text-dark);border:1px solid var(--border-color);border-radius:22px;box-shadow:0 22px 65px rgba(0,0,0,.35);padding:26px;position:relative}
+.admin-profile-header{display:flex;align-items:center;gap:18px;padding-bottom:20px;border-bottom:1px solid var(--border-color);margin-bottom:20px}
+.admin-profile-photo{width:82px;height:82px;flex-shrink:0;border-radius:50%;background:linear-gradient(135deg,#f59e0b,#d97706);display:flex;align-items:center;justify-content:center;color:white;font-size:32px;font-weight:900;overflow:hidden}
+.admin-profile-photo img{width:100%;height:100%;object-fit:cover}
+.admin-profile-header h2{margin:0 0 5px;font-size:1.35rem;overflow-wrap:anywhere}.admin-profile-header p{margin:0;color:var(--text-muted);overflow-wrap:anywhere;font-size:.85rem}
+.admin-profile-close{position:absolute;right:14px;top:12px;background:transparent;border:0;color:var(--text-muted);font-size:24px;cursor:pointer}
+.admin-profile-panel label{margin:0 0 6px}.admin-profile-panel input,.admin-profile-panel textarea{margin:0 0 16px}.admin-profile-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.admin-profile-actions .btn{flex:1}.admin-profile-hint{font-size:.8rem;color:var(--text-muted);margin:-7px 0 16px}.admin-profile-notice{padding:12px 16px;border-radius:12px;margin:12px auto;max-width:1000px;background:var(--badge-danger-bg);color:var(--badge-danger-text)}
+@media(max-width:520px){.admin-profile-panel{padding:22px 16px}.admin-profile-header{gap:12px}.admin-profile-photo{width:64px;height:64px}}
 </style>
 <style>
 .pet-card-img-wrap:has(.rescue-photo-placeholder){position:relative;background:linear-gradient(135deg,#172b45,#263e56);overflow:hidden}
@@ -2260,6 +2367,7 @@ if ($hq) {
 
         <!-- Mobile Only Links -->
         <div class="mobile-only-links">
+            <button type="button" class="nav-link" style="border:none;cursor:pointer;text-align:left" onclick="openAdminProfile()"><i class="fas fa-user-circle"></i> My Admin Profile</button>
             <button 
                 id="theme-toggle-mobile" 
                 class="nav-link" 
@@ -2307,16 +2415,13 @@ if ($hq) {
             <i class="fas fa-moon"></i>
         </button>
 
-        <div 
-            class="user-profile-btn" 
-            title="Manage Staff" 
-            onclick="openStaffModal()"
-        >
-            <div class="avatar-small">
-                <i class="fas fa-user-md"></i>
-            </div>
-            <span>Staff</span>
-        </div>
+        <button type="button" class="user-profile-btn" title="View your admin profile" onclick="openAdminProfile()" aria-label="Open admin profile">
+            <span class="avatar-small admin-nav-avatar">
+                <?php if ($adminPhoto): ?><img src="<?php echo $adminEscape($adminPhoto); ?>" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"/><span style="display:none"><?php echo $adminEscape($adminInitials); ?></span><?php else: ?><?php echo $adminEscape($adminInitials); ?><?php endif; ?>
+            </span>
+            <span class="admin-nav-name"><?php echo $adminEscape($adminDisplayName); ?></span>
+            <i class="fas fa-chevron-down" aria-hidden="true"></i>
+        </button>
 
         <a 
             href="?action=logout" 
@@ -4477,5 +4582,31 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'){document.querySelec
 })();
 </script>
 
+
+<div class="admin-profile-overlay" id="adminProfileOverlay" role="dialog" aria-modal="true" aria-labelledby="adminProfileTitle" onclick="if(event.target===this)closeAdminProfile()">
+  <div class="admin-profile-panel">
+    <button type="button" class="admin-profile-close" aria-label="Close profile" onclick="closeAdminProfile()">&times;</button>
+    <div class="admin-profile-header">
+      <div class="admin-profile-photo"><?php if($adminPhoto): ?><img src="<?php echo $adminEscape($adminPhoto); ?>" alt="Admin profile photo" onerror="this.style.display='none'"/><?php else: ?><?php echo $adminEscape($adminInitials); ?><?php endif; ?></div>
+      <div><h2 id="adminProfileTitle"><?php echo $adminEscape($adminDisplayName); ?></h2><p><i class="fas fa-shield-alt"></i> Administrator • Logged in</p><p><?php echo $adminEscape($adminProfile['email'] ?? ''); ?></p></div>
+    </div>
+    <?php if ($adminProfileError): ?><p class="admin-profile-notice"><?php echo $adminEscape($adminProfileError); ?></p><?php endif; ?>
+    <form method="post" enctype="multipart/form-data" action="admin_dashboard.php?tab=<?php echo urlencode($activeTab); ?>">
+      <input type="hidden" name="admin_profile_csrf" value="<?php echo $adminEscape($_SESSION['admin_profile_csrf']); ?>">
+      <label for="admin_profile_name">Full name</label><input id="admin_profile_name" name="admin_profile_name" maxlength="100" value="<?php echo $adminEscape($adminDisplayName); ?>" required>
+      <label for="admin_profile_email">Email address</label><input id="admin_profile_email" type="email" value="<?php echo $adminEscape($adminProfile['email'] ?? ''); ?>" readonly aria-readonly="true">
+      <label for="admin_profile_phone">Contact number</label><input id="admin_profile_phone" name="admin_profile_phone" maxlength="30" value="<?php echo $adminEscape($adminProfile['phone'] ?? ''); ?>" placeholder="Optional contact number">
+      <label for="admin_profile_bio">About me</label><textarea id="admin_profile_bio" name="admin_profile_bio" rows="3" maxlength="1000" placeholder="Tell your team about your role"><?php echo $adminEscape($adminProfile['bio'] ?? ''); ?></textarea>
+      <label for="admin_profile_photo">Profile picture</label><input id="admin_profile_photo" name="admin_profile_photo" type="file" accept="image/jpeg,image/png,image/webp"><p class="admin-profile-hint">JPG, PNG or WebP • Maximum 2 MB</p>
+      <div class="admin-profile-actions"><button class="btn btn-primary" type="submit" name="save_admin_profile" value="1"><i class="fas fa-save"></i> Save Profile</button><a class="btn btn-outline" href="?action=logout"><i class="fas fa-sign-out-alt"></i> Logout</a></div>
+    </form>
+  </div>
+</div>
+<script>
+function openAdminProfile(){const el=document.getElementById('adminProfileOverlay');el.classList.add('is-open');document.body.style.overflow='hidden';el.querySelector('.admin-profile-close').focus()}
+function closeAdminProfile(){document.getElementById('adminProfileOverlay').classList.remove('is-open');document.body.style.overflow=''}
+document.addEventListener('keydown',function(e){if(e.key==='Escape'&&document.getElementById('adminProfileOverlay').classList.contains('is-open'))closeAdminProfile()});
+<?php if ($adminProfileError): ?>document.addEventListener('DOMContentLoaded',openAdminProfile);<?php endif; ?>
+</script>
 </body>
 </html>
