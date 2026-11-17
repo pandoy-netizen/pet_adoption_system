@@ -42,6 +42,14 @@ $startUrl = $loggedIn ? $dashboardUrl : 'login.php';
         href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
 
+    <script>
+    (function () {
+        try {
+            const theme = localStorage.getItem('theme');
+            document.documentElement.setAttribute('data-theme', theme === 'dark' ? 'dark' : 'light');
+        } catch (e) { document.documentElement.setAttribute('data-theme', 'light'); }
+    })();
+    </script>
     <style>
 
         :root {
@@ -1161,6 +1169,37 @@ $startUrl = $loggedIn ? $dashboardUrl : 'login.php';
         @media(max-width:650px) { .journey { padding:70px 6%; } .journey-grid { grid-template-columns:1fr; } .impact-section { grid-template-columns:1fr; padding:65px 6%; } .impact-art { min-height:210px; } .impact-art i { font-size:5rem; } }
         @media(prefers-reduced-motion:reduce) { .reveal,.reveal-left,.reveal-right,.reveal-zoom { opacity:1; transform:none; transition:none; } html { scroll-behavior:auto; } }
 
+
+        [data-theme="dark"] {
+            --secondary: #f1f5f9;
+            --text-main: #f1f5f9;
+            --text-muted: #aebdd0;
+            --bg-light: #0f172a;
+            --white: #1e293b;
+            --shadow: 0 10px 30px rgba(0,0,0,.25);
+            --shadow-hover: 0 20px 40px rgba(0,0,0,.35);
+        }
+        [data-theme="dark"] .navbar { background: rgba(15,23,42,.96); border-bottom: 1px solid #334155; }
+        [data-theme="dark"] .nav-links.active { background: #1e293b; border-color: #334155; }
+        [data-theme="dark"] .journey { background: #0f172a; }
+        [data-theme="dark"] .journey-head h2, [data-theme="dark"] .journey-card h3, [data-theme="dark"] .about-text h2, [data-theme="dark"] .info-box h4 { color: #f1f5f9; }
+        [data-theme="dark"] .journey-head p, [data-theme="dark"] .journey-card p, [data-theme="dark"] .info-box p { color: #aebdd0; }
+        [data-theme="dark"] .journey-card { background: #1e293b; border-color: #334155; }
+        [data-theme="dark"] .journey-number { color: #94a3b8; }
+        [data-theme="dark"] .journey-icon { background: #42311b; color: #ffb15f; }
+        [data-theme="dark"] .impact-section { background: #111c2d; }
+        [data-theme="dark"] .impact-art { background: radial-gradient(circle at 70% 20%,rgba(255,159,67,.2),transparent 60%),#1e293b; }
+        [data-theme="dark"] .about, [data-theme="dark"] .info-box { background: #1e293b; }
+        [data-theme="dark"] .info-box:hover { background: #26364b; }
+        [data-theme="dark"] .about-info a { color: #ffb15f; }
+        [data-theme="dark"] footer { background: #090f1b; }
+        [data-theme="dark"] .footer-logo h2 { color: #f8fafc; }
+        .theme-toggle { display:inline-flex; align-items:center; justify-content:center; gap:8px; background:var(--white); color:var(--text-main); border:1px solid rgba(128,128,128,.25); border-radius:50px; padding:9px 14px; cursor:pointer; font:600 .9rem 'Poppins',sans-serif; transition:var(--transition); }
+        .theme-toggle:hover { color:var(--primary); border-color:var(--primary); }
+        .theme-toggle i { color:var(--primary); }
+        [data-theme="dark"] .navbar .nav-links a:not(.btn-login) { color:#e2e8f0; }
+        [data-theme="dark"] .navbar .nav-links a:not(.btn-login):hover { color:#ff9f43; }
+
     </style>
 
 </head>
@@ -1208,6 +1247,8 @@ $startUrl = $loggedIn ? $dashboardUrl : 'login.php';
             About
         </a>
 
+
+        <button type="button" class="theme-toggle" id="index-theme-toggle" aria-label="Switch to dark mode" title="Toggle dark mode"><i class="fa-solid fa-moon"></i><span>Dark Mode</span></button>
 
         <?php if(isset($_SESSION['user_id'])): ?>
 
@@ -1488,6 +1529,30 @@ $startUrl = $loggedIn ? $dashboardUrl : 'login.php';
 
     
 
+    const indexThemeButton = document.getElementById('index-theme-toggle');
+    function refreshIndexTheme() {
+        const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+        if (indexThemeButton) {
+            indexThemeButton.innerHTML = dark ? '<i class="fa-solid fa-sun"></i><span>Light Mode</span>' : '<i class="fa-solid fa-moon"></i><span>Dark Mode</span>';
+            indexThemeButton.setAttribute('aria-label', dark ? 'Switch to light mode' : 'Switch to dark mode');
+        }
+    }
+    refreshIndexTheme();
+    if (indexThemeButton) indexThemeButton.addEventListener('click', () => {
+        const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', next);
+        try { localStorage.setItem('theme', next); } catch (e) {}
+        refreshIndexTheme();
+        const navbar = document.getElementById('navbar');
+        if (navbar) navbar.style.background = '';
+    });
+    window.addEventListener('storage', event => {
+        if (event.key === 'theme') {
+            document.documentElement.setAttribute('data-theme', event.newValue === 'dark' ? 'dark' : 'light');
+            refreshIndexTheme();
+        }
+    });
+
     const mobileMenuBtn = document.getElementById('mobile-menu-btn');
     const navLinks = document.getElementById('nav-links');
     if (mobileMenuBtn && navLinks) {
@@ -1519,8 +1584,7 @@ $startUrl = $loggedIn ? $dashboardUrl : 'login.php';
             navbar.style.padding =
                 'clamp(10px, 1.5vw, 15px) 8%';
 
-            navbar.style.background =
-                'rgba(255, 255, 255, 0.98)';
+            navbar.style.background = document.documentElement.getAttribute('data-theme') === 'dark' ? 'rgba(15,23,42,.98)' : 'rgba(255, 255, 255, 0.98)';
 
             navbar.style.boxShadow =
                 '0 10px 30px rgba(0,0,0,0.1)';
@@ -1530,8 +1594,7 @@ $startUrl = $loggedIn ? $dashboardUrl : 'login.php';
             navbar.style.padding =
                 'clamp(15px, 2vw, 25px) 8%';
 
-            navbar.style.background =
-                'rgba(255, 255, 255, 0.95)';
+            navbar.style.background = document.documentElement.getAttribute('data-theme') === 'dark' ? 'rgba(15,23,42,.96)' : 'rgba(255, 255, 255, 0.95)';
 
             navbar.style.boxShadow =
                 '0 2px 20px rgba(0,0,0,0.05)';
