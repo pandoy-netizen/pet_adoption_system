@@ -90,10 +90,10 @@ $petDetails = [
     ],
     3 => [
         'name' => 'Max',
-        'breed' => 'Beagle',
+        'breed' => 'Aspin',
         'age' => 3,
         'description' => 'Max is a playful companion.',
-        'image' => '1791566358_beag.png',
+        'image' => 'download (2).jpg',
     ],
     4 => [
         'name' => 'Milo',
