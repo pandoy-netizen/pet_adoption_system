@@ -201,6 +201,39 @@ try { @mysqli_query($conn, "ALTER TABLE rescue_reports ADD COLUMN reported_at TI
 
 
 
+
+
+if (empty($_SESSION['shelter_client_csrf'])) $_SESSION['shelter_client_csrf'] = bin2hex(random_bytes(32));
+$shelterClientNotice = '';
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_shelter_rating'])) {
+    if (!hash_equals($_SESSION['shelter_client_csrf'], (string)($_POST['shelter_csrf'] ?? ''))) {
+        $shelterClientNotice = 'Session expired. Refresh and try again.';
+    } else {
+        $sid = (int)($_POST['shelter_id'] ?? 0);
+        $rating = (int)($_POST['rating'] ?? 0);
+        $review = trim((string)($_POST['review'] ?? ''));
+        if ($sid<=0 || $rating<1 || $rating>5 || mb_strlen($review)>1500) {
+            $shelterClientNotice = 'Choose a valid shelter and rating (1-5).';
+        } else {
+            try {
+                $stmt=$conn->prepare("SELECT id FROM shelters WHERE id=? AND verification_status='Approved' LIMIT 1");
+                $stmt->bind_param('i',$sid); $stmt->execute(); $found=$stmt->get_result()->fetch_assoc(); $stmt->close();
+                if (!$found) throw new RuntimeException('Shelter is not verified.');
+                $stmt=$conn->prepare('INSERT INTO shelter_ratings (shelter_id,user_id,rating,review) VALUES (?,?,?,?) ON DUPLICATE KEY UPDATE rating=VALUES(rating), review=VALUES(review)');
+                $stmt->bind_param('iiis',$sid,$user_id,$rating,$review);$stmt->execute();$stmt->close();
+                $shelterClientNotice='Your shelter review was saved!';
+            } catch (Throwable $e) { error_log('Shelter review: '.$e->getMessage()); $shelterClientNotice='Unable to save review.'; }
+        }
+    }
+    $scroll_target = 'shelter_finder';
+}
+$shelterClientRows=[];
+try {
+    $result=$conn->query("SELECT s.id,s.shelter_name,s.address,s.city,s.province,s.latitude,s.longitude,s.contact_number,s.contact_email,s.description,s.animal_types,s.capacity,s.available_slots,s.rescue_available,ROUND(AVG(r.rating),1) AS average_rating,COUNT(r.id) AS rating_count FROM shelters s LEFT JOIN shelter_ratings r ON r.shelter_id=s.id WHERE s.verification_status='Approved' GROUP BY s.id,s.shelter_name,s.address,s.city,s.province,s.latitude,s.longitude,s.contact_number,s.contact_email,s.description,s.animal_types,s.capacity,s.available_slots,s.rescue_available ORDER BY s.shelter_name");
+    while($srow=$result->fetch_assoc()) $shelterClientRows[]=$srow;
+} catch(Throwable $e){error_log('Shelter client list: '.$e->getMessage());$shelterClientNotice='Shelter directory is temporarily unavailable.';}
+$shelterClientJson=json_encode($shelterClientRows,JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_INVALID_UTF8_SUBSTITUTE);
+
 if(isset($_POST['submit_sponsorship'])) {
     $sponsor_amount = (float)$_POST['sponsor_amount'];
     $sponsor_pet = mysqli_real_escape_string($conn, $_POST['sponsor_pet_name']);
@@ -1043,6 +1076,9 @@ html { scroll-padding-top: 100px; }
   .compact-nav.active .nav-more-logout { color: var(--danger); }
 }
 </style>
+<style>
+.shelter-finder-controls{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px}.shelter-finder-controls input,.shelter-finder-controls select,.shelter-review-panel select,.shelter-review-panel textarea{padding:13px 15px;border-radius:12px;border:1px solid var(--border-color);background:var(--bg-surface);color:var(--text-dark);font:inherit}.shelter-finder-controls input{flex:2;min-width:200px}.shelter-finder-controls select{flex:1;min-width:175px}.shelter-hint{color:var(--text-muted);font-size:.9rem}.shelter-finder-layout{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(310px,1fr);gap:20px}.shelter-finder-layout #shelterFinderMap{height:550px;border-radius:20px;border:1px solid var(--border-color);z-index:1}.shelter-finder-list{max-height:550px;overflow-y:auto;display:flex;flex-direction:column;gap:12px}.shelter-finder-card,.shelter-review-panel{background:var(--bg-surface);border:1px solid var(--border-color);padding:18px;border-radius:16px;box-shadow:var(--shadow-sm)}.shelter-finder-card h3{margin:0 0 6px;font-size:1.08rem}.shelter-finder-card p{margin:5px 0;color:var(--text-muted);font-size:.88rem}.shelter-card-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.shelter-card-actions button,.shelter-card-actions a{font:700 .8rem Nunito,sans-serif;padding:9px 12px;border-radius:9px;background:var(--primary-light);color:var(--text-dark);border:0;cursor:pointer}.shelter-client-notice{padding:14px;border-radius:12px;background:var(--primary-light);margin:14px 0}.shelter-review-panel{margin-top:22px}.shelter-review-panel[hidden]{display:none}.shelter-review-panel form{display:grid;gap:12px}.shelter-review-panel label{display:grid;gap:7px;font-weight:700}@media(max-width:850px){.shelter-finder-layout{grid-template-columns:1fr}.shelter-finder-layout #shelterFinderMap{height:370px}.shelter-finder-list{max-height:none}}
+</style>
 </head>
 
 <body>
@@ -1066,6 +1102,8 @@ html { scroll-padding-top: 100px; }
         <a href="#donation-section" class="nav-link" onclick="closeDashboardMenu()">Donate</a>
         <a href="#pets" class="nav-link" onclick="closeDashboardMenu()">Adopt</a>
         <a href="#ai_match" class="nav-link" onclick="closeDashboardMenu()">AI Match</a>
+        <a href="#shelter_finder" class="nav-link" onclick="closeDashboardMenu()">Shelters</a>
+        
         <div class="nav-more" id="navMore">
             <button type="button" class="nav-link nav-more-trigger" id="navMoreTrigger" aria-haspopup="true" aria-expanded="false" aria-controls="navMoreMenu" onclick="toggleServicesMenu(event)">
                 Services <i class="fas fa-chevron-down" aria-hidden="true"></i>
@@ -1582,6 +1620,18 @@ html { scroll-padding-top: 100px; }
     </section>
 
     
+
+<section id="shelter_finder" class="bg-light shelter-finder-section">
+ <div class="container">
+  <div class="text-center"><h2 class="section-title"><i class="fas fa-map-location-dot" style="color:var(--primary)"></i> Verified Shelter Finder</h2><p class="section-subtitle">Find admin-approved animal shelters across the Philippines. Nearby recommendations are ranked by distance, rescue availability and community ratings.</p></div>
+  <?php if ($shelterClientNotice !== ''): ?><div class="shelter-client-notice"><?php echo htmlspecialchars($shelterClientNotice,ENT_QUOTES,'UTF-8'); ?></div><?php endif; ?>
+  <div class="shelter-finder-controls"><input type="search" id="shelterSearch" placeholder="Search shelter, city, province or animal type..." aria-label="Search shelters"><select id="shelterFilter" aria-label="Shelter filter"><option value="all">All verified shelters</option><option value="rescue">Rescue available</option><option value="slots">With available slots</option></select><button type="button" class="btn btn-primary" id="locateShelterBtn"><i class="fas fa-location-crosshairs"></i> Find Near Me</button></div>
+  <p id="shelterLocationStatus" class="shelter-hint">Allow location access to rank shelters by distance. Shelters without GPS coordinates will still appear in the list.</p>
+  <div class="shelter-finder-layout"><div id="shelterFinderMap" role="region" aria-label="Verified shelter map"></div><div class="shelter-finder-list" id="shelterFinderList" aria-live="polite"></div></div>
+  <div class="shelter-review-panel" id="shelterReviewPanel" hidden><h3 id="shelterReviewTitle">Rate Shelter</h3><form method="post" action="client_dashboard.php#shelter_finder"><input type="hidden" name="submit_shelter_rating" value="1"><input type="hidden" name="shelter_csrf" value="<?php echo htmlspecialchars($_SESSION['shelter_client_csrf'],ENT_QUOTES,'UTF-8'); ?>"><input type="hidden" name="shelter_id" id="reviewShelterId"><label>Rating <select name="rating" required><option value="5">★★★★★ — 5</option><option value="4">★★★★ — 4</option><option value="3">★★★ — 3</option><option value="2">★★ — 2</option><option value="1">★ — 1</option></select></label><label>Review (optional)<textarea name="review" maxlength="1500" rows="3" placeholder="Share your experience with this shelter"></textarea></label><div style="display:flex;gap:12px"><button type="submit" class="btn btn-primary">Save Rating</button><button type="button" class="btn" onclick="document.getElementById('shelterReviewPanel').hidden=true">Cancel</button></div></form></div>
+ </div>
+</section>
+
     <section id="ai_match" class="ai-section">
         <div class="container" style="position: relative; z-index: 2;">
             <div class="text-center">
@@ -3089,6 +3139,36 @@ document.addEventListener('keydown',function(e){if(e.key==='Escape')closeLostPet
   });
   window.addEventListener('hashchange', function(){ jumpToTarget(location.hash, true); });
   window.addEventListener('load', function(){ if(location.hash) setTimeout(function(){jumpToTarget(location.hash, false);}, 80); });
+})();
+</script>
+<script>
+(function(){
+ const shelters=<?php echo $shelterClientJson ?: '[]'; ?>;
+ const list=document.getElementById('shelterFinderList');if(!list)return;
+ const search=document.getElementById('shelterSearch'),filter=document.getElementById('shelterFilter'),status=document.getElementById('shelterLocationStatus');
+ let userPosition=null, map=null,markers=[];
+ const esc=s=>String(s??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+ const valid=s=>s.latitude!==null&&s.longitude!==null&&s.latitude!==''&&s.longitude!==''&&Number.isFinite(Number(s.latitude))&&Number.isFinite(Number(s.longitude))&&Math.abs(Number(s.latitude))<=90&&Math.abs(Number(s.longitude))<=180;
+ const rad=n=>n*Math.PI/180;
+ const km=s=>{if(!userPosition||!valid(s))return null;const a=rad(Number(s.latitude)-userPosition.lat),b=rad(Number(s.longitude)-userPosition.lng),q=Math.sin(a/2)**2+Math.cos(rad(userPosition.lat))*Math.cos(rad(Number(s.latitude)))*Math.sin(b/2)**2;return 6371*2*Math.atan2(Math.sqrt(q),Math.sqrt(1-q));};
+ function score(s){const d=km(s);return (d===null?0:Math.max(0,100-d*2))+(Number(s.rescue_available)?20:0)+(Number(s.available_slots)>0?10:0)+Number(s.average_rating||0)*5;}
+ if(typeof L!=='undefined'){
+  map=L.map('shelterFinderMap').setView([12.8797,121.774],6);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'&copy; OpenStreetMap contributors',maxZoom:19}).addTo(map);
+ }else{document.getElementById('shelterFinderMap').textContent='Map could not load. The shelter directory is still available.';}
+ function render(){const q=search.value.toLowerCase().trim(),f=filter.value;const rows=shelters.filter(s=>(!q||[s.shelter_name,s.address,s.city,s.province,s.animal_types].join(' ').toLowerCase().includes(q))&&(f!=='rescue'||Number(s.rescue_available)===1)&&(f!=='slots'||Number(s.available_slots)>0)).sort((a,b)=>userPosition?score(b)-score(a):a.shelter_name.localeCompare(b.shelter_name));
+  if(map){markers.forEach(m=>map.removeLayer(m));markers=[];}
+  list.innerHTML=rows.length?'':'<div class="shelter-finder-card">No verified shelters match your search. Ask the admin to add and approve shelters.</div>';
+  rows.forEach((s,i)=>{const d=km(s), rating=s.average_rating===null?'Not rated yet':Number(s.average_rating).toFixed(1)+' / 5 ('+Number(s.rating_count)+' reviews)', location=[s.address,s.city,s.province].filter(Boolean).join(', '),maps=valid(s)?'https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(s.latitude+','+s.longitude):'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(location+', Philippines');
+   const card=document.createElement('article');card.className='shelter-finder-card';card.innerHTML='<h3>'+esc(s.shelter_name)+'</h3><p><i class="fas fa-location-dot"></i> '+esc(location)+'</p><p>⭐ '+esc(rating)+(d!==null?' · <strong>'+d.toFixed(1)+' km away</strong>':'')+'</p><p><strong>'+(Number(s.rescue_available)?'Rescue available':'Rescue unavailable')+'</strong> · '+Number(s.available_slots)+' / '+Number(s.capacity)+' available slots</p><p>'+esc(s.animal_types||'Animal types not specified')+'</p><p>'+esc(s.description||'')+'</p><p>'+esc(s.contact_number||'')+(s.contact_email?' · '+esc(s.contact_email):'')+'</p><div class="shelter-card-actions"><a href="'+esc(maps)+'" target="_blank" rel="noopener noreferrer">Directions</a><button type="button" data-rate="'+Number(s.id)+'">Rate / Review</button>'+(valid(s)?'<button type="button" data-show="'+Number(s.id)+'">Show on Map</button>':'')+'</div>';
+   list.appendChild(card);
+   if(map&&valid(s)){const m=L.marker([Number(s.latitude),Number(s.longitude)]).addTo(map).bindPopup('<strong>'+esc(s.shelter_name)+'</strong><div>'+esc(s.city+', '+s.province)+'</div>');markers.push(m);card.querySelector('[data-show]')?.addEventListener('click',()=>{map.setView(m.getLatLng(),13);m.openPopup();document.getElementById('shelterFinderMap').scrollIntoView({behavior:'smooth',block:'center'});});}
+   card.querySelector('[data-rate]').addEventListener('click',()=>{document.getElementById('reviewShelterId').value=s.id;document.getElementById('shelterReviewTitle').textContent='Rate '+s.shelter_name;document.getElementById('shelterReviewPanel').hidden=false;document.getElementById('shelterReviewPanel').scrollIntoView({behavior:'smooth',block:'center'});});
+  });
+ }
+ search.addEventListener('input',render);filter.addEventListener('change',render);
+ document.getElementById('locateShelterBtn').addEventListener('click',()=>{if(!navigator.geolocation){status.textContent='Location is not supported by this browser.';return;}status.textContent='Requesting your location...';navigator.geolocation.getCurrentPosition(p=>{userPosition={lat:p.coords.latitude,lng:p.coords.longitude};status.textContent='Nearby shelters are now ranked by location, rescue availability, available slots and ratings.';if(map){L.circleMarker([userPosition.lat,userPosition.lng],{radius:8,color:'#2563eb'}).addTo(map).bindPopup('Your approximate location');map.setView([userPosition.lat,userPosition.lng],10);}render();},()=>{status.textContent='Location access was denied or unavailable. You can still search all verified shelters.';},{enableHighAccuracy:false,timeout:12000,maximumAge:300000});});
+ render();setTimeout(()=>map&&map.invalidateSize(),300);
 })();
 </script>
 </body> 
