@@ -1,9 +1,28 @@
-
 <?php
-ob_start();
+/*
+|--------------------------------------------------------------------------
+| PAW CARE - REGISTER.PHP
+|--------------------------------------------------------------------------
+| Registration + Email OTP Verification
+| Railway MySQL + PHPMailer
+|--------------------------------------------------------------------------
+*/
+
+if (ob_get_level() === 0) {
+    ob_start();
+}
 
 if (session_status() === PHP_SESSION_NONE) {
-    session_start();
+    if (!headers_sent($file, $line)) {
+        session_start();
+    } else {
+        error_log(
+            "Session could not start. Headers already sent at " .
+            $file . ":" . $line
+        );
+        http_response_code(500);
+        exit("Session initialization error. Check PHP file encoding.");
+    }
 }
 
 require_once __DIR__ . '/config/db.php';
@@ -23,6 +42,12 @@ if (isset($_SESSION['smtp_error'])) {
     unset($_SESSION['smtp_error']);
 }
 
+/*
+|--------------------------------------------------------------------------
+| DATABASE COLUMNS
+|--------------------------------------------------------------------------
+*/
+
 try {
     $required_columns = [
         "email_verified" => "TINYINT(1) NOT NULL DEFAULT 0",
@@ -31,6 +56,7 @@ try {
     ];
 
     foreach ($required_columns as $column => $definition) {
+
         $check = $conn->query(
             "SHOW COLUMNS FROM users LIKE '$column'"
         );
@@ -49,6 +75,12 @@ try {
     http_response_code(500);
     exit("Database configuration error.");
 }
+
+/*
+|--------------------------------------------------------------------------
+| SEND VERIFICATION EMAIL
+|--------------------------------------------------------------------------
+*/
 
 function sendVerificationEmail($email, $fullname, $verification_code)
 {
@@ -187,6 +219,12 @@ function sendVerificationEmail($email, $fullname, $verification_code)
         return false;
     }
 }
+
+/*
+|--------------------------------------------------------------------------
+| REGISTRATION PROCESS
+|--------------------------------------------------------------------------
+*/
 
 if (
     $_SERVER['REQUEST_METHOD'] === 'POST' &&
