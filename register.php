@@ -1,13 +1,5 @@
-<?php
-/*
-|--------------------------------------------------------------------------
-| PAW CARE - REGISTER.PHP
-|--------------------------------------------------------------------------
-| Registration + Email OTP Verification
-| Railway MySQL + PHPMailer
-|--------------------------------------------------------------------------
-*/
 
+<?php
 if (ob_get_level() === 0) {
     ob_start();
 }
@@ -27,107 +19,136 @@ if (session_status() === PHP_SESSION_NONE) {
 
 require_once __DIR__ . '/config/db.php';
 
-require_once __DIR__ . '/PHPMailer/src/Exception.php';
-require_once __DIR__ . '/PHPMailer/src/PHPMailer.php';
-require_once __DIR__ . '/PHPMailer/src/SMTP.php';
-
-use PHPMailer\PHPMailer\PHPMailer;
-
 $message = "";
 $message_type = "";
-$smtp_error = "";
+$email_error = "";
 
-if (isset($_SESSION['smtp_error'])) {
-    $smtp_error = $_SESSION['smtp_error'];
-    unset($_SESSION['smtp_error']);
+if (isset($_SESSION['email_error'])) {
+    $email_error = $_SESSION['email_error'];
+    unset($_SESSION['email_error']);
 }
 
-/*
-|--------------------------------------------------------------------------
-| DATABASE COLUMNS
-|--------------------------------------------------------------------------
-*/
-
-try {
-    $required_columns = [
-        "email_verified" => "TINYINT(1) NOT NULL DEFAULT 0",
-        "verification_code" => "VARCHAR(10) NULL",
-        "verification_expires" => "DATETIME NULL"
-    ];
-
-    foreach ($required_columns as $column => $definition) {
-
-        $check = $conn->query(
-            "SHOW COLUMNS FROM users LIKE '$column'"
-        );
-
-        if ($check->num_rows === 0) {
-            $conn->query(
-                "ALTER TABLE users ADD COLUMN `$column` $definition"
-            );
-        }
-
-        $check->free();
+function gmailApiRequest($url, $postFields, $headers = [])
+{
+    if (!function_exists('curl_init')) {
+        throw new RuntimeException("PHP cURL extension is not enabled.");
     }
 
-} catch (mysqli_sql_exception $e) {
-    error_log("Database schema error: " . $e->getMessage());
-    http_response_code(500);
-    exit("Database configuration error.");
+    $ch = curl_init($url);
+
+    if ($ch === false) {
+        throw new RuntimeException("Unable to initialize cURL.");
+    }
+
+    curl_setopt_array($ch, [
+        CURLOPT_POST => true,
+        CURLOPT_POSTFIELDS => $postFields,
+        CURLOPT_HTTPHEADER => $headers,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_CONNECTTIMEOUT => 15,
+        CURLOPT_TIMEOUT => 30,
+        CURLOPT_SSL_VERIFYPEER => true,
+        CURLOPT_SSL_VERIFYHOST => 2
+    ]);
+
+    $response = curl_exec($ch);
+    $curlError = curl_error($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
+    curl_close($ch);
+
+    if ($response === false) {
+        throw new RuntimeException("Gmail API connection failed: " . $curlError);
+    }
+
+    $decoded = json_decode($response, true);
+
+    if ($httpCode < 200 || $httpCode >= 300) {
+        $apiError = $decoded['error']['message']
+            ?? $decoded['error_description']
+            ?? $decoded['error']
+            ?? "HTTP " . $httpCode;
+
+        if (is_array($apiError)) {
+            $apiError = json_encode($apiError);
+        }
+
+        throw new RuntimeException(
+            "Google API HTTP " . $httpCode . ": " . $apiError
+        );
+    }
+
+    if (!is_array($decoded)) {
+        throw new RuntimeException("Invalid response from Google API.");
+    }
+
+    return $decoded;
 }
 
-/*
-|--------------------------------------------------------------------------
-| SEND VERIFICATION EMAIL
-|--------------------------------------------------------------------------
-*/
+function getGmailAccessToken()
+{
+    $clientId = trim(getenv('GOOGLE_CLIENT_ID') ?: '');
+    $clientSecret = trim(getenv('GOOGLE_CLIENT_SECRET') ?: '');
+    $refreshToken = trim(getenv('GOOGLE_REFRESH_TOKEN') ?: '');
+
+    if ($clientId === '' || $clientSecret === '' || $refreshToken === '') {
+        throw new RuntimeException(
+            "Missing GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET or GOOGLE_REFRESH_TOKEN."
+        );
+    }
+
+    $response = gmailApiRequest(
+        'https://oauth2.googleapis.com/token',
+        http_build_query([
+            'client_id' => $clientId,
+            'client_secret' => $clientSecret,
+            'refresh_token' => $refreshToken,
+            'grant_type' => 'refresh_token'
+        ]),
+        [
+            'Content-Type: application/x-www-form-urlencoded'
+        ]
+    );
+
+    if (empty($response['access_token'])) {
+        throw new RuntimeException("Google did not return an access token.");
+    }
+
+    return $response['access_token'];
+}
 
 function sendVerificationEmail($email, $fullname, $verification_code)
 {
-    $mail = new PHPMailer(true);
-
     try {
-        $smtp_user = getenv('SMTP_USER') ?: '';
-        $smtp_password = getenv('SMTP_PASSWORD') ?: '';
+        $senderEmail = trim(
+            getenv('GMAIL_SENDER_EMAIL')
+            ?: getenv('PET_ADOPTION_SYSTEM_FROM_EMAIL')
+            ?: ''
+        );
 
-        if ($smtp_user === '' || $smtp_password === '') {
-            throw new RuntimeException(
-                "SMTP_USER or SMTP_PASSWORD is missing."
-            );
+        if (!filter_var($senderEmail, FILTER_VALIDATE_EMAIL)) {
+            throw new RuntimeException("Invalid GMAIL_SENDER_EMAIL.");
         }
 
-        $mail->isSMTP();
-        $mail->Host = 'smtp.gmail.com';
-        $mail->SMTPAuth = true;
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            throw new RuntimeException("Invalid recipient email address.");
+        }
 
-        $mail->Username = $smtp_user;
-        $mail->Password = $smtp_password;
+        $accessToken = getGmailAccessToken();
 
-        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-        $mail->Port = 587;
-        $mail->Timeout = 20;
-        $mail->CharSet = 'UTF-8';
-        $mail->SMTPDebug = 0;
-
-        $mail->setFrom($smtp_user, 'PAW Care');
-        $mail->addAddress($email, $fullname);
-
-        $mail->isHTML(true);
-        $mail->Subject = 'PAW Care - Email Verification';
-
-        $safe_name = htmlspecialchars(
+        $safeName = htmlspecialchars(
             $fullname,
             ENT_QUOTES,
             'UTF-8'
         );
 
-        $safe_code = htmlspecialchars(
+        $safeCode = htmlspecialchars(
             $verification_code,
             ENT_QUOTES,
             'UTF-8'
         );
 
-        $mail->Body = "
+        $htmlBody = "
         <div style='
             font-family:Arial,sans-serif;
             max-width:600px;
@@ -143,7 +164,7 @@ function sendVerificationEmail($email, $fullname, $verification_code)
                 PAW Care
             </h2>
 
-            <p>Hello <b>{$safe_name}</b>,</p>
+            <p>Hello <b>{$safeName}</b>,</p>
 
             <p>
                 Welcome to <b>PAW Care</b>!
@@ -174,7 +195,7 @@ function sendVerificationEmail($email, $fullname, $verification_code)
                     letter-spacing:8px;
                     color:#d4a017;
                 '>
-                    {$safe_code}
+                    {$safeCode}
                 </span>
 
             </div>
@@ -198,76 +219,146 @@ function sendVerificationEmail($email, $fullname, $verification_code)
 
         </div>";
 
-        $mail->AltBody =
+        $plainBody =
             "Hello {$fullname},\n\n" .
             "Welcome to PAW Care!\n\n" .
             "Your verification code is: {$verification_code}\n\n" .
             "This code expires in 10 minutes.\n\n" .
             "Thank you,\nPAW Care";
 
-        $mail->send();
+        $boundary = 'pawcare_' . bin2hex(random_bytes(12));
+
+        $subject = 'PAW Care - Email Verification';
+
+        $encodedSubject = '=?UTF-8?B?' .
+            base64_encode($subject) .
+            '?=';
+
+        $encodedName = '=?UTF-8?B?' .
+            base64_encode('PAW Care') .
+            '?=';
+
+        $headers = [
+            'From: ' . $encodedName . ' <' . $senderEmail . '>',
+            'To: <' . $email . '>',
+            'Subject: ' . $encodedSubject,
+            'MIME-Version: 1.0',
+            'Content-Type: multipart/alternative; boundary="' . $boundary . '"'
+        ];
+
+        $mime = implode("\r\n", $headers) . "\r\n\r\n";
+
+        $mime .= '--' . $boundary . "\r\n";
+        $mime .= "Content-Type: text/plain; charset=UTF-8\r\n";
+        $mime .= "Content-Transfer-Encoding: base64\r\n\r\n";
+        $mime .= chunk_split(base64_encode($plainBody), 76, "\r\n");
+        $mime .= "\r\n";
+
+        $mime .= '--' . $boundary . "\r\n";
+        $mime .= "Content-Type: text/html; charset=UTF-8\r\n";
+        $mime .= "Content-Transfer-Encoding: base64\r\n\r\n";
+        $mime .= chunk_split(base64_encode($htmlBody), 76, "\r\n");
+        $mime .= "\r\n";
+
+        $mime .= '--' . $boundary . "--\r\n";
+
+        $rawMessage = rtrim(
+            strtr(base64_encode($mime), '+/', '-_'),
+            '='
+        );
+
+        $response = gmailApiRequest(
+            'https://gmail.googleapis.com/gmail/v1/users/me/messages/send',
+            json_encode([
+                'raw' => $rawMessage
+            ]),
+            [
+                'Authorization: Bearer ' . $accessToken,
+                'Content-Type: application/json'
+            ]
+        );
+
+        if (empty($response['id'])) {
+            throw new RuntimeException(
+                "Gmail API did not confirm the sent message."
+            );
+        }
+
+        error_log("Gmail API: Verification email accepted successfully.");
 
         return true;
 
     } catch (Throwable $e) {
-        error_log("SMTP Error: " . $e->getMessage());
-        error_log("PHPMailer: " . $mail->ErrorInfo);
+        error_log("Gmail API Error: " . $e->getMessage());
 
-        $_SESSION['smtp_error'] =
-            "The verification email could not be sent. Please check the SMTP configuration.";
+        $_SESSION['email_error'] =
+            "The verification email could not be sent. Please check Gmail API configuration.";
 
         return false;
     }
 }
 
-/*
-|--------------------------------------------------------------------------
-| REGISTRATION PROCESS
-|--------------------------------------------------------------------------
-*/
+try {
+    $required_columns = [
+        "email_verified" => "TINYINT(1) NOT NULL DEFAULT 0",
+        "verification_code" => "VARCHAR(10) NULL",
+        "verification_expires" => "DATETIME NULL"
+    ];
+
+    foreach ($required_columns as $column => $definition) {
+        $check = $conn->query(
+            "SHOW COLUMNS FROM users LIKE '$column'"
+        );
+
+        if ($check->num_rows === 0) {
+            $conn->query(
+                "ALTER TABLE users ADD COLUMN `$column` $definition"
+            );
+        }
+
+        $check->free();
+    }
+
+} catch (mysqli_sql_exception $e) {
+    error_log("Database schema error: " . $e->getMessage());
+    http_response_code(500);
+    exit("Database configuration error.");
+}
 
 if (
     $_SERVER['REQUEST_METHOD'] === 'POST' &&
     isset($_POST['register'])
 ) {
-
     $fullname = trim($_POST['fullname'] ?? "");
     $email = trim($_POST['email'] ?? "");
     $pass = $_POST['password'] ?? "";
     $confirm_pass = $_POST['confirm_password'] ?? "";
 
     if (empty($fullname)) {
-
         $message = "Full name is required.";
         $message_type = "error";
 
     } elseif (strlen($fullname) < 2) {
-
         $message = "Name must be at least 2 characters.";
         $message_type = "error";
 
     } elseif (!preg_match("/^[a-zA-Z ]+$/", $fullname)) {
-
         $message = "Name can only contain letters and spaces.";
         $message_type = "error";
 
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-
         $message = "Please enter a valid email address.";
         $message_type = "error";
 
     } elseif ($pass !== $confirm_pass) {
-
         $message = "Passwords do not match!";
         $message_type = "error";
 
     } elseif (strlen($pass) < 6) {
-
         $message = "Password must be at least 6 characters.";
         $message_type = "error";
 
     } else {
-
         try {
             $stmt = $conn->prepare(
                 "SELECT id, email_verified
@@ -281,18 +372,14 @@ if (
             $result = $stmt->get_result();
 
             if ($result->num_rows > 0) {
-
                 $existing_user = $result->fetch_assoc();
 
                 if ((int)$existing_user['email_verified'] === 1) {
-
                     $message =
                         "Email is already registered! Please login.";
-
                     $message_type = "error";
 
                 } else {
-
                     $user_id = (int)$existing_user['id'];
 
                     $verification_code = sprintf(
@@ -320,7 +407,6 @@ if (
                     );
 
                     if ($update->execute()) {
-
                         $_SESSION['verification_user_id'] = $user_id;
                         $_SESSION['verification_email'] = $email;
 
@@ -329,23 +415,16 @@ if (
                             $fullname,
                             $verification_code
                         )) {
-
                             header("Location: verify_otp.php");
                             exit;
-
                         } else {
-
                             $message =
                                 "The verification code was generated, but the verification email could not be sent.";
-
                             $message_type = "error";
                         }
-
                     } else {
-
                         $message =
                             "Unable to create verification code. Please try again.";
-
                         $message_type = "error";
                     }
 
@@ -353,7 +432,6 @@ if (
                 }
 
             } else {
-
                 $hashed_password = password_hash(
                     $pass,
                     PASSWORD_DEFAULT
@@ -404,7 +482,6 @@ if (
                 );
 
                 if ($insert->execute()) {
-
                     $user_id = $insert->insert_id;
 
                     $_SESSION['verification_user_id'] = $user_id;
@@ -415,23 +492,16 @@ if (
                         $fullname,
                         $verification_code
                     )) {
-
                         header("Location: verify_otp.php");
                         exit;
-
                     } else {
-
                         $message =
                             "Account created, but the verification email could not be sent.";
-
                         $message_type = "error";
                     }
-
                 } else {
-
                     $message =
                         "Something went wrong while creating your account.";
-
                     $message_type = "error";
                 }
 
@@ -441,20 +511,18 @@ if (
             $stmt->close();
 
         } catch (mysqli_sql_exception $e) {
-
             error_log("Registration Error: " . $e->getMessage());
 
             $message =
                 "Registration failed due to a database error. Please try again.";
-
             $message_type = "error";
         }
     }
 }
 
-if (isset($_SESSION['smtp_error'])) {
-    $smtp_error = $_SESSION['smtp_error'];
-    unset($_SESSION['smtp_error']);
+if (isset($_SESSION['email_error'])) {
+    $email_error = $_SESSION['email_error'];
+    unset($_SESSION['email_error']);
 }
 ?>
 
@@ -589,20 +657,20 @@ button:hover {
 
     <?php endif; ?>
 
-    <?php if ($smtp_error != ""): ?>
+    <?php if ($email_error != ""): ?>
 
         <div class="smtp-error-box">
 
-            <strong>SMTP Error:</strong>
+            <strong>Gmail API Error:</strong>
 
             <br><br>
 
-            <?php echo htmlspecialchars($smtp_error); ?>
+            <?php echo htmlspecialchars($email_error); ?>
 
             <br><br>
 
             <small>
-                Please check your Gmail SMTP settings
+                Please check your Gmail API settings
                 in Railway Variables.
             </small>
 
