@@ -1,3 +1,4 @@
+
 <?php
 ob_start();
 
@@ -71,18 +72,56 @@ if (isset($_POST['login'])) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login | PAW Care</title>
 
+    <script>
+        (function () {
+            try {
+                const savedTheme = localStorage.getItem('theme');
+                document.documentElement.setAttribute(
+                    'data-theme',
+                    savedTheme === 'dark' ? 'dark' : 'light'
+                );
+            } catch (error) {
+                document.documentElement.setAttribute('data-theme', 'light');
+            }
+        })();
+    </script>
+
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
         :root {
+            color-scheme: light;
             --primary: #ffd54f;
             --primary-hover: #ffc107;
             --bg: #f4f7f6;
             --text-dark: #2d3748;
             --text-muted: #718096;
             --white: #ffffff;
+            --input-bg: #f8fafc;
+            --input-border: #e2e8f0;
+            --divider: #f1f5f9;
             --shadow: 0 10px 25px rgba(0,0,0,0.05);
+            --error-bg: #fff5f5;
+            --error-text: #c53030;
+            --error-border: #feb2b2;
+        }
+
+        html[data-theme="dark"] {
+            color-scheme: dark;
+            --primary: #ffd54f;
+            --primary-hover: #ffc107;
+            --bg: #0f172a;
+            --text-dark: #f8fafc;
+            --text-muted: #94a3b8;
+            --white: #1e293b;
+            --input-bg: #0f172a;
+            --input-border: #334155;
+            --divider: #334155;
+            --shadow: 0 15px 40px rgba(0,0,0,0.3);
+            --error-bg: #451a1a;
+            --error-text: #fca5a5;
+            --error-border: #7f1d1d;
         }
 
         * {
@@ -95,6 +134,7 @@ if (isset($_POST['login'])) {
         html {
             width: 100%;
             min-height: 100%;
+            background: var(--bg);
         }
 
         body {
@@ -110,6 +150,8 @@ if (isset($_POST['login'])) {
             min-height: 100dvh;
             width: 100%;
             padding: 20px;
+            color: var(--text-dark);
+            transition: background 0.3s ease, color 0.3s ease;
         }
 
         .login-card {
@@ -121,6 +163,8 @@ if (isset($_POST['login'])) {
             max-width: 420px;
             text-align: center;
             margin: auto;
+            border: 1px solid var(--input-border);
+            transition: background 0.3s ease, border-color 0.3s ease;
         }
 
         .logo-area i {
@@ -159,11 +203,17 @@ if (isset($_POST['login'])) {
         input {
             width: 100%;
             padding: 14px 18px;
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
+            background: var(--input-bg);
+            border: 1px solid var(--input-border);
             border-radius: 12px;
             font-size: 15px;
+            color: var(--text-dark);
             transition: 0.3s;
+        }
+
+        input::placeholder {
+            color: var(--text-muted);
+            opacity: 0.8;
         }
 
         input:focus {
@@ -174,13 +224,13 @@ if (isset($_POST['login'])) {
         }
 
         .error-msg {
-            background: #fff5f5;
-            color: #c53030;
+            background: var(--error-bg);
+            color: var(--error-text);
             padding: 12px;
             border-radius: 10px;
             font-size: 13px;
             margin-bottom: 20px;
-            border: 1px solid #feb2b2;
+            border: 1px solid var(--error-border);
             display: flex;
             align-items: center;
             gap: 8px;
@@ -210,7 +260,7 @@ if (isset($_POST['login'])) {
         .footer-links {
             margin-top: 25px;
             padding-top: 20px;
-            border-top: 1px solid #f1f5f9;
+            border-top: 1px solid var(--divider);
         }
 
         .register-link {
@@ -233,6 +283,10 @@ if (isset($_POST['login'])) {
             text-decoration: none;
             font-size: 13px;
             transition: 0.2s;
+        }
+
+        .back-home:hover {
+            color: var(--primary-hover);
         }
 
         @media (max-width: 480px) {
@@ -273,6 +327,7 @@ if (isset($_POST['login'])) {
                 type="email"
                 name="email"
                 placeholder="e.g. alex@example.com"
+                autocomplete="email"
                 required
             >
         </div>
@@ -283,6 +338,7 @@ if (isset($_POST['login'])) {
                 type="password"
                 name="password"
                 placeholder="••••••••"
+                autocomplete="current-password"
                 required
             >
         </div>
