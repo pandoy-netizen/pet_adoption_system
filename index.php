@@ -67,6 +67,58 @@ mysqli_query($conn, $create_table_sql);
 
 
 /* =========================================================
+   EDIT PET DETAILS HERE - ONE PLACE FOR ALL ANIMAL DETAILS
+   Upload each image to GitHub /uploads/ and put ONLY its filename.
+   Example: 'image' => 'bella-new.jpg'
+   After committing and Railway redeployment, refresh the page.
+   Keep each pet ID unchanged to preserve adoption requests.
+========================================================= */
+$petDetails = [
+    1 => [
+        'name' => 'Bella',
+        'breed' => 'Golden Retriever',
+        'age' => 2,
+        'description' => 'Bella is a sweet dog looking for a loving home.',
+        'image' => '1773540406_stray dog.jpg',
+    ],
+    2 => [
+        'name' => 'Luna',
+        'breed' => 'Siamese Cat',
+        'age' => 1,
+        'description' => 'Luna is a vocal and affectionate cat.',
+        'image' => '1773543039_stray dog.jpg',
+    ],
+    3 => [
+        'name' => 'Max',
+        'breed' => 'Beagle',
+        'age' => 3,
+        'description' => 'Max is a playful companion.',
+        'image' => '1773547653_stray dog.jpg',
+    ],
+    4 => [
+        'name' => 'Milo',
+        'breed' => 'British Shorthair',
+        'age' => 4,
+        'description' => 'Milo is a calm and friendly cat.',
+        'image' => '1773547695_stray dog.jpg',
+    ],
+    5 => [
+        'name' => 'Charlie',
+        'breed' => 'French Bulldog',
+        'age' => 2,
+        'description' => 'Charlie is a friendly dog.',
+        'image' => '1773547952_stray dog.jpg',
+    ],
+    6 => [
+        'name' => 'Daisy',
+        'breed' => 'Mixed Breed',
+        'age' => 1,
+        'description' => 'Daisy is a rescued animal ready for a home.',
+        'image' => '1773548689_stray dog.jpg',
+    ],
+];
+
+/* =========================================================
    ADOPTION REQUEST
 ========================================================= */
 
@@ -136,6 +188,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['adopt_pet_id'])) {
                 $pet_breed = $pet_row['breed'];
                 $pet_age = $pet_row['age'];
                 $pet_description = $pet_row['description'] ?? "";
+
+                if (isset($petDetails[$pet_id])) {
+                    $pet_name = $petDetails[$pet_id]['name'];
+                    $pet_breed = $petDetails[$pet_id]['breed'];
+                    $pet_age = $petDetails[$pet_id]['age'];
+                    $pet_description = $petDetails[$pet_id]['description'];
+                }
             }
 
             mysqli_stmt_close($pet_stmt);
@@ -638,29 +697,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['adopt_pet_id'])) {
     }
 }
 
-
-/* =========================================================
-   EDIT ANIMAL PHOTOS HERE - UPLOAD TO GITHUB /uploads/
-   Each pet uses its OWN local image. Edit only the filenames.
-
-   Pet ID 1 = Bella, 2 = Luna, 3 = Max,
-          4 = Milo, 5 = Charlie, 6 = Daisy.
-
-   Example: To change Bella, upload uploads/bella.jpg
-   and set 1 => 'bella.jpg'.
-
-   The files below are UNIQUE filenames already seen in
-   your GitHub uploads folder. They may not match the
-   animal's species. Replace them with your actual photos.
-========================================================= */
-$petImages = [
-    1 => 'Aspin.jpg', // Bella - change to bella.jpg
-    2 => '1773543039_stray dog.jpg', // Luna  - change to luna.jpg (cat photo)
-    3 => '1773547653_stray dog.jpg', // Max   - change to max.jpg
-    4 => '1773547695_stray dog.jpg', // Milo  - change to milo.jpg (cat photo)
-    5 => '1773547952_stray dog.jpg', // Charlie - change to charlie.jpg
-    6 => '1773548689_stray dog.jpg'  // Daisy - change to daisy.jpg
-];
 
 /* =========================================================
    GET AVAILABLE PETS
@@ -1960,17 +1996,28 @@ if (!$result) {
 
             while($row = mysqli_fetch_assoc($result)){
 
-                $petImg = $petImages[(int)$row['id']] ?? 'default-pet.jpg';
-
-
-                $petDesc =
-                    isset($row['description'])
-                    ? addslashes(
-                        htmlspecialchars(
-                            $row['description']
-                        )
-                    )
-                    : "This beautiful pet is waiting for a loving family. Ready to be adopted today!";
+                $petId = (int)$row['id'];
+                $displayPet = $petDetails[$petId] ?? [
+                    'name' => $row['name'],
+                    'breed' => $row['breed'],
+                    'age' => $row['age'],
+                    'description' => $row['description'] ?? '',
+                    'image' => 'default-pet.jpg',
+                ];
+                $petImg = basename(str_replace('\\', '/', (string)$displayPet['image']));
+                $petImgPath = 'uploads/' . rawurlencode($petImg);
+                $modalArguments = [
+                    $petId,
+                    $displayPet['name'],
+                    $displayPet['breed'],
+                    $displayPet['age'],
+                    $displayPet['description'],
+                    $petImgPath,
+                ];
+                $modalCall = 'openModal(' . implode(',', array_map(
+                    static fn($value) => json_encode($value, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_INVALID_UTF8_SUBSTITUTE),
+                    $modalArguments
+                )) . ')';
 
         ?>
 
@@ -1988,7 +2035,7 @@ if (!$result) {
 
                         <?php
                         echo htmlspecialchars(
-                            $row['breed']
+                            $displayPet['breed']
                         );
                         ?>
 
@@ -1996,8 +2043,8 @@ if (!$result) {
 
 
                     <img
-                        src="uploads/<?php echo htmlspecialchars($petImg); ?>"
-                        alt="<?php echo htmlspecialchars($row['name']); ?>"
+                        src="<?php echo htmlspecialchars($petImgPath, ENT_QUOTES, 'UTF-8'); ?>" loading="lazy" decoding="async"
+                        alt="<?php echo htmlspecialchars($displayPet['name']); ?>"
                     >
 
                 </div>
@@ -2009,7 +2056,7 @@ if (!$result) {
 
                         <?php
                         echo htmlspecialchars(
-                            $row['name']
+                            $displayPet['name']
                         );
                         ?>
 
@@ -2026,7 +2073,7 @@ if (!$result) {
 
                             <?php
                             echo htmlspecialchars(
-                                $row['age']
+                                $displayPet['age']
                             );
                             ?>
 
@@ -2055,14 +2102,7 @@ if (!$result) {
 
                     <button
                         class="adopt-btn"
-                        onclick="openModal(
-                            '<?php echo $row['id']; ?>',
-                            '<?php echo addslashes(htmlspecialchars($row['name'])); ?>',
-                            '<?php echo addslashes(htmlspecialchars($row['breed'])); ?>',
-                            '<?php echo addslashes(htmlspecialchars($row['age'])); ?>',
-                            '<?php echo $petDesc; ?>',
-                            'uploads/<?php echo addslashes(htmlspecialchars($petImg)); ?>'
-                        )"
+                        onclick="<?php echo htmlspecialchars($modalCall, ENT_QUOTES, 'UTF-8'); ?>"
                     >
 
                         View Details & Adopt
