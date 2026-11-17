@@ -42,13 +42,17 @@ if (isset($_POST['mark_tutorial_seen'])) {
         http_response_code(401);
         exit;
     }
-
-    $u_id = (int) $_SESSION['user_id'];
+    if (!hash_equals((string)($_SESSION['tour_csrf'] ?? ''), (string)($_POST['tour_csrf'] ?? ''))) {
+        http_response_code(403);
+        exit;
+    }
     try {
         $stmt = $conn->prepare('UPDATE users SET tutorial_seen = 1 WHERE id = ?');
-        $stmt->bind_param('i', $u_id);
+        $uid = (int)$_SESSION['user_id'];
+        $stmt->bind_param('i', $uid);
         $stmt->execute();
         $stmt->close();
+        http_response_code(204);
     } catch (Throwable $e) {
         error_log('Tutorial update failed: ' . $e->getMessage());
         http_response_code(500);
@@ -56,6 +60,21 @@ if (isset($_POST['mark_tutorial_seen'])) {
     exit;
 }
 
+if (empty($_SESSION['user_id'])) {
+    header('Location: login.php');
+    exit;
+}
+if (empty($_SESSION['tour_csrf'])) {
+    $_SESSION['tour_csrf'] = bin2hex(random_bytes(16));
+}
+try {
+    $checkTutorial = $conn->query("SHOW COLUMNS FROM users LIKE 'tutorial_seen'");
+    if ($checkTutorial && $checkTutorial->num_rows === 0) {
+        $conn->query('ALTER TABLE users ADD COLUMN tutorial_seen TINYINT(1) NOT NULL DEFAULT 0');
+    }
+} catch (Throwable $e) {
+    error_log('Tutorial column setup failed: ' . $e->getMessage());
+}
 
 
 foreach (['profile_photo' => 'VARCHAR(255) DEFAULT NULL', 'phone' => 'VARCHAR(30) DEFAULT NULL', 'address' => 'VARCHAR(255) DEFAULT NULL', 'bio' => 'TEXT NULL'] as $column => $definition) {
@@ -70,7 +89,7 @@ foreach (['profile_photo' => 'VARCHAR(255) DEFAULT NULL', 'phone' => 'VARCHAR(30
     }
 }
 
-$user_id = $_SESSION['user_id'] ?? 1; 
+$user_id = (int)$_SESSION['user_id']; 
 
 
 $full_name = "User"; 
@@ -123,7 +142,7 @@ if (!is_dir('uploads')) {
 
 
 
-try { @mysqli_query($conn, "ALTER TABLE users ADD COLUMN tutorial_seen TINYINT(1) DEFAULT 0"); } catch (Exception $e) {}
+
 
 mysqli_query($conn, "CREATE TABLE IF NOT EXISTS adoption_applications (
     id INT AUTO_INCREMENT PRIMARY KEY, user_id INT, pet_id INT, living_space VARCHAR(255),
@@ -731,7 +750,7 @@ label { font-weight: 700; font-size: 0.85rem; color: var(--text-muted); text-tra
 .sponsor-amt.active { background: var(--primary); color: white; border-color: var(--primary); }
 
 
-.introjs-tooltip {
+.introjs-tooltip, .petrescue-guided-tooltip {
     font-family: 'Nunito', sans-serif !important;
     background: var(--bg-surface) !important;
     color: var(--text-dark) !important;
@@ -886,6 +905,10 @@ section{scroll-margin-top:90px}
 @media(max-width:1100px){.header{padding:12px 18px}.nav-link{padding:8px 9px;font-size:.78rem}}
 @media(max-width:760px){section{padding:60px 0}.dashboard-tools{padding:12px}.dashboard-filter{flex:1 1 130px}.dashboard-result-count{width:100%;text-align:right}.dashboard-quick a{flex:1 1 130px;justify-content:center}.dashboard-to-top{right:14px;bottom:14px}.hero-btn-group .btn{flex:1 1 180px}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+@media (max-width: 600px) {
+    .introjs-tooltip { max-width: calc(100vw - 24px) !important; min-width: 0 !important; }
+    .introjs-tooltipbuttons { display: flex; flex-wrap: wrap; gap: 5px; }
+}
 </style>
 </head>
 
@@ -2086,100 +2109,75 @@ section{scroll-margin-top:90px}
     <?php endif; ?>
 
 
-    window.addEventListener('DOMContentLoaded', () => {
-        let dbTutorialSeen = <?php echo $tutorial_seen; ?>;
+    const tourStorageKey = 'petrescue_tour_seen_<?php echo (int)$user_id; ?>';
+    const tourCsrf = <?php echo json_encode($_SESSION['tour_csrf']); ?>;
+    let tourRunning = false;
+    let tourAcknowledged = false;
 
-        if (dbTutorialSeen === 0) {
-            setTimeout(startTutorial, 1000);
+    window.addEventListener('load', () => {
+        const databaseSeen = <?php echo (int)$tutorial_seen; ?>;
+        if (databaseSeen === 0 && localStorage.getItem(tourStorageKey) !== '1') {
+            setTimeout(() => startTutorial(true), 1100);
         }
     });
 
-    function startTutorial() {
+    function startTutorial(automatic = false) {
+        if (tourRunning || typeof introJs !== 'function') return;
+        if (automatic && (document.querySelector('.sf-modal-overlay.show') || document.hidden)) return;
+        const tourSteps = [
+            {element: '#home', title: '👋 Welcome to Pet Rescue!', intro: 'Welcome! This quick tour explains how to use your client dashboard. Follow the highlighted areas and arrows to explore the system.'},
+            {element: '#navbar', title: '🧭 Navigation Menu', intro: 'Use the navigation bar to move between Adoption, Community, Lost & Found, AI Match, Donations, and Stray Reports. On a phone, open the menu icon.'},
+            {element: '#pets', title: '🐾 Browse Available Pets', intro: 'Explore the pets available for adoption. Open a pet profile to read its details and start an adoption application.'},
+            {element: '#favorites', title: '❤️ Saved Favorites', intro: 'Tap the heart on a pet card to save it. Come back here to compare the pets you like.'},
+            {element: '#ai_match', title: '✨ AI Pet Matcher', intro: 'Answer the lifestyle questions to get suggested pets based on your preferences. Review the recommendations before applying.'},
+            {element: '#community_feed', title: '💬 Community Feed', intro: 'Share updates, photos, or community posts. You can also see posts from other members.'},
+            {element: '#lost_found', title: '🔎 Lost & Found', intro: 'Report a missing pet and read community alerts. Include a clear photo, description, and last known location when possible.'},
+            {element: '#appointments', title: '📅 Schedule a Visit', intro: 'Request a shelter visit or meet-and-greet for a pet. Your appointment remains pending until the shelter confirms it.'},
+            {element: '#notifications', title: '🔔 Notifications', intro: 'Check this section for updates on your applications and appointment requests.'},
+            {element: '#profile', title: '👤 Your Profile', intro: 'Add your profile photo and contact information, then review your application history and account details.'},
+            {element: '#donation-section', title: '🤝 Donations & Support', intro: 'Learn how to support shelter animals and explore the donation or sponsorship options available.'},
+            {element: '#report_stray', title: '🚑 Report a Stray', intro: 'Submit the animal’s location, description, and a photo so the shelter can review your report. If location sharing is allowed, you can use the map or GPS tools.'},
+            {element: '#tour-profile-btn', title: '🎉 You’re Ready!', intro: 'That is your dashboard tour! You can reopen it anytime using the Tour button. Start by updating your profile or browsing available pets.'}
+        ];
+        const availableSteps = tourSteps.flatMap(step => {
+            const el = document.querySelector(step.element);
+            if (!el || el.getClientRects().length === 0) return [];
+            return [{element: el, title: step.title, intro: step.intro, position: 'auto'}];
+        });
+        if (!availableSteps.length) return;
+        tourRunning = true;
         const intro = introJs();
         intro.setOptions({
-            steps: [
-                {
-                    title: "👋 Welcome to Pet Rescue, <?php echo addslashes($first_name); ?>!",
-                    intro: "We are thrilled to have you here. Let's take a comprehensive tour of your new dashboard so you know exactly how to find your perfect pet, use our AI tools, and report emergencies. Click 'Next' to begin!"
-                },
-                {
-                    element: document.querySelector('#navbar'),
-                    title: "🧭 Main Navigation",
-                    intro: "This is your control center. Use these links to quickly jump to different sections like Adoption, Community, or AI Match. On mobile devices, tap the menu icon.",
-                    position: "bottom"
-                },
-                {
-                    element: document.querySelector('#pets .grid'),
-                    title: "🐶 Find Your New Best Friend",
-                    intro: "Browse all our available rescues here. Click 'View Full Profile' to see detailed medical and behavior info, or click the heart icon to save them for later.",
-                    position: "top"
-                },
-                {
-                    element: document.querySelector('#ai_match .ai-box'),
-                    title: "🧠 Neural Pet Matcher",
-                    intro: "Want the perfect recommendation? Select your living space, experience level, and other lifestyle preferences from these dropdowns. Our AI will analyze the entire database and match you with the absolute best pets for your situation.",
-                    position: "auto"
-                },
-                {
-                    element: document.querySelector('#community_feed .feed-input-card'),
-                    title: "💬 Community Board",
-                    intro: "Join our active community! Share updates about your adopted pets, ask for advice, or post cute photos. You can even tag your location.",
-                    position: "bottom"
-                },
-                {
-                    element: document.querySelector('#lost_found > div:last-child > .form-container'),
-                    title: "🔍 Lost & Found Alerts",
-                    intro: "If you lose a pet or find a stray, post an alert right here. It instantly notifies the community to keep an eye out and help reunite families.",
-                    position: "left"
-                },
-                {
-                    element: document.querySelector('#appointments'),
-                    title: "📅 Schedule a Visit",
-                    intro: "Found a pet you like? Request a Meet & Greet or Adoption Interview here. Select the pet, pick a date and time, and we'll prepare for your visit.",
-                    position: "top"
-                },
-                {
-                    element: document.querySelector('#pet_care'),
-                    title: "🩺 Pet Care & Fun Tools",
-                    intro: "Check out our fast care tips for keeping your pet healthy. Stuck on a name? Try our Pet Name Generator for some cute and popular ideas!",
-                    position: "top"
-                },
-                {
-                    element: document.querySelector('#report_stray .form-container'),
-                    title: "🚑 Emergency Stray Report",
-                    intro: "This is a critical tool. If you see an animal in immediate danger, upload a photo, use the 'Get My Location' button to lock your GPS, and submit. Our live map will route a rescue van to you.",
-                    position: "right"
-                },
-                {
-                    element: document.querySelector('#tour-profile-btn'),
-                    title: "👤 Your Profile Hub",
-                    intro: "Finally, click your Profile button anytime to check your unread alerts, view saved favorites, manage your adoption history, and track your donations. You are all set to start saving lives!",
-                    position: "left"
-                }
-            ],
+            steps: availableSteps,
             showProgress: true,
+            showStepNumbers: true,
             showBullets: false,
             exitOnOverlayClick: false,
+            exitOnEsc: true,
             disableInteraction: true,
-            nextLabel: 'Next <i class="fas fa-arrow-right" style="font-size:12px;"></i>',
-            prevLabel: '<i class="fas fa-arrow-left" style="font-size:12px;"></i> Back',
-            doneLabel: 'Get Started <i class="fas fa-rocket"></i>',
-            scrollTo: 'tooltip', // This ensures the TOOLTIP is visible, not just the element top
-            scrollPadding: 150 
+            scrollToElement: true,
+            scrollPadding: 110,
+            nextLabel: 'Next →',
+            prevLabel: '← Back',
+            skipLabel: 'Skip Tour',
+            doneLabel: 'Finish Tour',
+            tooltipClass: 'petrescue-guided-tooltip'
         });
-
-        intro.oncomplete(markTutorialDone);
-        intro.onexit(markTutorialDone);
+        intro.oncomplete(() => { tourRunning = false; markTutorialDone(); });
+        intro.onexit(() => { tourRunning = false; markTutorialDone(); });
         intro.start();
     }
 
     function markTutorialDone() {
-
-        let formData = new FormData();
+        if (tourAcknowledged) return;
+        tourAcknowledged = true;
+        localStorage.setItem(tourStorageKey, '1');
+        const formData = new FormData();
         formData.append('mark_tutorial_seen', '1');
-        fetch('', { method: 'POST', body: formData });
+        formData.append('tour_csrf', tourCsrf);
+        fetch('client_dashboard.php', {method: 'POST', body: formData, credentials: 'same-origin'})
+            .catch(err => console.warn('Tutorial status could not be saved:', err));
     }
-
 
     const sfModal = document.getElementById("sfModal");
     function openSFModal(id, name, breed, age, gender, size, temp, activity, traits, image) {
