@@ -1,3 +1,4 @@
+
 <?php
 ob_start();
 
@@ -12,13 +13,10 @@ require_once __DIR__ . '/PHPMailer/src/PHPMailer.php';
 require_once __DIR__ . '/PHPMailer/src/SMTP.php';
 
 use PHPMailer\PHPMailer\PHPMailer;
-use PHPMailer\PHPMailer\Exception;
 
 $message = "";
 $message_type = "";
 $smtp_error = "";
-
-$name_column = "username";
 
 if (isset($_SESSION['smtp_error'])) {
     $smtp_error = $_SESSION['smtp_error'];
@@ -27,12 +25,9 @@ if (isset($_SESSION['smtp_error'])) {
 
 try {
     $required_columns = [
-        "email_verified" =>
-            "TINYINT(1) NOT NULL DEFAULT 0",
-        "verification_code" =>
-            "VARCHAR(10) NULL",
-        "verification_expires" =>
-            "DATETIME NULL"
+        "email_verified" => "TINYINT(1) NOT NULL DEFAULT 0",
+        "verification_code" => "VARCHAR(10) NULL",
+        "verification_expires" => "DATETIME NULL"
     ];
 
     foreach ($required_columns as $column => $definition) {
@@ -40,7 +35,7 @@ try {
             "SHOW COLUMNS FROM users LIKE '$column'"
         );
 
-        if ($check->num_rows == 0) {
+        if ($check->num_rows === 0) {
             $conn->query(
                 "ALTER TABLE users ADD COLUMN `$column` $definition"
             );
@@ -51,9 +46,8 @@ try {
 
 } catch (mysqli_sql_exception $e) {
     error_log("Database schema error: " . $e->getMessage());
-
     http_response_code(500);
-    exit("Database configuration error. Please check the Railway users table.");
+    exit("Database configuration error.");
 }
 
 function sendVerificationEmail($email, $fullname, $verification_code)
@@ -65,8 +59,8 @@ function sendVerificationEmail($email, $fullname, $verification_code)
         $smtp_password = getenv('SMTP_PASSWORD') ?: '';
 
         if ($smtp_user === '' || $smtp_password === '') {
-            throw new \RuntimeException(
-                "SMTP credentials are missing."
+            throw new RuntimeException(
+                "SMTP_USER or SMTP_PASSWORD is missing."
             );
         }
 
@@ -79,17 +73,12 @@ function sendVerificationEmail($email, $fullname, $verification_code)
 
         $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
         $mail->Port = 587;
+        $mail->Timeout = 20;
+        $mail->CharSet = 'UTF-8';
         $mail->SMTPDebug = 0;
 
-        $mail->setFrom(
-            $smtp_user,
-            'PAW Care'
-        );
-
-        $mail->addAddress(
-            $email,
-            $fullname
-        );
+        $mail->setFrom($smtp_user, 'PAW Care');
+        $mail->addAddress($email, $fullname);
 
         $mail->isHTML(true);
         $mail->Subject = 'PAW Care - Email Verification';
@@ -100,98 +89,97 @@ function sendVerificationEmail($email, $fullname, $verification_code)
             'UTF-8'
         );
 
+        $safe_code = htmlspecialchars(
+            $verification_code,
+            ENT_QUOTES,
+            'UTF-8'
+        );
+
         $mail->Body = "
+        <div style='
+            font-family:Arial,sans-serif;
+            max-width:600px;
+            margin:auto;
+            padding:20px;
+            color:#333;
+        '>
+
+            <h2 style='
+                color:#d4a017;
+                text-align:center;
+            '>
+                PAW Care
+            </h2>
+
+            <p>Hello <b>{$safe_name}</b>,</p>
+
+            <p>
+                Welcome to <b>PAW Care</b>!
+            </p>
+
+            <p>
+                Thank you for creating an account.
+                Please use the verification code below
+                to verify your email address.
+            </p>
+
             <div style='
-                font-family: Arial, sans-serif;
-                max-width: 600px;
-                margin: auto;
-                padding: 20px;
-                color: #333;
+                background:#f8f8f8;
+                padding:25px;
+                text-align:center;
+                margin:25px 0;
+                border-radius:10px;
+                border:1px solid #eeeeee;
             '>
 
-                <h2 style='
+                <p style='color:#555;'>
+                    Your verification code:
+                </p>
+
+                <span style='
+                    font-size:32px;
+                    font-weight:bold;
+                    letter-spacing:8px;
                     color:#d4a017;
-                    text-align:center;
                 '>
-                    PAW Care
-                </h2>
-
-                <p>
-                    Hello <b>$safe_name</b>,
-                </p>
-
-                <p>
-                    Welcome to <b>PAW Care</b>!
-                </p>
-
-                <p>
-                    Thank you for creating an account.
-                    Please use the verification code below
-                    to verify your email address.
-                </p>
-
-                <div style='
-                    background:#f8f8f8;
-                    padding:25px;
-                    text-align:center;
-                    margin:25px 0;
-                    border-radius:10px;
-                    border:1px solid #eeeeee;
-                '>
-
-                    <p style='
-                        margin:0 0 10px 0;
-                        color:#555;
-                    '>
-                        Your verification code:
-                    </p>
-
-                    <span style='
-                        font-size:32px;
-                        font-weight:bold;
-                        letter-spacing:8px;
-                        color:#d4a017;
-                    '>
-                        $verification_code
-                    </span>
-
-                </div>
-
-                <p>
-                    This verification code will expire
-                    in <b>10 minutes</b>.
-                </p>
-
-                <p>
-                    If you did not create this account,
-                    please ignore this email.
-                </p>
-
-                <br>
-
-                <p>
-                    Thank you,<br>
-                    <b>PAW Care</b>
-                </p>
+                    {$safe_code}
+                </span>
 
             </div>
-        ";
+
+            <p>
+                This verification code will expire
+                in <b>10 minutes</b>.
+            </p>
+
+            <p>
+                If you did not create this account,
+                please ignore this email.
+            </p>
+
+            <br>
+
+            <p>
+                Thank you,<br>
+                <b>PAW Care</b>
+            </p>
+
+        </div>";
 
         $mail->AltBody =
-            "Hello $fullname,\n\n" .
+            "Hello {$fullname},\n\n" .
             "Welcome to PAW Care!\n\n" .
-            "Your email verification code is: $verification_code\n\n" .
-            "This code will expire in 10 minutes.\n\n" .
-            "If you did not create this account, please ignore this email.\n\n" .
-            "Thank you,\n" .
-            "PAW Care";
+            "Your verification code is: {$verification_code}\n\n" .
+            "This code expires in 10 minutes.\n\n" .
+            "Thank you,\nPAW Care";
 
         $mail->send();
 
         return true;
 
-    } catch (\Throwable $e) {
+    } catch (Throwable $e) {
         error_log("SMTP Error: " . $e->getMessage());
+        error_log("PHPMailer: " . $mail->ErrorInfo);
 
         $_SESSION['smtp_error'] =
             "The verification email could not be sent. Please check the SMTP configuration.";
@@ -200,7 +188,10 @@ function sendVerificationEmail($email, $fullname, $verification_code)
     }
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register'])) {
+if (
+    $_SERVER['REQUEST_METHOD'] === 'POST' &&
+    isset($_POST['register'])
+) {
 
     $fullname = trim($_POST['fullname'] ?? "");
     $email = trim($_POST['email'] ?? "");
@@ -301,7 +292,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register'])) {
                             $verification_code
                         )) {
 
-                            header("Location: verify_email.php");
+                            header("Location: verify_otp.php");
                             exit;
 
                         } else {
@@ -387,7 +378,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register'])) {
                         $verification_code
                     )) {
 
-                        header("Location: verify_email.php");
+                        header("Location: verify_otp.php");
                         exit;
 
                     } else {
@@ -433,7 +424,6 @@ if (isset($_SESSION['smtp_error'])) {
 <html lang="en">
 
 <head>
-
 <meta charset="UTF-8">
 
 <meta
@@ -444,7 +434,6 @@ if (isset($_SESSION['smtp_error'])) {
 <title>Register - PAW Care</title>
 
 <style>
-
 body {
     font-family: 'Segoe UI', sans-serif;
     background: #f4f7f6;
@@ -543,9 +532,7 @@ button:hover {
 .smtp-error-box strong {
     color: #700;
 }
-
 </style>
-
 </head>
 
 <body>
@@ -568,9 +555,7 @@ button:hover {
 
         <div class="smtp-error-box">
 
-            <strong>
-                SMTP Error:
-            </strong>
+            <strong>SMTP Error:</strong>
 
             <br><br>
 
