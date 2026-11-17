@@ -654,7 +654,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['adopt_pet_id'])) {
    animal's species. Replace them with your actual photos.
 ========================================================= */
 $petImages = [
-    1 => '1773540406_stray dog.jpg', // Bella - change to bella.jpg
+    1 => 'Aspin.jpg', // Bella - change to bella.jpg
     2 => '1773543039_stray dog.jpg', // Luna  - change to luna.jpg (cat photo)
     3 => '1773547653_stray dog.jpg', // Max   - change to max.jpg
     4 => '1773547695_stray dog.jpg', // Milo  - change to milo.jpg (cat photo)
