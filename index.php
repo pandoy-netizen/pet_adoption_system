@@ -75,18 +75,18 @@ mysqli_query($conn, $create_table_sql);
 ========================================================= */
 $petDetails = [
     1 => [
-        'name' => 'Bella',
-        'breed' => 'Golden Retriever',
+        'name' => 'gaspar',
+        'breed' => 'Aspin',
         'age' => 2,
         'description' => 'Bella is a sweet dog looking for a loving home.',
-        'image' => '1773540406_stray dog.jpg',
+        'image' => 'Aspin.jpg',
     ],
     2 => [
         'name' => 'Luna',
         'breed' => 'Siamese Cat',
         'age' => 1,
         'description' => 'Luna is a vocal and affectionate cat.',
-        'image' => '1773543039_stray dog.jpg',
+        'image' => 'cat.jpgg',
     ],
     3 => [
         'name' => 'Max',
