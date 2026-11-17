@@ -2127,6 +2127,20 @@ if ($hq) {
     }
 
 .admin-insights{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px;margin:0 0 30px}.admin-panel{background:var(--bg-surface);border:1px solid var(--border-color);border-radius:20px;padding:25px;box-shadow:var(--shadow)}.admin-panel h3{margin:0 0 18px;font-size:1.15rem}.insight-row{display:grid;grid-template-columns:125px 1fr 48px;align-items:center;gap:12px;margin:14px 0;font-size:.85rem;font-weight:800}.insight-track{height:12px;border-radius:20px;background:var(--bg-main);overflow:hidden}.insight-fill{height:100%;border-radius:20px;background:linear-gradient(90deg,#f59e0b,#f97316);transition:width .6s}.insight-row:nth-of-type(2) .insight-fill{background:linear-gradient(90deg,#3b82f6,#60a5fa)}.insight-row:nth-of-type(3) .insight-fill{background:linear-gradient(90deg,#10b981,#34d399)}.admin-quicklinks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.admin-quicklinks a{display:flex;gap:10px;align-items:center;padding:14px;border:1px solid var(--border-color);border-radius:12px;background:var(--bg-main);color:var(--text-dark);font-weight:800}.admin-quicklinks a:hover{border-color:var(--primary);transform:translateY(-2px)}.admin-quicklinks i{color:var(--primary)}.admin-tools{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 20px;padding:15px 18px;background:var(--bg-surface);border:1px solid var(--border-color);border-radius:14px}.admin-tools input{max-width:360px;margin:0}.admin-tools button{padding:12px 16px;background:var(--bg-main);color:var(--text-dark);border:1px solid var(--border-color);border-radius:12px;cursor:pointer;font-weight:800}.admin-tools button:hover{border-color:var(--primary)}.admin-search-count{font-size:.85rem;color:var(--text-muted);font-weight:800}.admin-empty-search{padding:20px;color:var(--text-muted);text-align:center}.stat-card{position:relative;overflow:hidden}.stat-card:after{content:'';position:absolute;right:-28px;top:-28px;width:105px;height:105px;border-radius:50%;background:var(--primary-light);opacity:.6}.stat-card h2{position:relative;z-index:1}.admin-section-head{display:flex;justify-content:space-between;align-items:center;gap:15px;flex-wrap:wrap}.admin-section-head .btn{white-space:nowrap}@media(max-width:850px){.admin-insights{grid-template-columns:1fr}.admin-quicklinks{grid-template-columns:1fr 1fr}.admin-tools input{max-width:100%}}@media(max-width:480px){.admin-quicklinks{grid-template-columns:1fr}.insight-row{grid-template-columns:95px 1fr 32px}.admin-panel{padding:18px}}
+
+.application-identity{display:flex;gap:15px;align-items:center;margin-bottom:20px;padding-bottom:20px;border-bottom:1px dashed var(--border-color)}
+.application-avatar,.application-pet-photo{position:relative;flex-shrink:0;display:flex;align-items:center;justify-content:center;overflow:hidden;width:68px;height:68px;border-radius:18px;background:linear-gradient(145deg,#fef3c7,#fde68a);color:#b45309;border:1px solid rgba(245,158,11,.25)}
+.application-avatar{border-radius:50%;background:linear-gradient(135deg,#dbeafe,#c7d2fe);color:#4338ca}
+.application-avatar img,.application-pet-photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:2}
+.application-avatar-fallback,.application-pet-fallback{font-size:25px}
+.application-initial{position:absolute;font-weight:900;font-size:25px;z-index:1}
+.application-avatar:has(.application-initial) .application-avatar-fallback{display:none}
+.application-identity-details{flex:1;min-width:0}
+.application-identity-details h4{font-size:1.1rem;font-weight:800;margin:0 0 5px;color:var(--text-dark);overflow-wrap:anywhere}
+.application-identity-details p{font-size:.85rem;color:var(--text-muted);margin:0}
+.application-identity-details strong{color:var(--primary)}
+.application-pet-photo{width:62px;height:62px;border-radius:14px}
+@media(max-width:420px){.application-identity{gap:10px}.application-avatar{width:54px;height:54px}.application-pet-photo{width:50px;height:50px}}
 </style>
 </head>
 
@@ -3327,29 +3341,48 @@ if ($hq) {
                     </span>
                 </div>
 
-                <div style="display:flex; gap:15px; margin-bottom:20px; padding-bottom:20px; border-bottom:1px dashed var(--border-color);">
-                    <img 
-                        src="uploads/<?php echo htmlspecialchars($app['pet_image'] ?: 'default.jpg'); ?>" 
-                        style="width:60px; height:60px; border-radius:var(--radius-md); object-fit:cover; border:1px solid var(--border-color);" 
-                        onerror="this.onerror=null; this.src='uploads/default.jpg';"
-                    >
-                    <div>
-                        <h4 style="font-size:1.1rem; font-weight:800; margin:0 0 5px; color:var(--text-dark);">
-                            <?php echo htmlspecialchars($app['applicant_name'] ?? 'Unknown'); ?>
-                        </h4>
-                        <p style="font-size:0.85rem; color:var(--text-muted); margin:0;">
-                            Applying for: 
-                            <b style="color:var(--primary);">
-                                <?php echo htmlspecialchars($app['pet_name'] ?? ''); ?>
-                            </b>
-                        </p>
+                <?php
+                    $applicantPhoto = trim((string)($app['profile_photo'] ?? ''));
+                    $petPhoto = trim((string)($app['pet_image'] ?? ''));
+                    $petPhotoUrl = '';
+                    if ($petPhoto !== '' && !in_array(strtolower($petPhoto), ['default.jpg', 'none', 'null'], true)) {
+                        if (preg_match('~^https?://~i', $petPhoto)) {
+                            $petPhotoUrl = $petPhoto;
+                        } else {
+                            $petPhotoUrl = (strpos($petPhoto, 'uploads/') === 0 ? $petPhoto : 'uploads/' . ltrim($petPhoto, '/'));
+                        }
+                    }
+                    $applicantInitial = strtoupper(substr(trim((string)($app['applicant_name'] ?? 'C')), 0, 1));
+                    if ($applicantInitial === '') $applicantInitial = 'C';
+                ?>
+                <div class="application-identity">
+                    <div class="application-avatar" aria-label="Client profile picture">
+                        <span class="application-avatar-fallback"><i class="fas fa-user"></i></span>
+                        <?php if ($applicantPhoto !== ''): ?>
+                            <img src="<?php echo htmlspecialchars($applicantPhoto, ENT_QUOTES); ?>" alt="Client profile photo" loading="lazy" onerror="this.remove()">
+                        <?php else: ?>
+                            <span class="application-initial"><?php echo htmlspecialchars($applicantInitial); ?></span>
+                        <?php endif; ?>
+                    </div>
+                    <div class="application-identity-details">
+                        <h4><?php echo htmlspecialchars($app['applicant_name'] ?? 'Unknown'); ?></h4>
+                        <p>Applying for: <strong><?php echo htmlspecialchars($app['pet_name'] ?? ''); ?></strong></p>
+                    </div>
+                    <div class="application-pet-photo" title="Pet being applied for">
+                        <span class="application-pet-fallback"><i class="fas fa-paw"></i></span>
+                        <?php if ($petPhotoUrl !== ''): ?>
+                            <img src="<?php echo htmlspecialchars($petPhotoUrl, ENT_QUOTES); ?>" alt="<?php echo htmlspecialchars($app['pet_name'] ?? 'Pet', ENT_QUOTES); ?>" loading="lazy" onerror="this.remove()">
+                        <?php endif; ?>
                     </div>
                 </div>
 
                 <div style="background:var(--bg-main);border:1px solid var(--border-color);border-radius:16px;padding:16px;margin-bottom:20px;">
                     <div style="display:flex;gap:14px;align-items:center;margin-bottom:12px;">
                         <?php if (!empty($app['profile_photo'])): ?>
-                            <img src="<?php echo htmlspecialchars($app['profile_photo'], ENT_QUOTES); ?>" alt="Applicant photo" style="width:72px;height:72px;object-fit:cover;border-radius:50%;border:3px solid var(--primary);" onerror="this.style.display='none'">
+                            <div class="application-avatar" style="width:72px;height:72px;flex-shrink:0;">
+                                <span class="application-initial"><?php echo htmlspecialchars(strtoupper(substr($app['applicant_name'] ?? 'C', 0, 1))); ?></span>
+                                <img src="<?php echo htmlspecialchars($app['profile_photo'], ENT_QUOTES); ?>" alt="Applicant photo" loading="lazy" onerror="this.remove()">
+                            </div>
                         <?php else: ?>
                             <div class="avatar-small" style="width:72px;height:72px;font-size:25px;flex-shrink:0;"><?php echo htmlspecialchars(strtoupper(substr($app['applicant_name'] ?? '?',0,1))); ?></div>
                         <?php endif; ?>
