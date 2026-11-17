@@ -70,7 +70,7 @@ if (empty($_SESSION['tour_csrf'])) {
 try {
     $checkTutorial = $conn->query("SHOW COLUMNS FROM users LIKE 'tutorial_seen'");
     if ($checkTutorial && $checkTutorial->num_rows === 0) {
-        $conn->query('ALTER TABLE users ADD COLUMN tutorial_seen TINYINT(1) NOT NULL DEFAULT 0');
+        $conn->query('ALTER TABLE users ADD COLUMN tutorial_seen TINYINT(1) NOT NULL DEFAULT 1');
     }
 } catch (Throwable $e) {
     error_log('Tutorial column setup failed: ' . $e->getMessage());
@@ -785,7 +785,7 @@ label { font-weight: 700; font-size: 0.85rem; color: var(--text-muted); text-tra
 .introjs-nextbutton:hover {
     background-color: var(--primary-hover) !important;
 }
-.introjs-prevbutton, .introjs-skipbutton {
+.introjs-prevbutton, .introjs-skipbutton, .petrescue-skip-tour {
     background-color: var(--bg-main) !important;
     color: var(--text-dark) !important;
     border: 1px solid var(--border-color) !important;
@@ -938,7 +938,7 @@ section{scroll-margin-top:90px}
         <a href="#report_stray" class="nav-link" onclick="toggleMenu()">Report Stray</a>
         
         
-        <a class="nav-link" onclick="startTutorial(); toggleMenu();" style="color: var(--secondary); font-weight: 800; cursor:pointer;"><i class="fas fa-question-circle"></i> Tour</a>
+        <button type="button" class="nav-link" onclick="startTutorial(); if (window.innerWidth <= 992) toggleMenu();" style="color:var(--secondary);font-weight:800;cursor:pointer;border:0;background:transparent;font-family:inherit;" title="Replay dashboard guide"><i class="fas fa-circle-question"></i> Help / Tour</button>
         
         
         <div class="mobile-only-links">
@@ -957,6 +957,7 @@ section{scroll-margin-top:90px}
 
     
     <div class="nav-utils">
+        <button type="button" class="icon-btn" onclick="startTutorial()" title="Replay Dashboard Guide" aria-label="Replay Dashboard Guide"><i class="fas fa-circle-question"></i></button>
         <button id="theme-toggle" class="icon-btn" title="Toggle Dark/Light Mode">
             <i class="fas fa-moon"></i>
         </button>
@@ -2160,8 +2161,25 @@ section{scroll-margin-top:90px}
             nextLabel: 'Next →',
             prevLabel: '← Back',
             skipLabel: 'Skip Tour',
+            showButtons: true,
             doneLabel: 'Finish Tour',
             tooltipClass: 'petrescue-guided-tooltip'
+        });
+        intro.onafterchange(() => {
+            const controls = document.querySelector('.introjs-tooltipbuttons');
+            if (controls && !controls.querySelector('.petrescue-skip-tour')) {
+                const skip = document.createElement('button');
+                skip.type = 'button';
+                skip.className = 'introjs-button petrescue-skip-tour';
+                skip.textContent = 'Skip Tour';
+                skip.title = 'Close this guide and remember my choice';
+                skip.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    intro.exit(true);
+                });
+                controls.prepend(skip);
+            }
         });
         intro.oncomplete(() => { tourRunning = false; markTutorialDone(); });
         intro.onexit(() => { tourRunning = false; markTutorialDone(); });
