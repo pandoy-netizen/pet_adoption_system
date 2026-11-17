@@ -548,6 +548,14 @@ $adminPhoto = trim((string)($adminProfile['profile_photo'] ?? ''));
 if ($adminPhoto && !preg_match('~^uploads/[a-zA-Z0-9_./-]+$~', $adminPhoto)) $adminPhoto = '';
 $adminEscape = static function ($value) { return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8'); };
 
+// Additive migration: existing shelter records and tables are preserved.
+try {
+    $hoursColumn = $conn->query("SHOW COLUMNS FROM shelters LIKE 'opening_hours'");
+    if ($hoursColumn && $hoursColumn->num_rows === 0) {
+        $conn->query("ALTER TABLE shelters ADD COLUMN opening_hours TEXT NULL");
+    }
+} catch (Throwable $e) { error_log('Shelter hours migration: '.$e->getMessage()); }
+
 if (empty($_SESSION['shelter_admin_csrf'])) $_SESSION['shelter_admin_csrf'] = bin2hex(random_bytes(32));
 $shelterAdminNotice = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['shelter_action'])) {
@@ -579,6 +587,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['shelter_action'])) {
                 $phone = trim((string)($_POST['contact_number'] ?? ''));
                 $email = trim((string)($_POST['contact_email'] ?? ''));
                 $description = trim((string)($_POST['description'] ?? ''));
+                $descriptionOptions = ['Animal Rescue and Rehabilitation','Adoption and Rehoming','Temporary Animal Shelter','Community Animal Welfare','Veterinary and Recovery Support','Stray Animal Rescue','Wildlife Rescue and Rehabilitation','Animal Sanctuary'];
+                if (!in_array($description, $descriptionOptions, true)) throw new RuntimeException('Please choose a valid shelter service.');
+                $days = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+                $openingHours = [];
+                foreach ($days as $day) {
+                    $enabled = isset($_POST['day_open'][$day]);
+                    $from = (string)($_POST['open_time'][$day] ?? '08:00');
+                    $to = (string)($_POST['close_time'][$day] ?? '17:00');
+                    if ($enabled && (!preg_match('/^(?:[01]\d|2[0-3]):[0-5]\d$/',$from) || !preg_match('/^(?:[01]\d|2[0-3]):[0-5]\d$/',$to) || $from >= $to)) throw new RuntimeException('Please check the opening and closing times for '.$day.'.');
+                    $openingHours[$day] = ['open'=>$enabled,'from'=>$enabled?$from:null,'to'=>$enabled?$to:null];
+                }
+                $openingHoursJson = json_encode($openingHours, JSON_THROW_ON_ERROR);
                 $animals = trim((string)($_POST['animal_types'] ?? ''));
                 $capacity = (int)($_POST['capacity'] ?? 0);
                 $slots = (int)($_POST['available_slots'] ?? 0);
@@ -586,12 +606,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['shelter_action'])) {
                 $status = (string)($_POST['verification_status'] ?? 'Pending');
                 if ($name === '' || $address === '' || $city === '' || $province === '' || strlen($name)>150 || strlen($address)>255 || strlen($city)>100 || strlen($province)>100 || strlen($phone)>30 || strlen($email)>150 || strlen($animals)>255 || ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) || $capacity<0 || $slots<0 || $slots>$capacity || !in_array($status,['Pending','Approved','Rejected','Suspended'],true) || ($latInput!=='' && (!is_numeric($latInput)||$lat < -90||$lat>90)) || ($lngInput!=='' && (!is_numeric($lngInput)||$lng < -180||$lng>180)) || (($latInput==='') !== ($lngInput===''))) throw new RuntimeException('Check required fields, capacity, email and coordinates. Both GPS coordinates are required for the map.');
                 if ($action === 'add') {
-                    $stmt = $conn->prepare('INSERT INTO shelters (shelter_name,address,city,province,latitude,longitude,contact_number,contact_email,description,animal_types,capacity,available_slots,rescue_available,verification_status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
-                    $stmt->bind_param('ssssddssssiiss', $name,$address,$city,$province,$lat,$lng,$phone,$email,$description,$animals,$capacity,$slots,$rescue,$status);
+                    $stmt = $conn->prepare('INSERT INTO shelters (shelter_name,address,city,province,latitude,longitude,contact_number,contact_email,description,animal_types,capacity,available_slots,rescue_available,verification_status,opening_hours) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
+                    $stmt->bind_param('ssssddssssiisss', $name,$address,$city,$province,$lat,$lng,$phone,$email,$description,$animals,$capacity,$slots,$rescue,$status,$openingHoursJson);
                 } else {
                     if ($sid<=0) throw new RuntimeException('Invalid shelter ID.');
-                    $stmt = $conn->prepare('UPDATE shelters SET shelter_name=?,address=?,city=?,province=?,latitude=?,longitude=?,contact_number=?,contact_email=?,description=?,animal_types=?,capacity=?,available_slots=?,rescue_available=?,verification_status=? WHERE id=?');
-                    $stmt->bind_param('ssssddssssiissi', $name,$address,$city,$province,$lat,$lng,$phone,$email,$description,$animals,$capacity,$slots,$rescue,$status,$sid);
+                    $stmt = $conn->prepare('UPDATE shelters SET shelter_name=?,address=?,city=?,province=?,latitude=?,longitude=?,contact_number=?,contact_email=?,description=?,animal_types=?,capacity=?,available_slots=?,rescue_available=?,verification_status=?,opening_hours=? WHERE id=?');
+                    $stmt->bind_param('ssssddssssiisssi', $name,$address,$city,$province,$lat,$lng,$phone,$email,$description,$animals,$capacity,$slots,$rescue,$status,$openingHoursJson,$sid);
                 }
                 $stmt->execute(); $stmt->close();
                 $shelterAdminNotice = $action === 'add' ? 'Shelter added successfully.' : 'Shelter updated successfully.';
@@ -2314,6 +2334,8 @@ if ($hq) {
 .admin-profile-close{position:absolute;right:14px;top:12px;background:transparent;border:0;color:var(--text-muted);font-size:24px;cursor:pointer}
 .admin-profile-panel label{margin:0 0 6px}.admin-profile-panel input,.admin-profile-panel textarea{margin:0 0 16px}.admin-profile-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.admin-profile-actions .btn{flex:1}.admin-profile-hint{font-size:.8rem;color:var(--text-muted);margin:-7px 0 16px}.admin-profile-notice{padding:12px 16px;border-radius:12px;margin:12px auto;max-width:1000px;background:var(--badge-danger-bg);color:var(--badge-danger-text)}
 @media(max-width:520px){.admin-profile-panel{padding:22px 16px}.admin-profile-header{gap:12px}.admin-profile-photo{width:64px;height:64px}}
+
+.shelter-map-layout{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(250px,.6fr);gap:16px;margin:18px 0}.shelter-admin-map{height:380px;border-radius:16px;overflow:hidden;border:1px solid var(--border-color);z-index:1}.shelter-map-help{padding:18px;border-radius:16px;background:var(--bg-main);color:var(--text-muted);line-height:1.6}.shelter-map-help button{margin-top:10px}.shelter-schedule{border:1px solid var(--border-color);border-radius:15px;padding:16px;margin-top:16px}.shelter-schedule h3{margin:0 0 6px}.shelter-day{display:grid;grid-template-columns:minmax(110px,1fr) minmax(110px,1fr) minmax(110px,1fr);gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--border-color)}.shelter-day:last-child{border:0}.shelter-day label{display:flex;gap:7px;align-items:center;font-weight:700}.shelter-day input[type=time]{width:100%;box-sizing:border-box;border:1px solid var(--border-color);border-radius:9px;background:var(--bg-surface);color:var(--text-dark);padding:10px}.shelter-day input[type=checkbox]{width:auto}.shelter-hours-badge{display:inline-flex;padding:5px 10px;border-radius:999px;font-size:.78rem;font-weight:800;background:var(--badge-pending-bg);color:var(--badge-pending-text)}.shelter-hours-badge.open{background:var(--badge-success-bg);color:var(--badge-success-text)}.shelter-hours-badge.closed{background:var(--badge-danger-bg);color:var(--badge-danger-text)}@media(max-width:800px){.shelter-map-layout{grid-template-columns:1fr}.shelter-day{grid-template-columns:1fr 1fr}.shelter-day label{grid-column:1/-1}}
 </style>
 <style>
 .pet-card-img-wrap:has(.rescue-photo-placeholder){position:relative;background:linear-gradient(135deg,#172b45,#263e56);overflow:hidden}
@@ -2328,6 +2350,8 @@ if ($hq) {
 .shelter-form-grid label{display:flex;flex-direction:column;gap:7px;font-weight:700;font-size:.88rem}.shelter-form-grid input,.shelter-form-grid textarea,.shelter-form-grid select,.shelter-admin-actions select{box-sizing:border-box;width:100%;padding:12px;border:1px solid var(--border-color);border-radius:10px;background:var(--bg-main);color:var(--text-dark);font:inherit}
 .shelter-form-grid .shelter-wide{grid-column:1/-1}.shelter-form-grid .shelter-check{flex-direction:row;align-items:center}.shelter-check input{width:auto}.shelter-notice{padding:14px;background:var(--primary-light);border-radius:12px;margin:16px 0}.shelter-table-scroll{overflow-x:auto}.shelter-admin-table{width:100%;border-collapse:collapse;min-width:900px}.shelter-admin-table th,.shelter-admin-table td{padding:12px;text-align:left;border-bottom:1px solid var(--border-color);vertical-align:top}.shelter-admin-actions{display:flex;gap:7px;align-items:center;flex-wrap:wrap}.shelter-admin-actions form{display:flex;gap:5px;align-items:center}.shelter-admin-actions .btn{padding:8px 12px;font-size:.8rem}
 </style>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
 </head>
 
 <body>
@@ -2531,19 +2555,22 @@ if ($hq) {
      <label>Available slots<input name="available_slots" type="number" min="0" value="0" required></label>
      <label>Verification status<select name="verification_status"><option>Pending</option><option>Approved</option><option>Rejected</option><option>Suspended</option></select></label>
      <label class="shelter-check"><input type="checkbox" name="rescue_available" value="1"> Accepting rescue requests</label>
-     <label class="shelter-wide">Description<textarea name="description" rows="3"></textarea></label>
+     <label class="shelter-wide">Shelter service / description *<select name="description" required><option value="">Choose shelter service</option><?php foreach (['Animal Rescue and Rehabilitation','Adoption and Rehoming','Temporary Animal Shelter','Community Animal Welfare','Veterinary and Recovery Support','Stray Animal Rescue','Wildlife Rescue and Rehabilitation','Animal Sanctuary'] as $service): ?><option value="<?php echo $adminEscape($service); ?>"><?php echo $adminEscape($service); ?></option><?php endforeach; ?></select></label>
     </div>
+    <div class="shelter-map-layout"><div id="adminShelterMap" class="shelter-admin-map" aria-label="Map for selecting and monitoring shelter locations"></div><div class="shelter-map-help"><strong><i class="fas fa-map-location-dot"></i> Shelter Location Map</strong><p>Click on the map to set the GPS coordinates automatically. Approved shelters will appear as markers. Click a marker to inspect the shelter and its schedule.</p><button type="button" class="btn" id="adminShelterLocate"><i class="fas fa-location-crosshairs"></i> Use My Location</button><p id="adminShelterMapMessage" aria-live="polite">Select a point on the map or enter GPS coordinates.</p></div></div>
+    <div class="shelter-schedule"><h3><i class="fas fa-clock"></i> Operating Days & Office Hours (Philippine Time)</h3><p style="color:var(--text-muted);margin-top:5px">Choose open days and set the hours. Unchecked days are closed. Status is calculated from the saved schedule, not from a live attendance feed.</p><?php foreach (['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'] as $day): ?><div class="shelter-day"><label><input type="checkbox" name="day_open[<?php echo $day; ?>]" value="1" <?php echo in_array($day,['Monday','Tuesday','Wednesday','Thursday','Friday'],true)?'checked':''; ?>> <?php echo $day; ?></label><input type="time" name="open_time[<?php echo $day; ?>]" value="08:00" aria-label="<?php echo $day; ?> opening time"><input type="time" name="close_time[<?php echo $day; ?>]" value="17:00" aria-label="<?php echo $day; ?> closing time"></div><?php endforeach; ?></div>
     <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:16px"><button class="btn btn-primary" type="submit"><i class="fas fa-save"></i> Save Shelter</button><button class="btn" type="button" onclick="resetShelterAdminForm()">Clear / New</button></div>
    </form>
   </div>
   <div class="shelter-admin-panel" style="margin-top:24px">
    <h2>Registered Shelters (<?php echo count($shelterAdminRows); ?>)</h2>
-   <div class="shelter-table-scroll"><table class="shelter-admin-table"><thead><tr><th>Shelter</th><th>Location</th><th>Rescue / Slots</th><th>Rating</th><th>Status</th><th>Actions</th></tr></thead><tbody>
+   <div class="shelter-table-scroll"><table class="shelter-admin-table"><thead><tr><th>Shelter</th><th>Location</th><th>Rescue / Slots</th><th>Rating</th><th>Office Hours</th><th>Status</th><th>Actions</th></tr></thead><tbody>
    <?php foreach ($shelterAdminRows as $sh): ?>
     <tr><td><strong><?php echo $adminEscape($sh['shelter_name']); ?></strong><div style="font-size:.8rem;color:var(--text-muted)"><?php echo $adminEscape($sh['contact_number']); ?></div></td>
     <td><?php echo $adminEscape($sh['city'].', '.$sh['province']); ?></td>
     <td><?php echo (int)$sh['rescue_available'] ? 'Available' : 'Unavailable'; ?> · <?php echo (int)$sh['available_slots']; ?>/<?php echo (int)$sh['capacity']; ?></td>
     <td><?php echo $sh['average_rating'] === null ? 'No ratings' : $adminEscape($sh['average_rating']).' / 5 ('.(int)$sh['rating_count'].')'; ?></td>
+    <td><span class="shelter-hours-badge" data-shelter-hours="<?php echo $adminEscape($sh['opening_hours'] ?? ''); ?>">Checking hours…</span><div style="font-size:.76rem;color:var(--text-muted);margin-top:5px">Asia/Manila</div></td>
     <td><strong><?php echo $adminEscape($sh['verification_status']); ?></strong></td>
     <td><div class="shelter-admin-actions">
      <button type="button" class="btn" onclick='editShelterAdmin(<?php echo htmlspecialchars(json_encode($sh, JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT), ENT_QUOTES, "UTF-8"); ?>)'>Edit</button>
@@ -2551,7 +2578,7 @@ if ($hq) {
      <form method="post" action="?tab=shelters" onsubmit="return confirm('Delete this shelter and all its ratings?')"><input type="hidden" name="shelter_csrf" value="<?php echo $adminEscape($_SESSION['shelter_admin_csrf']); ?>"><input type="hidden" name="shelter_action" value="delete"><input type="hidden" name="shelter_id" value="<?php echo (int)$sh['id']; ?>"><button type="submit" class="btn" style="color:#ef4444">Delete</button></form>
     </div></td></tr>
    <?php endforeach; ?>
-   <?php if (!$shelterAdminRows): ?><tr><td colspan="6">No shelters added yet.</td></tr><?php endif; ?>
+   <?php if (!$shelterAdminRows): ?><tr><td colspan="7">No shelters added yet.</td></tr><?php endif; ?>
    </tbody></table></div>
   </div>
  </div>
@@ -4730,8 +4757,16 @@ document.addEventListener('keydown',function(e){if(e.key==='Escape'&&document.ge
 <?php if ($adminProfileError): ?>document.addEventListener('DOMContentLoaded',openAdminProfile);<?php endif; ?>
 </script>
 <script>
-function resetShelterAdminForm(){const f=document.getElementById('shelter-admin-form');f.reset();f.elements.shelter_action.value='add';f.elements.shelter_id.value='0';document.getElementById('shelter-form-title').textContent='Add Animal Shelter';}
-function editShelterAdmin(s){const f=document.getElementById('shelter-admin-form');for(const k of ['shelter_name','address','city','province','latitude','longitude','contact_number','contact_email','description','animal_types','capacity','available_slots','verification_status']){if(f.elements[k])f.elements[k].value=s[k]??'';}f.elements.rescue_available.checked=Number(s.rescue_available)===1;f.elements.shelter_action.value='edit';f.elements.shelter_id.value=s.id;document.getElementById('shelter-form-title').textContent='Edit Shelter #'+s.id;document.getElementById('admin-shelters').scrollIntoView({behavior:'smooth'});}
+const adminShelterRecords=<?php echo json_encode($shelterAdminRows,JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_INVALID_UTF8_SUBSTITUTE) ?: '[]'; ?>;
+const shelterDays=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+function shelterClock(hours){let schedule;try{schedule=typeof hours==='string'?JSON.parse(hours||'{}'):hours;}catch(e){return {open:false,label:'Hours unavailable',next:''};}if(!schedule||!Object.keys(schedule).length)return {open:false,label:'Hours not set',next:''};const parts=new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Manila',weekday:'long',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(new Date());const get=t=>parts.find(p=>p.type===t)?.value||'';const day=get('weekday'),now=get('hour')+':'+get('minute'),d=schedule[day];const open=Boolean(d?.open&&d.from&&d.to&&now>=d.from&&now<d.to);return {open,label:open?'Open now':'Closed now',next:d?.open?(d.from+' – '+d.to):'Closed today'};}
+function updateShelterHours(){document.querySelectorAll('[data-shelter-hours]').forEach(el=>{const s=shelterClock(el.dataset.shelterHours);el.textContent=s.label+' · '+s.next;el.classList.toggle('open',s.open);el.classList.toggle('closed',!s.open&&s.label==='Closed now');});}
+function setShelterDayControls(f,schedule){for(const day of ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday']){const d=schedule?.[day];const check=f.querySelector('[name="day_open['+day+']"]'),from=f.querySelector('[name="open_time['+day+']"]'),to=f.querySelector('[name="close_time['+day+']"]');check.checked=Boolean(d?.open);from.value=d?.from||'08:00';to.value=d?.to||'17:00';}}
+function resetShelterAdminForm(){const f=document.getElementById('shelter-admin-form');f.reset();f.elements.shelter_action.value='add';f.elements.shelter_id.value='0';document.getElementById('shelter-form-title').textContent='Add Animal Shelter';if(window.adminShelterSelection)window.adminShelterSelection.remove();window.adminShelterSelection=null;}
+function editShelterAdmin(s){const f=document.getElementById('shelter-admin-form');for(const k of ['shelter_name','address','city','province','latitude','longitude','contact_number','contact_email','description','animal_types','capacity','available_slots','verification_status']){if(f.elements[k])f.elements[k].value=s[k]??'';}f.elements.rescue_available.checked=Number(s.rescue_available)===1;let schedule={};try{schedule=JSON.parse(s.opening_hours||'{}')}catch(e){}setShelterDayControls(f,schedule);f.elements.shelter_action.value='edit';f.elements.shelter_id.value=s.id;document.getElementById('shelter-form-title').textContent='Edit Shelter #'+s.id;if(s.latitude!==null&&s.longitude!==null&&window.adminShelterMap){selectAdminShelterPoint(Number(s.latitude),Number(s.longitude));window.adminShelterMap.setView([Number(s.latitude),Number(s.longitude)],13);}document.getElementById('admin-shelters').scrollIntoView({behavior:'smooth'});}
+function selectAdminShelterPoint(lat,lng){const f=document.getElementById('shelter-admin-form');f.elements.latitude.value=lat.toFixed(7);f.elements.longitude.value=lng.toFixed(7);if(window.adminShelterMap&&typeof L!=='undefined'){if(window.adminShelterSelection)window.adminShelterSelection.remove();window.adminShelterSelection=L.marker([lat,lng],{draggable:true}).addTo(window.adminShelterMap).bindPopup('Selected location · Drag to adjust').openPopup();window.adminShelterSelection.on('dragend',e=>selectAdminShelterPoint(e.target.getLatLng().lat,e.target.getLatLng().lng));}document.getElementById('adminShelterMapMessage').textContent='Selected: '+lat.toFixed(5)+', '+lng.toFixed(5);}
+function initAdminShelterMap(){updateShelterHours();setInterval(updateShelterHours,60000);const el=document.getElementById('adminShelterMap');if(!el)return;if(typeof L==='undefined'){el.textContent='Map unavailable. You can still enter coordinates manually.';return;}const map=L.map(el).setView([12.8797,121.774],6);window.adminShelterMap=map;L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'&copy; OpenStreetMap contributors',maxZoom:19}).addTo(map);map.on('click',e=>selectAdminShelterPoint(e.latlng.lat,e.latlng.lng));const bounds=[];adminShelterRecords.forEach(s=>{const lat=Number(s.latitude),lng=Number(s.longitude);if(s.latitude===null||s.longitude===null||!Number.isFinite(lat)||!Number.isFinite(lng)||Math.abs(lat)>90||Math.abs(lng)>180)return;const h=shelterClock(s.opening_hours);const marker=L.marker([lat,lng]).addTo(map);const popup=document.createElement('div');const title=document.createElement('strong');title.textContent=s.shelter_name;popup.append(title,document.createElement('br'),document.createTextNode(s.city+', '+s.province),document.createElement('br'),document.createTextNode('Verification: '+s.verification_status),document.createElement('br'),document.createTextNode(h.label+' · '+h.next));const btn=document.createElement('button');btn.type='button';btn.textContent='Edit shelter';btn.style.marginTop='8px';btn.onclick=()=>{map.closePopup();editShelterAdmin(s);};popup.append(document.createElement('br'),btn);marker.bindPopup(popup);bounds.push([lat,lng]);});if(bounds.length)map.fitBounds(bounds,{padding:[25,25],maxZoom:12});document.getElementById('adminShelterLocate').addEventListener('click',()=>{if(!navigator.geolocation){document.getElementById('adminShelterMapMessage').textContent='Location not supported.';return;}navigator.geolocation.getCurrentPosition(p=>{map.setView([p.coords.latitude,p.coords.longitude],14);selectAdminShelterPoint(p.coords.latitude,p.coords.longitude);},()=>document.getElementById('adminShelterMapMessage').textContent='Location unavailable. Click on the map instead.',{timeout:12000});});const f=document.getElementById('shelter-admin-form');for(const name of ['latitude','longitude'])f.elements[name].addEventListener('change',()=>{const lat=Number(f.elements.latitude.value),lng=Number(f.elements.longitude.value);if(f.elements.latitude.value&&f.elements.longitude.value&&Math.abs(lat)<=90&&Math.abs(lng)<=180){selectAdminShelterPoint(lat,lng);map.setView([lat,lng],13);}});document.querySelectorAll('.nav-link[href="?tab=shelters"]').forEach(n=>n.addEventListener('click',()=>setTimeout(()=>map.invalidateSize(),150)));if(new URLSearchParams(location.search).get('tab')==='shelters')setTimeout(()=>map.invalidateSize(),200);}
+document.addEventListener('DOMContentLoaded',initAdminShelterMap);
 </script>
 </body>
 </html>
