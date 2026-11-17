@@ -800,6 +800,88 @@ label { font-weight: 700; font-size: 0.85rem; color: var(--text-muted); text-tra
 .introjs-helperLayer { background-color: rgba(255, 255, 255, 0.1) !important; border-radius: var(--radius-md) !important;}
 
 
+/* Floating guided-tour card stays beside the currently highlighted feature. */
+.introjs-tooltip.petrescue-guided-tooltip {
+    width: min(390px, calc(100vw - 28px)) !important;
+    min-width: 0 !important;
+    max-width: calc(100vw - 28px) !important;
+    max-height: min(530px, calc(100dvh - 32px)) !important;
+    overflow-y: auto !important;
+    padding: 0 !important;
+    border-radius: 20px !important;
+    border: 1px solid var(--border-color) !important;
+    background: var(--bg-surface) !important;
+    box-shadow: 0 20px 55px rgba(2, 6, 23, .30) !important;
+}
+.petrescue-guided-tooltip .introjs-tooltip-header {
+    padding: 20px 48px 10px 21px !important;
+    background: linear-gradient(115deg, rgba(245,158,11,.13), transparent 80%);
+}
+.petrescue-guided-tooltip .introjs-tooltip-title {
+    font-size: 1.07rem !important;
+    line-height: 1.4 !important;
+    margin: 0 !important;
+}
+.petrescue-guided-tooltip .introjs-tooltiptext {
+    padding: 10px 21px 16px !important;
+    font-size: .93rem !important;
+    line-height: 1.65 !important;
+}
+.petrescue-guided-tooltip .introjs-progress {
+    height: 5px !important;
+    margin: 0 21px 12px !important;
+    background: var(--border-color) !important;
+    border-radius: 20px !important;
+    overflow: hidden !important;
+}
+.petrescue-guided-tooltip .introjs-progressbar { background: linear-gradient(90deg, #f59e0b, #f97316) !important; }
+.petrescue-guided-tooltip .introjs-tooltipbuttons {
+    display: flex !important;
+    align-items: center !important;
+    flex-wrap: wrap !important;
+    gap: 7px !important;
+    padding: 13px 17px 16px !important;
+    border-top: 1px solid var(--border-color) !important;
+    background: var(--bg-surface) !important;
+    text-align: left !important;
+}
+.petrescue-guided-tooltip .introjs-button {
+    float: none !important;
+    margin: 0 !important;
+    padding: 9px 13px !important;
+    font-size: .82rem !important;
+    line-height: 1.35 !important;
+    box-shadow: none !important;
+}
+.petrescue-guided-tooltip .introjs-nextbutton { margin-left: auto !important; color: #111827 !important; }
+.petrescue-guided-tooltip .petrescue-skip-tour { color: var(--text-muted) !important; }
+.petrescue-guided-tooltip .introjs-skipbutton {
+    color: var(--text-muted) !important;
+    font-weight: 800 !important;
+}
+.petrescue-guided-tooltip .introjs-tooltip-header .introjs-skipbutton {
+    position: absolute !important;
+    top: 12px !important;
+    right: 12px !important;
+    background: var(--bg-main) !important;
+    border-radius: 50% !important;
+    width: 30px !important;
+    height: 30px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0 !important;
+}
+.introjs-helperLayer { border: 2px solid var(--primary) !important; }
+@media(max-width: 600px) {
+    .introjs-tooltip.petrescue-guided-tooltip { width: min(350px, calc(100vw - 20px)) !important; }
+    .petrescue-guided-tooltip .introjs-tooltip-header { padding: 15px 40px 6px 16px !important; }
+    .petrescue-guided-tooltip .introjs-tooltiptext { padding: 8px 16px 13px !important; }
+    .petrescue-guided-tooltip .introjs-tooltipbuttons { padding: 10px 12px 13px !important; gap: 5px !important; }
+    .petrescue-guided-tooltip .introjs-button { padding: 8px 10px !important; }
+}
+
+
 .ai-thinking { margin-top: 25px; padding: 25px; border-radius: var(--radius-lg); background: rgba(15,23,42,0.6); border: 1px solid rgba(96,165,250,0.35); box-shadow: 0 0 30px rgba(99,102,241,0.15) inset; animation: thinkIn .4s ease; }
 .ai-thinking.fade-out { opacity: 0; transform: translateY(-6px); transition: .4s ease; }
 .ai-thinking-head { display: flex; align-items: center; gap: 18px; margin-bottom: 18px; }
@@ -2145,7 +2227,10 @@ section{scroll-margin-top:90px}
         const availableSteps = tourSteps.flatMap(step => {
             const el = document.querySelector(step.element);
             if (!el || el.getClientRects().length === 0) return [];
-            return [{element: el, title: step.title, intro: step.intro, position: 'auto'}];
+            const target = el.matches('section, main, article')
+                ? (el.querySelector('.section-title, h1, h2, h3') || el)
+                : el;
+            return [{element: target, title: step.title, intro: step.intro, position: 'auto'}];
         });
         if (!availableSteps.length) return;
         tourRunning = true;
@@ -2159,7 +2244,8 @@ section{scroll-margin-top:90px}
             exitOnEsc: true,
             disableInteraction: true,
             scrollToElement: true,
-            scrollPadding: 110,
+            scrollPadding: 145,
+            tooltipPosition: 'auto',
             nextLabel: 'Next →',
             prevLabel: '← Back',
             skipLabel: 'Skip Tour',
@@ -2167,7 +2253,20 @@ section{scroll-margin-top:90px}
             doneLabel: 'Finish Tour',
             tooltipClass: 'petrescue-guided-tooltip'
         });
-        intro.onafterchange(() => {
+        intro.onafterchange((targetElement) => {
+            if (targetElement) {
+                const rect = targetElement.getBoundingClientRect();
+                const topLimit = 105;
+                const bottomLimit = window.innerHeight - 125;
+                if (rect.top < topLimit || rect.top > bottomLimit) {
+                    const targetY = window.scrollY + rect.top - Math.min(170, window.innerHeight * .24);
+                    window.scrollTo({top: Math.max(0, targetY), behavior: 'instant'});
+                }
+                requestAnimationFrame(() => {
+                    intro.refresh();
+                    requestAnimationFrame(() => intro.refresh());
+                });
+            }
             const controls = document.querySelector('.introjs-tooltipbuttons');
             if (controls && !controls.querySelector('.petrescue-skip-tour')) {
                 const skip = document.createElement('button');
