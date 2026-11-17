@@ -1004,6 +1004,16 @@ main section[id], #lost_found, #donations { scroll-margin-top: 94px; }
 #donation-section { margin: 0; border-radius: 0; box-shadow: none; border-left: 0; border-right: 0; border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color); padding: 72px 20px; }
 #donation-section > div:nth-of-type(2) { box-shadow: var(--shadow); }
 
+
+/* Section links follow the physical top-to-bottom order of the dashboard. */
+@media (min-width: 993px) {
+    .header { gap: 12px; padding-left: 20px; padding-right: 20px; }
+    .nav-links { flex: 1 1 auto; min-width: 0; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: thin; justify-content: flex-start; }
+    .nav-links > .nav-link { white-space: nowrap; flex-shrink: 0; padding: 8px 12px; font-size: .82rem; }
+    .nav-utils { flex-shrink: 0; gap: 8px; }
+}
+html { scroll-padding-top: 100px; }
+#lost_found, #donations { scroll-margin-top: 110px; }
 </style>
 </head>
 
@@ -1022,31 +1032,25 @@ main section[id], #lost_found, #donations { scroll-margin-top: 94px; }
     </button>
 
     
-    <nav class="nav-links" id="navLinks">
+    <nav class="nav-links" id="navLinks" aria-label="Dashboard sections">
         <a href="#home" class="nav-link" onclick="toggleMenu()">Home</a>
-        <a href="#pets" class="nav-link" onclick="toggleMenu()">Adopt</a>
-        <?php if($has_approved_application): ?><a href="#smart_monitor" class="nav-link" onclick="toggleMenu()">My Pets</a><?php endif; ?>
         <a href="#community_feed" class="nav-link" onclick="toggleMenu()">Community</a>
-        <a href="#lost_found" class="nav-link" onclick="toggleMenu()">Lost & Found</a>
+        <a href="#lost_found" class="nav-link" onclick="toggleMenu()">Lost &amp; Found</a>
+        <a href="#donation-section" class="nav-link" onclick="toggleMenu()">Donate</a>
+        <?php if($has_approved_application): ?><a href="#smart_monitor" class="nav-link" onclick="toggleMenu()">My Pets</a><?php endif; ?>
+        <a href="#pets" class="nav-link" onclick="toggleMenu()">Adopt</a>
+        <a href="#favorites" class="nav-link" onclick="toggleMenu()">Favorites</a>
         <a href="#ai_match" class="nav-link" onclick="toggleMenu()">AI Match</a>
-        <a href="#donation-section" class="nav-link" onclick="toggleMenu()"> Donate</a>
+        <a href="#notifications" class="nav-link" onclick="toggleMenu()">Alerts</a>
+        <a href="#appointments" class="nav-link" onclick="toggleMenu()">Visits</a>
+        <a href="#pet_care" class="nav-link" onclick="toggleMenu()">Pet Care</a>
+        <a href="#profile" class="nav-link" onclick="toggleMenu()">Profile</a>
         <a href="#report_stray" class="nav-link" onclick="toggleMenu()">Report Stray</a>
-        
-        
         <button type="button" class="nav-link" onclick="startTutorial(); if (window.innerWidth <= 992) toggleMenu();" style="color:var(--secondary);font-weight:800;cursor:pointer;border:0;background:transparent;font-family:inherit;" title="Replay dashboard guide"><i class="fas fa-circle-question"></i> Help / Tour</button>
-        
-        
         <div class="mobile-only-links">
-            <button id="theme-toggle-mobile" class="nav-link" style="text-align:left; border:none; background:transparent; width:100%; cursor:pointer;">
-                <i class="fas fa-moon"></i> Toggle Dark Mode
-            </button>
-            <a href="#favorites" class="nav-link" onclick="toggleMenu()"><i class="fas fa-heart"></i> Favorites (<?php echo $favorite_count; ?>)</a>
-            <a href="#appointments" class="nav-link" onclick="toggleMenu()"><i class="fas fa-calendar-check"></i> Visits</a>
-            <a href="#notifications" class="nav-link" onclick="toggleMenu()"><i class="fas fa-bell"></i> Alerts (<?php echo $unread_notifications; ?>)</a>
-            <a href="#donations" class="nav-link" onclick="toggleMenu()"><i class="fas fa-hand-holding-heart"></i> Donations</a>
-            <a href="#profile" class="nav-link" onclick="toggleMenu()"><i class="fas fa-user-circle"></i> Profile</a>
-            <a href="?logout=true" class="nav-link" style="color: var(--danger);"><i class="fas fa-sign-out-alt"></i> Logout</a>
-            
+            <a href="#donations" class="nav-link" onclick="toggleMenu()"><i class="fas fa-receipt"></i> Donation History</a>
+            <button id="theme-toggle-mobile" class="nav-link" style="text-align:left; border:none; background:transparent; width:100%; cursor:pointer;"><i class="fas fa-moon"></i> Toggle Dark Mode</button>
+            <a href="?logout=true" class="nav-link" style="color:var(--danger);"><i class="fas fa-sign-out-alt"></i> Logout</a>
         </div>
     </nav>
 
