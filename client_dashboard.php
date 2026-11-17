@@ -57,12 +57,29 @@ if (isset($_POST['mark_tutorial_seen'])) {
 }
 
 
+
+foreach (['profile_photo' => 'VARCHAR(255) DEFAULT NULL', 'phone' => 'VARCHAR(30) DEFAULT NULL', 'address' => 'VARCHAR(255) DEFAULT NULL', 'bio' => 'TEXT NULL'] as $column => $definition) {
+    try {
+        $safeColumn = str_replace('`', '', $column);
+        $check = $conn->query("SHOW COLUMNS FROM users LIKE '$safeColumn'");
+        if ($check && $check->num_rows === 0) {
+            $conn->query("ALTER TABLE users ADD COLUMN `$safeColumn` $definition");
+        }
+    } catch (Throwable $e) {
+        error_log('Profile field setup: ' . $e->getMessage());
+    }
+}
+
 $user_id = $_SESSION['user_id'] ?? 1; 
 
 
 $full_name = "User"; 
 $contact_info = "Registered User";
 $tutorial_seen = 1;
+$profile_photo = '';
+$profile_phone = '';
+$profile_address = '';
+$profile_bio = '';
 
 try {
     $user_query = @mysqli_query($conn, "SELECT * FROM users WHERE id = '$user_id'");
@@ -73,6 +90,10 @@ try {
         elseif (!empty($user_data['username'])) { $full_name = $user_data['username']; } 
         elseif (!empty($user_data['first_name'])) { $full_name = $user_data['first_name'] . (!empty($user_data['last_name']) ? ' ' . $user_data['last_name'] : ''); }
         if (!empty($user_data['email'])) { $contact_info = $user_data['email']; }
+        $profile_photo = $user_data['profile_photo'] ?? '';
+        $profile_phone = $user_data['phone'] ?? '';
+        $profile_address = $user_data['address'] ?? '';
+        $profile_bio = $user_data['bio'] ?? '';
         
 
         if (isset($user_data['tutorial_seen'])) {
@@ -298,7 +319,61 @@ if(isset($_POST['submit_community_post'])){
 }
 
 
-if(isset($_POST['update_profile'])){ $profile_msg = "Profile updated successfully!"; $scroll_target = "profile"; }
+if (isset($_POST['update_profile'])) {
+    $scroll_target = 'profile';
+    $new_name = trim($_POST['user_name'] ?? '');
+    $new_phone = trim($_POST['user_phone'] ?? '');
+    $new_address = trim($_POST['user_address'] ?? '');
+    $new_bio = trim($_POST['user_bio'] ?? '');
+    $new_email = trim($_POST['user_email'] ?? '');
+    if ($new_name === '' || !filter_var($new_email, FILTER_VALIDATE_EMAIL) || strlen($new_phone) > 30 || strlen($new_address) > 255 || strlen($new_bio) > 2000) {
+        $profile_msg = 'Please check your profile information.';
+    } else {
+        $new_photo = $profile_photo;
+        $upload_ok = true;
+        if (isset($_FILES['profile_photo']) && $_FILES['profile_photo']['error'] !== UPLOAD_ERR_NO_FILE) {
+            if ($_FILES['profile_photo']['error'] !== UPLOAD_ERR_OK || $_FILES['profile_photo']['size'] > 3 * 1024 * 1024) {
+                $upload_ok = false;
+            } else {
+                $mime = (new finfo(FILEINFO_MIME_TYPE))->file($_FILES['profile_photo']['tmp_name']);
+                $types = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
+                if (!isset($types[$mime])) {
+                    $upload_ok = false;
+                } else {
+                    $dir = __DIR__ . '/uploads/profiles/';
+                    if (!is_dir($dir) && !mkdir($dir, 0755, true)) $upload_ok = false;
+                    if ($upload_ok) {
+                        $filename = 'client_' . (int)$user_id . '_' . bin2hex(random_bytes(8)) . '.' . $types[$mime];
+                        if (move_uploaded_file($_FILES['profile_photo']['tmp_name'], $dir . $filename)) {
+                            $new_photo = 'uploads/profiles/' . $filename;
+                        } else $upload_ok = false;
+                    }
+                }
+            }
+        }
+        if (!$upload_ok) {
+            $profile_msg = 'Photo upload failed. Use JPG, PNG or WEBP up to 3 MB.';
+        } else {
+            try {
+                $nameColumn = isset($user_data['name']) ? 'name' : (isset($user_data['username']) ? 'username' : 'full_name');
+                $stmt = $conn->prepare("UPDATE users SET `$nameColumn` = ?, email = ?, phone = ?, address = ?, bio = ?, profile_photo = ? WHERE id = ?");
+                $stmt->bind_param('ssssssi', $new_name, $new_email, $new_phone, $new_address, $new_bio, $new_photo, $user_id);
+                $stmt->execute();
+                $stmt->close();
+                $full_name = $new_name;
+                $contact_info = $new_email;
+                $profile_phone = $new_phone;
+                $profile_address = $new_address;
+                $profile_bio = $new_bio;
+                $profile_photo = $new_photo;
+                $profile_msg = 'Profile saved successfully!';
+            } catch (Throwable $e) {
+                error_log('Profile update: ' . $e->getMessage());
+                $profile_msg = 'Unable to save profile. Check whether your email is already registered.';
+            }
+        }
+    }
+}
 
 
 if(isset($_POST['submit_application'])){
@@ -1646,20 +1721,22 @@ section{scroll-margin-top:90px}
                 
                 <div class="form-container">
                     <h3><i class="fas fa-user-edit" style="color:var(--primary);"></i> Account Details</h3>
-                    <form method="POST" action="">
-                        <div class="form-group">
-                            <label>Full Name</label>
-                            <input type="text" name="user_name" value="<?php echo htmlspecialchars($full_name); ?>" required>
+                    <form method="POST" action="#profile" enctype="multipart/form-data">
+                        <div style="text-align:center;margin-bottom:20px;">
+                            <?php if ($profile_photo): ?>
+                                <img src="<?php echo htmlspecialchars($profile_photo, ENT_QUOTES); ?>" alt="My profile" style="width:110px;height:110px;object-fit:cover;border-radius:50%;border:4px solid var(--primary);" onerror="this.style.display='none'">
+                            <?php else: ?>
+                                <div style="width:110px;height:110px;border-radius:50%;background:var(--primary-light);display:grid;place-items:center;margin:auto;font-size:44px;color:var(--primary);"><i class="fas fa-user"></i></div>
+                            <?php endif; ?>
+                            <label for="client_profile_photo" style="display:block;margin-top:12px;">Profile Photo (JPG, PNG, WEBP · max 3 MB)</label>
+                            <input id="client_profile_photo" type="file" name="profile_photo" accept="image/jpeg,image/png,image/webp">
                         </div>
-                        <div class="form-group">
-                            <label>Email Address</label>
-                            <input type="email" name="user_email" value="<?php echo htmlspecialchars($contact_info); ?>" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Phone Number</label>
-                            <input type="text" name="user_phone" value="(555) 123-4567">
-                        </div>
-                        <button type="submit" name="update_profile" class="btn btn-primary" style="width:100%; margin-top:10px;"><i class="fas fa-save"></i> Save Changes</button>
+                        <div class="form-group"><label>Full Name</label><input type="text" name="user_name" maxlength="100" value="<?php echo htmlspecialchars($full_name, ENT_QUOTES); ?>" required></div>
+                        <div class="form-group"><label>Email Address</label><input type="email" name="user_email" maxlength="100" value="<?php echo htmlspecialchars($contact_info, ENT_QUOTES); ?>" required></div>
+                        <div class="form-group"><label>Phone Number</label><input type="tel" name="user_phone" maxlength="30" value="<?php echo htmlspecialchars($profile_phone, ENT_QUOTES); ?>" placeholder="e.g. 09123456789"></div>
+                        <div class="form-group"><label>Home Address</label><input type="text" name="user_address" maxlength="255" value="<?php echo htmlspecialchars($profile_address, ENT_QUOTES); ?>" placeholder="City / Municipality / Barangay"></div>
+                        <div class="form-group"><label>About Me / Pet Care Experience</label><textarea name="user_bio" maxlength="2000" rows="4" placeholder="Tell the shelter about your experience with pets..."><?php echo htmlspecialchars($profile_bio, ENT_QUOTES); ?></textarea></div>
+                        <button type="submit" name="update_profile" class="btn btn-primary" style="width:100%;margin-top:10px;"><i class="fas fa-save"></i> Save Profile</button>
                     </form>
                 </div>
 
