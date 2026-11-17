@@ -734,6 +734,36 @@ label { font-weight: 700; font-size: 0.85rem; color: var(--text-muted); text-tra
     .monitor-grid, .profile-grid { grid-template-columns: 1fr; } 
     .map-container-stray { padding: 20px; }
 }
+
+.lost-alert-card{display:grid;grid-template-columns:132px minmax(0,1fr);gap:16px;padding:15px;margin:0 0 16px;border:1px solid var(--border-color);border-radius:20px;background:var(--bg-card,#1e293b);box-shadow:0 8px 24px rgba(0,0,0,.08);transition:transform .2s,box-shadow .2s,border-color .2s;min-width:0}
+.lost-alert-card:hover{transform:translateY(-3px);box-shadow:0 16px 35px rgba(0,0,0,.15);border-color:var(--secondary)}
+.lost-photo-button{position:relative;width:132px;height:165px;border:0;border-radius:14px;overflow:hidden;background:#29344b;cursor:pointer;padding:0;color:#cbd5e1}
+.lost-photo-button img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .25s}
+.lost-photo-button:hover img{transform:scale(1.08)}
+.lost-photo-button.lost-no-photo{display:flex;align-items:center;justify-content:center;font-size:40px}
+.lost-photo-zoom{position:absolute;right:8px;bottom:8px;padding:6px 8px;border-radius:8px;background:rgba(0,0,0,.65);color:white;font-size:12px}
+.lost-alert-content{min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:8px}
+.lost-alert-status{display:inline-flex;gap:6px;align-items:center;background:rgba(239,68,68,.14);color:#f87171;padding:5px 10px;border-radius:999px;font-size:11px;font-weight:800;letter-spacing:.07em}
+.lost-alert-content h4{margin:0;color:var(--text-dark);font-size:1.2rem;overflow-wrap:anywhere}
+.lost-alert-description{margin:0;color:var(--text-muted);font-size:.88rem;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+.lost-alert-location{display:flex;gap:7px;align-items:flex-start;color:var(--secondary);font-size:.83rem;font-weight:700;overflow-wrap:anywhere}
+.lost-alert-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:auto;width:100%}
+.lost-alert-actions button{border-radius:9px;padding:9px 11px;cursor:pointer;font-size:12px;font-weight:700;transition:filter .2s}
+.lost-action-primary{border:0;background:var(--secondary);color:white}
+.lost-action-secondary{border:1px solid var(--border-color);background:transparent;color:var(--text-dark)}
+.lost-alert-actions button:hover{filter:brightness(1.12)}
+.lost-modal-overlay{position:fixed;inset:0;z-index:99999;background:rgba(3,9,24,.82);display:none;align-items:center;justify-content:center;padding:18px;backdrop-filter:blur(6px)}
+.lost-modal-overlay.open{display:flex}
+.lost-modal-panel{position:relative;background:var(--bg-card,#1e293b);color:var(--text-dark);width:min(750px,100%);max-height:90vh;overflow-y:auto;border:1px solid var(--border-color);border-radius:22px;box-shadow:0 24px 70px rgba(0,0,0,.35)}
+.lost-modal-image{width:100%;height:min(42vh,340px);object-fit:contain;background:#111827;display:block}
+.lost-modal-body{padding:24px}
+.lost-modal-body h3{font-size:1.65rem;margin:12px 0;color:var(--text-dark)}
+.lost-modal-body p{line-height:1.7;color:var(--text-muted);white-space:pre-wrap;overflow-wrap:anywhere}
+.lost-modal-info{display:flex;align-items:flex-start;gap:10px;margin:12px 0;color:var(--secondary);font-weight:700;overflow-wrap:anywhere}
+.lost-modal-close{position:absolute;right:14px;top:14px;z-index:2;border:0;background:rgba(0,0,0,.7);color:white;border-radius:50%;height:38px;width:38px;cursor:pointer}
+.lost-modal-buttons{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px}
+.lost-modal-buttons button{padding:12px 16px;border-radius:11px;cursor:pointer;font-weight:700}
+@media(max-width:550px){.lost-alert-card{grid-template-columns:100px minmax(0,1fr);gap:12px;padding:11px}.lost-photo-button{width:100px;height:145px}.lost-alert-content h4{font-size:1.05rem}.lost-alert-actions button{font-size:11px;padding:8px}.lost-modal-body{padding:18px}}
 </style>
 </head>
 
@@ -1324,22 +1354,41 @@ label { font-weight: 700; font-size: 0.85rem; color: var(--text-muted); text-tra
                         </form>
                     </div>
 
-                    <?php 
+                    <?php
                     $lost_sql = "SELECT * FROM lost_pets WHERE status='Lost' ORDER BY id DESC LIMIT 5";
                     $lost_res = mysqli_query($conn, $lost_sql);
-                    if($lost_res && mysqli_num_rows($lost_res) > 0){
-                        while($lpet = mysqli_fetch_assoc($lost_res)){
-                            $l_img = !empty($lpet['image']) ? "uploads/".$lpet['image'] : "uploads/default_lost.jpg";
+                    if ($lost_res && mysqli_num_rows($lost_res) > 0) {
+                        while ($lpet = mysqli_fetch_assoc($lost_res)) {
+                            $stored_image = trim((string)($lpet['image'] ?? ''));
+                            $l_img = $stored_image !== '' ? (preg_match('~^(https?://|uploads/)~i', $stored_image) ? $stored_image : 'uploads/' . ltrim($stored_image, '/')) : 'uploads/default_lost.jpg';
+                            $pet_payload = [
+                                'id' => (int)$lpet['id'],
+                                'name' => $lpet['pet_name'] ?? '',
+                                'description' => $lpet['description'] ?? '',
+                                'location' => $lpet['location'] ?? '',
+                                'image' => $l_img,
+                                'reported' => !empty($lpet['reported_at']) ? date('M j, Y · g:i A', strtotime($lpet['reported_at'])) : '',
+                                'contact' => $lpet['contact_info'] ?? '',
+                                'reporter' => $lpet['user_display_name'] ?? ''
+                            ];
+                            $json_payload = htmlspecialchars(json_encode($pet_payload, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_INVALID_UTF8_SUBSTITUTE), ENT_QUOTES, 'UTF-8');
                     ?>
-                    <div class="post-card" style="padding: 15px; display: flex; gap: 15px; align-items: flex-start; margin-bottom: 15px;">
-                        <img src="<?php echo htmlspecialchars($l_img); ?>" style="width: 80px; height: 80px; border-radius: var(--radius-sm); object-fit: cover;">
-                        <div>
-                            <div class="badge badge-danger" style="margin-bottom: 5px; font-size: 0.65rem;">MISSING</div>
-                            <h4 style="margin: 0 0 5px; font-size: 1.05rem; color: var(--text-dark);"><?php echo htmlspecialchars($lpet['pet_name']); ?></h4>
-                            <p style="margin: 0 0 5px; font-size: 0.85rem; color: var(--text-muted); line-height: 1.4;"><?php echo htmlspecialchars($lpet['description']); ?></p>
-                            <small style="color: var(--secondary); font-weight: 700;"><i class="fas fa-map-pin"></i> <?php echo htmlspecialchars($lpet['location']); ?></small>
+                    <article class="lost-alert-card">
+                        <button type="button" class="lost-photo-button" data-lost-pet="<?php echo $json_payload; ?>" onclick="showLostPet(this)" aria-label="View photo and details of <?php echo htmlspecialchars($lpet['pet_name'] ?? 'lost pet', ENT_QUOTES, 'UTF-8'); ?>">
+                            <img src="<?php echo htmlspecialchars($l_img, ENT_QUOTES, 'UTF-8'); ?>" loading="lazy" alt="Missing pet <?php echo htmlspecialchars($lpet['pet_name'] ?? '', ENT_QUOTES, 'UTF-8'); ?>" onerror="this.onerror=null;this.style.display='none';this.parentElement.classList.add('lost-no-photo');this.parentElement.insertAdjacentHTML('beforeend','<i class=&quot;fas fa-paw&quot;></i>')">
+                            <span class="lost-photo-zoom"><i class="fas fa-expand"></i></span>
+                        </button>
+                        <div class="lost-alert-content">
+                            <span class="lost-alert-status"><i class="fas fa-exclamation-circle"></i> MISSING</span>
+                            <h4><?php echo htmlspecialchars($lpet['pet_name'] ?? '', ENT_QUOTES, 'UTF-8'); ?></h4>
+                            <p class="lost-alert-description"><?php echo htmlspecialchars($lpet['description'] ?? '', ENT_QUOTES, 'UTF-8'); ?></p>
+                            <div class="lost-alert-location"><i class="fas fa-map-marker-alt"></i><span><?php echo htmlspecialchars($lpet['location'] ?? '', ENT_QUOTES, 'UTF-8'); ?></span></div>
+                            <div class="lost-alert-actions">
+                                <button type="button" class="lost-action-primary" data-lost-pet="<?php echo $json_payload; ?>" onclick="showLostPet(this)"><i class="fas fa-eye"></i> View Details</button>
+                                <button type="button" class="lost-action-secondary" data-lost-pet="<?php echo $json_payload; ?>" onclick="reportLostSighting(this)"><i class="fas fa-map-pin"></i> I Saw This Pet</button>
+                            </div>
                         </div>
-                    </div>
+                    </article>
                     <?php } } else { echo "<div class='text-center' style='padding:20px; font-size:0.9rem; color:var(--text-muted); border:1px dashed var(--border-color); border-radius:var(--radius-md);'>No lost pets reported locally.</div>"; } ?>
                 </div>
 
@@ -2585,6 +2634,65 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     });
 });
+</script>
+
+<div id="lostPetModal" class="lost-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="lostModalTitle" onclick="if(event.target===this)closeLostPet()">
+    <div class="lost-modal-panel">
+        <button type="button" class="lost-modal-close" onclick="closeLostPet()" aria-label="Close"><i class="fas fa-times"></i></button>
+        <img id="lostModalImage" class="lost-modal-image" alt="Missing pet photo">
+        <div class="lost-modal-body">
+            <span class="lost-alert-status"><i class="fas fa-exclamation-circle"></i> MISSING PET ALERT</span>
+            <h3 id="lostModalTitle"></h3>
+            <div class="lost-modal-info"><i class="fas fa-map-marker-alt"></i><span id="lostModalLocation"></span></div>
+            <div class="lost-modal-info"><i class="far fa-clock"></i><span id="lostModalDate"></span></div>
+            <p id="lostModalDescription"></p>
+            <div id="lostModalContact" class="lost-modal-info"></div>
+            <div class="lost-modal-buttons">
+                <button type="button" class="lost-action-primary" onclick="reportLostSighting()"><i class="fas fa-map-pin"></i> Report a Sighting</button>
+                <button type="button" class="lost-action-secondary" onclick="shareLostPet()"><i class="fas fa-share-alt"></i> Share Alert</button>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+let selectedLostPet = null;
+function showLostPet(button){
+    try { selectedLostPet = JSON.parse(button.getAttribute('data-lost-pet')); } catch(e) { return; }
+    const pet = selectedLostPet;
+    document.getElementById('lostModalTitle').textContent = pet.name || 'Missing Pet';
+    document.getElementById('lostModalLocation').textContent = pet.location || 'Location not provided';
+    document.getElementById('lostModalDate').textContent = pet.reported ? 'Reported ' + pet.reported : 'Report date unavailable';
+    document.getElementById('lostModalDescription').textContent = pet.description || 'No description provided';
+    const contact = document.getElementById('lostModalContact');
+    contact.textContent = pet.contact ? 'Contact: ' + pet.contact : 'Contact details not provided';
+    const img = document.getElementById('lostModalImage');
+    img.style.display = pet.image ? 'block' : 'none';
+    if(pet.image){img.src=pet.image;img.onerror=()=>{img.style.display='none';};}
+    document.getElementById('lostPetModal').classList.add('open');
+    document.body.style.overflow='hidden';
+}
+function closeLostPet(){document.getElementById('lostPetModal').classList.remove('open');document.body.style.overflow='';}
+function reportLostSighting(button){
+    if(button){try{selectedLostPet=JSON.parse(button.getAttribute('data-lost-pet'));}catch(e){return;}}
+    if(!selectedLostPet)return;
+    closeLostPet();
+    const input=document.querySelector('#community-post-form input[name="post_content"]');
+    if(!input){alert('Community posting is currently unavailable.');return;}
+    input.value='SIGHTING REPORT: I may have seen '+selectedLostPet.name+' (missing from '+selectedLostPet.location+'). Details: ';
+    document.getElementById('community_feed').scrollIntoView({behavior:'smooth',block:'start'});
+    setTimeout(()=>{input.focus();input.setSelectionRange(input.value.length,input.value.length);},450);
+    alert('Add where and when you saw the pet, then press Share Post to publish your sighting to the Community Board.');
+}
+async function shareLostPet(){
+    if(!selectedLostPet)return;
+    const message='Missing pet: '+selectedLostPet.name+'\nLast seen: '+selectedLostPet.location+'\n'+selectedLostPet.description+'\n'+window.location.origin+window.location.pathname+'#lost_found';
+    try{
+        if(navigator.share){await navigator.share({title:'Missing pet: '+selectedLostPet.name,text:message});}
+        else if(navigator.clipboard){await navigator.clipboard.writeText(message);alert('Missing pet details copied. You can now share them.');}
+        else{window.prompt('Copy this missing pet alert:',message);}
+    }catch(e){if(e.name!=='AbortError')window.prompt('Copy this missing pet alert:',message);}
+}
+document.addEventListener('keydown',function(e){if(e.key==='Escape')closeLostPet();});
 </script>
 </body> 
 </html>
