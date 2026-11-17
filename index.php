@@ -197,7 +197,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['adopt_pet_id'])) {
                      *
                      * DO NOT USE YOUR NORMAL GMAIL PASSWORD.
                      */
-                    $mail->Password = 'pvmc rbew vrxq dokg';
+                    $mail->Password = getenv('SMTP_APP_PASSWORD') ?: ''; 
 
                     $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
                     $mail->Port = 587;
@@ -1937,10 +1937,17 @@ if (!$result) {
 
             while($row = mysqli_fetch_assoc($result)){
 
-                $petImg =
-                    !empty($row['image'])
-                    ? $row['image']
-                    : 'default-pet.jpg';
+                $petImages = [
+                    1 => '1773540406_stray dog.jpg',
+                    2 => '1773543039_stray dog.jpg',
+                    3 => '1773547653_stray dog.jpg',
+                    4 => '1773547695_stray dog.jpg',
+                    5 => '1773547952_stray dog.jpg',
+                    6 => '1773548689_stray dog.jpg'
+                ];
+
+                $petImg = $petImages[(int)$row['id']]
+                    ?? 'default-pet.jpg';
 
 
                 $petDesc =
