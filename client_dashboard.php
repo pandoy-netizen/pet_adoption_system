@@ -1014,6 +1014,34 @@ main section[id], #lost_found, #donations { scroll-margin-top: 94px; }
 }
 html { scroll-padding-top: 100px; }
 #lost_found, #donations { scroll-margin-top: 110px; }
+
+/* Compact navigation: five primary sections and a secondary services menu. */
+.compact-nav { gap: 5px; overflow: visible !important; flex-wrap: nowrap !important; justify-content: center; }
+.compact-nav > .nav-link, .nav-more-trigger { white-space: nowrap; }
+.nav-more { position: relative; flex-shrink: 0; }
+.nav-more-trigger { font-family: inherit; border: 0; background: transparent; cursor: pointer; display: flex; align-items: center; gap: 8px; }
+.nav-more-trigger i { font-size: .7em; transition: transform .2s ease; }
+.nav-more.open .nav-more-trigger i { transform: rotate(180deg); }
+.nav-more-menu { display: none; position: absolute; top: calc(100% + 12px); right: 0; min-width: 235px; max-height: min(70vh, 560px); overflow-y: auto; padding: 9px; background: var(--bg-surface); color: var(--text-dark); border: 1px solid var(--border-color); border-radius: 16px; box-shadow: var(--shadow-lg); z-index: 1200; }
+.nav-more.open .nav-more-menu { display: flex; flex-direction: column; }
+.nav-more-menu a, .nav-more-menu button { box-sizing: border-box; display: flex; width: 100%; gap: 11px; align-items: center; padding: 12px 13px; text-align: left; border: 0; border-radius: 10px; background: transparent; color: var(--text-dark); font: 700 .88rem 'Nunito',sans-serif; cursor: pointer; }
+.nav-more-menu a:hover, .nav-more-menu button:hover { background: var(--bg-main); color: var(--primary); }
+.nav-more-menu a i, .nav-more-menu button i { width: 20px; text-align: center; color: var(--primary); }
+.nav-more-mobile-tools { display: none; }
+@media (min-width: 993px) {
+  .header { gap: 15px; }
+  .compact-nav { flex: 0 1 auto; min-width: 0; }
+  .compact-nav > .nav-link { padding: 9px 14px; font-size: .88rem; }
+}
+@media (max-width: 992px) {
+  .compact-nav.active { align-items: stretch; max-height: calc(100dvh - 85px); overflow-y: auto !important; padding: 15px 0; }
+  .compact-nav.active > .nav-link { box-sizing: border-box; }
+  .compact-nav.active .nav-more { width: 90%; margin: 2px auto; }
+  .compact-nav.active .nav-more-trigger { width: 100%; padding: 15px 25px; background: var(--bg-main); border-radius: var(--radius-md); text-align: left; justify-content: space-between; }
+  .compact-nav.active .nav-more-menu { position: static; min-width: 0; max-height: none; box-shadow: none; margin-top: 8px; border-radius: 12px; }
+  .compact-nav.active .nav-more-mobile-tools { display: block; border-top: 1px solid var(--border-color); margin-top: 6px; padding-top: 6px; }
+  .compact-nav.active .nav-more-logout { color: var(--danger); }
+}
 </style>
 </head>
 
@@ -1032,25 +1060,31 @@ html { scroll-padding-top: 100px; }
     </button>
 
     
-    <nav class="nav-links" id="navLinks" aria-label="Dashboard sections">
-        <a href="#home" class="nav-link" onclick="toggleMenu()">Home</a>
-        <a href="#community_feed" class="nav-link" onclick="toggleMenu()">Community</a>
-        <a href="#lost_found" class="nav-link" onclick="toggleMenu()">Lost &amp; Found</a>
-        <a href="#donation-section" class="nav-link" onclick="toggleMenu()">Donate</a>
-        <?php if($has_approved_application): ?><a href="#smart_monitor" class="nav-link" onclick="toggleMenu()">My Pets</a><?php endif; ?>
-        <a href="#pets" class="nav-link" onclick="toggleMenu()">Adopt</a>
-        <a href="#favorites" class="nav-link" onclick="toggleMenu()">Favorites</a>
-        <a href="#ai_match" class="nav-link" onclick="toggleMenu()">AI Match</a>
-        <a href="#notifications" class="nav-link" onclick="toggleMenu()">Alerts</a>
-        <a href="#appointments" class="nav-link" onclick="toggleMenu()">Visits</a>
-        <a href="#pet_care" class="nav-link" onclick="toggleMenu()">Pet Care</a>
-        <a href="#profile" class="nav-link" onclick="toggleMenu()">Profile</a>
-        <a href="#report_stray" class="nav-link" onclick="toggleMenu()">Report Stray</a>
-        <button type="button" class="nav-link" onclick="startTutorial(); if (window.innerWidth <= 992) toggleMenu();" style="color:var(--secondary);font-weight:800;cursor:pointer;border:0;background:transparent;font-family:inherit;" title="Replay dashboard guide"><i class="fas fa-circle-question"></i> Help / Tour</button>
-        <div class="mobile-only-links">
-            <a href="#donations" class="nav-link" onclick="toggleMenu()"><i class="fas fa-receipt"></i> Donation History</a>
-            <button id="theme-toggle-mobile" class="nav-link" style="text-align:left; border:none; background:transparent; width:100%; cursor:pointer;"><i class="fas fa-moon"></i> Toggle Dark Mode</button>
-            <a href="?logout=true" class="nav-link" style="color:var(--danger);"><i class="fas fa-sign-out-alt"></i> Logout</a>
+    <nav class="nav-links compact-nav" id="navLinks" aria-label="Dashboard sections">
+        <a href="#home" class="nav-link" onclick="closeDashboardMenu()">Home</a>
+        <a href="#community_feed" class="nav-link" onclick="closeDashboardMenu()">Community</a>
+        <a href="#donation-section" class="nav-link" onclick="closeDashboardMenu()">Donate</a>
+        <a href="#pets" class="nav-link" onclick="closeDashboardMenu()">Adopt</a>
+        <a href="#ai_match" class="nav-link" onclick="closeDashboardMenu()">AI Match</a>
+        <div class="nav-more" id="navMore">
+            <button type="button" class="nav-link nav-more-trigger" id="navMoreTrigger" aria-haspopup="true" aria-expanded="false" aria-controls="navMoreMenu" onclick="toggleServicesMenu(event)">
+                Services <i class="fas fa-chevron-down" aria-hidden="true"></i>
+            </button>
+            <div class="nav-more-menu" id="navMoreMenu">
+                <a href="#lost_found" onclick="closeDashboardMenu()"><i class="fas fa-magnifying-glass"></i> Lost &amp; Found</a>
+                <?php if($has_approved_application): ?><a href="#smart_monitor" onclick="closeDashboardMenu()"><i class="fas fa-heart-pulse"></i> My Pets</a><?php endif; ?>
+                <a href="#notifications" onclick="closeDashboardMenu()"><i class="fas fa-bell"></i> Alerts</a>
+                <a href="#appointments" onclick="closeDashboardMenu()"><i class="fas fa-calendar-check"></i> Visits</a>
+                <a href="#pet_care" onclick="closeDashboardMenu()"><i class="fas fa-hand-holding-heart"></i> Pet Care</a>
+                <a href="#report_stray" onclick="closeDashboardMenu()"><i class="fas fa-paw"></i> Report Stray</a>
+                <a href="#donations" onclick="closeDashboardMenu()"><i class="fas fa-receipt"></i> Donation History</a>
+                <div class="nav-more-mobile-tools">
+                    <a href="#profile" onclick="closeDashboardMenu()"><i class="fas fa-user"></i> My Profile</a>
+                    <button type="button" onclick="startTutorial();closeDashboardMenu()"><i class="fas fa-circle-question"></i> Help / Tour</button>
+                    <button type="button" id="theme-toggle-mobile"><i class="fas fa-moon"></i> Toggle Dark Mode</button>
+                    <a href="?logout=true" class="nav-more-logout"><i class="fas fa-right-from-bracket"></i> Logout</a>
+                </div>
+            </div>
         </div>
     </nav>
 
@@ -2198,6 +2232,27 @@ html { scroll-padding-top: 100px; }
     themeBtn.addEventListener('click', toggleTheme);
     themeBtnMobile.addEventListener('click', toggleTheme);
 
+
+    function closeDashboardMenu() {
+        document.getElementById('navLinks')?.classList.remove('active');
+        document.getElementById('navMore')?.classList.remove('open');
+        document.getElementById('navMoreTrigger')?.setAttribute('aria-expanded', 'false');
+    }
+    function toggleServicesMenu(event) {
+        event.stopPropagation();
+        const more = document.getElementById('navMore');
+        const open = more.classList.toggle('open');
+        document.getElementById('navMoreTrigger').setAttribute('aria-expanded', String(open));
+    }
+    document.addEventListener('click', function(event) {
+        if (!event.target.closest('#navMore')) {
+            document.getElementById('navMore')?.classList.remove('open');
+            document.getElementById('navMoreTrigger')?.setAttribute('aria-expanded', 'false');
+        }
+    });
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') closeDashboardMenu();
+    });
 
     function toggleMenu() {
         const nav = document.getElementById('navLinks');
