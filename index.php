@@ -1,304 +1,13 @@
 <?php
-session_start();
-
-
-/* =========================================================
-   DATABASE CONNECTION
-========================================================= */
-
-// Railway supplies these through pet_adoption_system service variables.
-// Local XAMPP settings are used only when Railway variables are absent.
-$railwayHost = getenv('MYSQLHOST');
-$host = $railwayHost ?: '127.0.0.1';
-$user = getenv('MYSQLUSER') ?: 'root';
-$password = getenv('MYSQLPASSWORD') !== false ? getenv('MYSQLPASSWORD') : '';
-$database = getenv('MYSQLDATABASE') ?: 'pet_adoption_rescue';
-$port = (int) (getenv('MYSQLPORT') ?: 3306);
-
-// Prevent Railway from silently falling back to the local XAMPP database.
-if (getenv('RAILWAY_ENVIRONMENT') && !$railwayHost) {
-    error_log('MYSQLHOST is missing from the Railway PHP service variables.');
-    http_response_code(500);
-    exit('Database configuration error. Check Railway service variables.');
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
 }
-
-try {
-    $conn = new mysqli($host, $user, $password, $database, $port);
-    $conn->set_charset('utf8mb4');
-} catch (mysqli_sql_exception $e) {
-    error_log('Database connection error: ' . $e->getMessage());
-    http_response_code(500);
-    die('Database connection failed. Check Railway MySQL settings.');
-}
-
-
-/* =========================================================
-   PHPMailer
-========================================================= */
-
-require __DIR__ . '/PHPMailer/src/Exception.php';
-require __DIR__ . '/PHPMailer/src/PHPMailer.php';
-require __DIR__ . '/PHPMailer/src/SMTP.php';
-
-use PHPMailer\PHPMailer\PHPMailer;
-use PHPMailer\PHPMailer\Exception;
-
-
-/* =========================================================
-   MESSAGE
-========================================================= */
-
-$message = "";
-
-
-/* =========================================================
-   CREATE ADOPTIONS TABLE
-========================================================= */
-
-$create_table_sql = "CREATE TABLE IF NOT EXISTS adoptions (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    pet_id INT NOT NULL,
-    user_name VARCHAR(100) NOT NULL,
-    user_email VARCHAR(150) NOT NULL,
-    request_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-)";
-
-mysqli_query($conn, $create_table_sql);
-
-
-/* =========================================================
-   EDIT PET DETAILS HERE - ONE PLACE FOR ALL ANIMAL DETAILS
-   Upload each image to GitHub /uploads/ and put ONLY its filename.
-   Example: 'image' => 'bella-new.jpg'
-   After committing and Railway redeployment, refresh the page.
-   Keep each pet ID unchanged to preserve adoption requests.
-========================================================= */
-$petDetails = [
-    1 => [
-        'name' => 'gaspar',
-        'breed' => 'Aspin',
-        'age' => 2,
-        'description' => 'Bella is a sweet dog looking for a loving home.',
-        'image' => 'Aspin.jpg',
-    ],
-    2 => [
-        'name' => 'Luna',
-        'breed' => 'Domestic Shorthair Cat',
-        'age' => 1,
-        'description' => 'Luna is a vocal and affectionate cat.',
-        'image' => 'pusa.jpg',
-    ],
-    3 => [
-        'name' => 'Max',
-        'breed' => 'Aspin',
-        'age' => 3,
-        'description' => 'Max is a playful companion.',
-        'image' => 'download (2).jpg',
-    ],
-    4 => [
-        'name' => 'Milo',
-        'breed' => 'British Shorthair',
-        'age' => 4,
-        'description' => 'Milo is a calm and friendly cat.',
-        'image' => '1773547695_stray dog.jpg',
-    ],
-    5 => [
-        'name' => 'Charlie',
-        'breed' => 'French Bulldog',
-        'age' => 2,
-        'description' => 'Charlie is a friendly dog.',
-        'image' => '1791540871_aso.png',
-    ],
-    6 => [
-        'name' => 'Daisy',
-        'breed' => 'Mixed Breed',
-        'age' => 1,
-        'description' => 'Daisy is a rescued animal ready for a home.',
-        'image' => '1773548689_stray dog.jpg',
-    ],
-];
-
-/* =========================================================
-   ADOPTION REQUEST
-========================================================= */
-
-if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['adopt_pet_id'])) {
-
-    $pet_id = intval($_POST['adopt_pet_id']);
-    $user_name = trim($_POST['user_name'] ?? '');
-    $user_email = trim($_POST['user_email'] ?? '');
-
-
-    /* =====================================================
-       VALIDATION
-    ===================================================== */
-
-    if ($pet_id <= 0 || empty($user_name) || empty($user_email)) {
-
-        $message = "
-        <div class='alert error'>
-            <i class='fa-solid fa-circle-exclamation'></i>
-            Please complete all required fields.
-        </div>
-        ";
-
-    } elseif (!filter_var($user_email, FILTER_VALIDATE_EMAIL)) {
-
-        $message = "
-        <div class='alert error'>
-            <i class='fa-solid fa-circle-exclamation'></i>
-            Please enter a valid email address.
-        </div>
-        ";
-
-    } else {
-
-
-        /* =================================================
-           GET PET INFORMATION
-        ================================================= */
-
-        $pet_name = "Selected Pet";
-        $pet_breed = "Unknown";
-        $pet_age = "Unknown";
-        $pet_description = "";
-
-        $pet_stmt = mysqli_prepare(
-            $conn,
-            "SELECT name, breed, age, description
-             FROM pets
-             WHERE id = ?"
-        );
-
-        if ($pet_stmt) {
-
-            mysqli_stmt_bind_param(
-                $pet_stmt,
-                "i",
-                $pet_id
-            );
-
-            mysqli_stmt_execute($pet_stmt);
-
-            $pet_result = mysqli_stmt_get_result($pet_stmt);
-
-            if ($pet_row = mysqli_fetch_assoc($pet_result)) {
-
-                $pet_name = $pet_row['name'];
-                $pet_breed = $pet_row['breed'];
-                $pet_age = $pet_row['age'];
-                $pet_description = $pet_row['description'] ?? "";
-
-                if (isset($petDetails[$pet_id])) {
-                    $pet_name = $petDetails[$pet_id]['name'];
-                    $pet_breed = $petDetails[$pet_id]['breed'];
-                    $pet_age = $petDetails[$pet_id]['age'];
-                    $pet_description = $petDetails[$pet_id]['description'];
-                }
-            }
-
-            mysqli_stmt_close($pet_stmt);
-        }
-
-
-        /* =================================================
-           INSERT ADOPTION REQUEST
-        ================================================= */
-
-        $insert_stmt = mysqli_prepare(
-            $conn,
-            "INSERT INTO adoptions
-            (pet_id, user_name, user_email)
-            VALUES (?, ?, ?)"
-        );
-
-        if ($insert_stmt) {
-
-            mysqli_stmt_bind_param(
-                $insert_stmt,
-                "iss",
-                $pet_id,
-                $user_name,
-                $user_email
-            );
-
-
-            if (mysqli_stmt_execute($insert_stmt)) {
-
-
-                /* =========================================
-                   SEND CONFIRMATION EMAIL
-                ========================================= */
-
-                $mail = new PHPMailer(true);
-
-                try {
-
-                    /* -------------------------------------
-                       GMAIL SMTP
-                    ------------------------------------- */
-
-                    $mail->isSMTP();
-                    $mail->Host = 'smtp.gmail.com';
-                    $mail->SMTPAuth = true;
-
-                    /*
-                     * YOUR GMAIL ACCOUNT
-                     */
-                    $mail->Username = 'lesterneildinojales@gmail.com';
-
-                    /*
-                     * PUT YOUR NEW GOOGLE APP PASSWORD HERE.
-                     *
-                     * Example:
-                     *
-                     * $mail->Password = getenv('SMTP_APP_PASSWORD') ?: '';
-                     *
-                     * DO NOT USE YOUR NORMAL GMAIL PASSWORD.
-                     */
-                    $mail->Password = getenv('SMTP_APP_PASSWORD') ?: ''; 
-
-                    $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-                    $mail->Port = 587;
-
-
-                    /* -------------------------------------
-                       SENDER
-                    ------------------------------------- */
-
-                    $mail->setFrom(
-                        'lesterneildinojales@gmail.com',
-                        'San Pedro AnimalShelter'
-                    );
-
-
-                    /* -------------------------------------
-                       SEND TO APPLICANT
-                    ------------------------------------- */
-
-                    $mail->addAddress(
-                        $user_email,
-                        $user_name
-                    );
-
-
-                    /* -------------------------------------
-                       EMAIL SETTINGS
-                    ------------------------------------- */
-
-                    $mail->isHTML(true);
-
-                    $mail->Subject =
-                        'Adoption Request Received - ' . $pet_name;
-
-
-                    /* -------------------------------------
-                       HTML EMAIL
-                    ------------------------------------- */
-
-                    $mail->Body = '
-
-                    <!DOCTYPE html>
+$loggedIn = isset($_SESSION['user_id']);
+$role = strtolower((string)($_SESSION['role'] ?? 'client'));
+$dashboardUrl = $role === 'admin' ? 'admin_dashboard.php' : ($role === 'staff' ? 'staff_dashboard.php' : 'client_dashboard.php');
+$startUrl = $loggedIn ? $dashboardUrl : 'login.php';
+?>
+<!DOCTYPE html>
 
                     <html>
 
@@ -324,7 +33,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['adopt_pet_id'])) {
                             box-shadow:0 10px 30px rgba(0,0,0,0.10);
                         ">
 
-                            <!-- HEADER -->
+                            
 
                             <div style="
                                 background:#FF9F43;
@@ -350,7 +59,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['adopt_pet_id'])) {
                             </div>
 
 
-                            <!-- CONTENT -->
+                            
 
                             <div style="
                                 padding:35px;
@@ -379,7 +88,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['adopt_pet_id'])) {
                                 </p>
 
 
-                                <!-- PET DETAILS -->
+                                
 
                                 <div style="
                                     background:#fff7ed;
@@ -464,7 +173,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['adopt_pet_id'])) {
                                 </div>
 
 
-                                <!-- NEXT STEP -->
+                                
 
                                 <div style="
                                     background:#f8f9fa;
@@ -531,7 +240,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['adopt_pet_id'])) {
                             </div>
 
 
-                            <!-- FOOTER -->
+                            
 
                             <div style="
                                 background:#2D3436;
@@ -553,9 +262,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['adopt_pet_id'])) {
                     ';
 
 
-                    /* -------------------------------------
-                       PLAIN TEXT EMAIL
-                    ------------------------------------- */
+                    
 
                     $mail->AltBody =
                         "SAN PEDRO ANIMALSHELTER\n\n" .
@@ -605,16 +312,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['adopt_pet_id'])) {
                         "Rescue. Adopt. Love.";
 
 
-                    /* -------------------------------------
-                       SEND EMAIL
-                    ------------------------------------- */
+                    
 
                     $mail->send();
 
 
-                    /* -------------------------------------
-                       SUCCESS MESSAGE
-                    ------------------------------------- */
+                    
 
                     $message = "
                     <div class='alert success'>
@@ -635,10 +338,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['adopt_pet_id'])) {
 
                 } catch (Exception $e) {
 
-                    /*
-                     * The adoption request was saved,
-                     * but email failed.
-                     */
+                    
 
                     $message = "
                     <div class='alert error'>
@@ -652,11 +352,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['adopt_pet_id'])) {
                     </div>
                     ";
 
-                    /*
-                     * Saves the PHPMailer error in PHP's
-                     * error log without displaying your
-                     * SMTP credentials to the visitor.
-                     */
+                    
 
                     error_log(
                         "PHPMailer Error: " .
@@ -698,9 +394,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['adopt_pet_id'])) {
 }
 
 
-/* =========================================================
-   GET AVAILABLE PETS
-========================================================= */
+
 
 $sql = "SELECT * FROM pets WHERE status='Available'";
 
@@ -729,14 +423,14 @@ if (!$result) {
     <meta name="theme-color" content="#FF9F43">
 
 
-    <!-- GOOGLE FONT -->
+    
 
     <link
         href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap"
         rel="stylesheet">
 
 
-    <!-- FONT AWESOME -->
+    
 
     <link
         rel="stylesheet"
@@ -833,9 +527,7 @@ if (!$result) {
         }
 
 
-        /* =====================================================
-           NAVBAR
-        ===================================================== */
+        
 
         .navbar {
             position: fixed;
@@ -872,7 +564,7 @@ if (!$result) {
             align-items: center;
             gap: 12px;
             text-decoration: none;
-            z-index: 1001; /* Keep logo above mobile menu dropdown */
+            z-index: 1001; 
         }
 
 
@@ -992,9 +684,7 @@ if (!$result) {
         }
 
 
-        /* =====================================================
-           HERO
-        ===================================================== */
+        
 
         .hero {
             position: relative;
@@ -1151,9 +841,7 @@ if (!$result) {
         }
 
 
-        /* =====================================================
-           PETS
-        ===================================================== */
+        
 
         .pets {
             padding: clamp(50px, 8vw, 100px) 8%;
@@ -1343,9 +1031,7 @@ if (!$result) {
         }
 
 
-        /* =====================================================
-           ABOUT
-        ===================================================== */
+        
 
         .about {
             padding: clamp(60px, 8vw, 120px) 8%;
@@ -1473,9 +1159,7 @@ if (!$result) {
         }
 
 
-        /* =====================================================
-           FOOTER
-        ===================================================== */
+        
 
         footer {
             background: var(--secondary);
@@ -1533,9 +1217,7 @@ if (!$result) {
         }
 
 
-        /* =====================================================
-           ALERT
-        ===================================================== */
+        
 
         .alert {
             padding: 18px 25px;
@@ -1622,9 +1304,7 @@ if (!$result) {
         }
 
 
-        /* =====================================================
-           MODAL
-        ===================================================== */
+        
 
         .modal {
             display: none;
@@ -1794,9 +1474,7 @@ if (!$result) {
         }
 
 
-        /* =====================================================
-           MOBILE
-        ===================================================== */
+        
 
         @media (max-width: 768px) {
 
@@ -1848,6 +1526,36 @@ if (!$result) {
 
         }
 
+
+        .photo-unavailable { min-height:300px; background:linear-gradient(135deg,#fff3e1,#f9d6a5); border-radius:30px; display:grid; place-items:center; }
+        .photo-unavailable::after { content:'🐾 San Pedro AnimalShelter'; font-size:1.5rem; font-weight:700; color:#9a5b1d; }
+        .journey { padding:100px 8%; background:#f8f9fa; text-align:center; scroll-margin-top:95px; }
+        .journey-head { max-width:750px; margin:0 auto 44px; }
+        .journey-head h2 { font-size:clamp(2rem,4vw,3rem); color:#2d3436; margin:10px 0 15px; line-height:1.2; }
+        .journey-head p { color:#636e72; }
+        .journey-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:22px; }
+        .journey-card { position:relative; text-align:left; background:white; border:1px solid #f0e8dd; padding:30px 25px; border-radius:24px; box-shadow:0 10px 30px rgba(30,40,45,.04); transition:transform .3s,box-shadow .3s; }
+        .journey-card:hover { transform:translateY(-7px); box-shadow:0 18px 35px rgba(255,159,67,.14); }
+        .journey-icon { display:grid; place-items:center; width:58px; height:58px; border-radius:17px; color:#e98b22; background:#fff2e0; font-size:1.5rem; margin-bottom:24px; }
+        .journey-number { position:absolute; top:32px; right:25px; font-size:.85rem; font-weight:800; color:#b8bbc1; }
+        .journey-card h3 { font-size:1.12rem; margin-bottom:10px; }
+        .journey-card p { color:#636e72; font-size:.91rem; line-height:1.75; }
+        .journey-action { margin-top:48px; }
+        .journey-action .hero-btn { animation:none; }
+        .journey-action .hero-btn i { margin-left:10px; }
+        .impact-section { display:grid; grid-template-columns:1.3fr 1fr; align-items:center; gap:40px; padding:90px 8%; background:#172333; color:white; overflow:hidden; }
+        .impact-inner h2 { font-size:clamp(2rem,3.6vw,3rem); line-height:1.2; margin:15px 0 20px; }
+        .impact-inner p { max-width:650px; color:#cbd5e1; line-height:1.9; }
+        .impact-link { display:inline-flex; gap:12px; align-items:center; margin-top:24px; text-decoration:none; color:#ffad53; font-weight:700; }
+        .impact-art { min-height:270px; border:1px solid rgba(255,255,255,.12); border-radius:28px; background:radial-gradient(circle at 70% 20%,rgba(255,159,67,.3),transparent 60%),#243449; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:22px; }
+        .impact-art i { font-size:7rem; color:#ff9f43; }
+        .impact-art span { font-weight:700; font-size:1.1rem; }
+        #about { scroll-margin-top:95px; }
+        .about-info a { color:#d47b18; overflow-wrap:anywhere; }
+        @media(max-width:1050px) { .journey-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+        @media(max-width:650px) { .journey { padding:70px 6%; } .journey-grid { grid-template-columns:1fr; } .impact-section { grid-template-columns:1fr; padding:65px 6%; } .impact-art { min-height:210px; } .impact-art i { font-size:5rem; } }
+        @media(prefers-reduced-motion:reduce) { .reveal,.reveal-left,.reveal-right,.reveal-zoom { opacity:1; transform:none; transition:none; } html { scroll-behavior:auto; } }
+
     </style>
 
 </head>
@@ -1855,12 +1563,10 @@ if (!$result) {
 <body>
 
 
-<?php echo $message; ?>
 
 
-<!-- =======================================================
-     NAVBAR
-======================================================= -->
+
+
 
 <header class="navbar" id="navbar">
 
@@ -1877,7 +1583,7 @@ if (!$result) {
 
     </a>
 
-    <!-- HAMBURGER MENU BUTTON -->
+    
     <button class="menu-toggle" id="mobile-menu-btn">
         <i class="fa-solid fa-bars"></i>
     </button>
@@ -1889,8 +1595,8 @@ if (!$result) {
             Home
         </a>
 
-        <a href="#pets">
-            Adopt
+        <a href="#how-it-works">
+            How It Works
         </a>
 
         <a href="#about">
@@ -1901,10 +1607,10 @@ if (!$result) {
         <?php if(isset($_SESSION['user_id'])): ?>
 
             <a
-                href="logout.php"
+                href="<?php echo htmlspecialchars($dashboardUrl, ENT_QUOTES, 'UTF-8'); ?>"
                 class="btn-login"
             >
-                Logout
+                My Dashboard
             </a>
 
         <?php else: ?>
@@ -1923,9 +1629,7 @@ if (!$result) {
 </header>
 
 
-<!-- =======================================================
-     HERO
-======================================================= -->
+
 
 <section class="hero">
 
@@ -1937,23 +1641,21 @@ if (!$result) {
 
 
         <h1>
-            Love & Care For Your Future Pet
+            Every Paw Deserves a Loving Home
         </h1>
 
 
         <p>
-            Thousands of adorable friends are waiting for
-            a place to call home. Your journey to unconditional
-            love starts here.
+            Every rescued animal deserves a safe home. Discover how our shelter connects compassionate people with pets in need, and begin your adoption journey with confidence.
         </p>
 
 
         <a
-            href="#pets"
+            href="#how-it-works"
             class="hero-btn"
         >
 
-            Meet Your New Friend
+            Explore Adoption
 
             <i
                 class="fa-solid fa-arrow-right"
@@ -1967,189 +1669,25 @@ if (!$result) {
 </section>
 
 
-<!-- =======================================================
-     AVAILABLE PETS
-======================================================= -->
-
-<section
-    class="pets"
-    id="pets"
->
-
-    <span class="section-tag reveal">
-        Find Your Companion
-    </span>
 
 
-    <h2 class="reveal">
-        Available Pets
-    </h2>
-
-
-    <div class="pet-container">
-
-        <?php
-
-        if(mysqli_num_rows($result) > 0){
-
-            $delay = 0;
-
-            while($row = mysqli_fetch_assoc($result)){
-
-                $petId = (int)$row['id'];
-                $displayPet = $petDetails[$petId] ?? [
-                    'name' => $row['name'],
-                    'breed' => $row['breed'],
-                    'age' => $row['age'],
-                    'description' => $row['description'] ?? '',
-                    'image' => 'default-pet.jpg',
-                ];
-                $petImg = basename(str_replace('\\', '/', (string)$displayPet['image']));
-                $petImgPath = 'uploads/' . rawurlencode($petImg);
-                $modalArguments = [
-                    $petId,
-                    $displayPet['name'],
-                    $displayPet['breed'],
-                    $displayPet['age'],
-                    $displayPet['description'],
-                    $petImgPath,
-                ];
-                $modalCall = 'openModal(' . implode(',', array_map(
-                    static fn($value) => json_encode($value, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_INVALID_UTF8_SUBSTITUTE),
-                    $modalArguments
-                )) . ')';
-
-        ?>
-
-            <div
-                class="pet-card reveal-zoom"
-                style="
-                    transition-delay:
-                    <?php echo $delay; ?>s;
-                "
-            >
-
-                <div class="pet-img-container">
-
-                    <span class="badge">
-
-                        <?php
-                        echo htmlspecialchars(
-                            $displayPet['breed']
-                        );
-                        ?>
-
-                    </span>
-
-
-                    <img
-                        src="<?php echo htmlspecialchars($petImgPath, ENT_QUOTES, 'UTF-8'); ?>" loading="lazy" decoding="async"
-                        alt="<?php echo htmlspecialchars($displayPet['name']); ?>"
-                    >
-
-                </div>
-
-
-                <div class="pet-card-content">
-
-                    <h3>
-
-                        <?php
-                        echo htmlspecialchars(
-                            $displayPet['name']
-                        );
-                        ?>
-
-                    </h3>
-
-
-                    <div class="pet-info">
-
-                        <span>
-
-                            <i
-                                class="fa-solid fa-cake-candles"
-                            ></i>
-
-                            <?php
-                            echo htmlspecialchars(
-                                $displayPet['age']
-                            );
-                            ?>
-
-                            Years
-
-                        </span>
-
-
-                        <span>
-                            •
-                        </span>
-
-
-                        <span>
-
-                            <i
-                                class="fa-solid fa-paw"
-                            ></i>
-
-                            Ready to Adopt
-
-                        </span>
-
-                    </div>
-
-
-                    <button
-                        class="adopt-btn"
-                        onclick="<?php echo htmlspecialchars($modalCall, ENT_QUOTES, 'UTF-8'); ?>"
-                    >
-
-                        View Details & Adopt
-
-                    </button>
-
-                </div>
-
-            </div>
-
-
-        <?php
-
-                $delay += 0.15;
-
-                if($delay > 0.6){
-                    $delay = 0;
-                }
-
-            }
-
-        } else {
-
-            echo "
-            <div
-                style='grid-column: 1/-1;'
-                class='reveal'
-            >
-                <p>
-                    No pets available right now.
-                    Please check back later!
-                </p>
-            </div>
-            ";
-
-        }
-
-        ?>
-
+<section class="journey" id="how-it-works">
+    <div class="journey-head reveal">
+        <span class="section-tag">Simple, Responsible Adoption</span>
+        <h2>How your adoption journey works</h2>
+        <p>From finding a companion to welcoming them home, we're here to guide you through every step.</p>
     </div>
-
+    <div class="journey-grid">
+        <article class="journey-card reveal-zoom"><div class="journey-icon"><i class="fa-solid fa-user-plus"></i></div><span class="journey-number">01</span><h3>Create an account</h3><p>Sign up and complete your client profile so our shelter team can get to know you.</p></article>
+        <article class="journey-card reveal-zoom"><div class="journey-icon"><i class="fa-solid fa-paw"></i></div><span class="journey-number">02</span><h3>Find your companion</h3><p>Browse available pets and explore matching recommendations in your client dashboard.</p></article>
+        <article class="journey-card reveal-zoom"><div class="journey-icon"><i class="fa-solid fa-clipboard-check"></i></div><span class="journey-number">03</span><h3>Submit an application</h3><p>Apply for a pet and follow your application status as the shelter reviews your request.</p></article>
+        <article class="journey-card reveal-zoom"><div class="journey-icon"><i class="fa-solid fa-house-heart"></i></div><span class="journey-number">04</span><h3>Welcome them home</h3><p>Coordinate the next steps with the shelter team when your application is approved.</p></article>
+    </div>
+    <div class="journey-action reveal"><a class="hero-btn" href="<?php echo htmlspecialchars($startUrl, ENT_QUOTES, 'UTF-8'); ?>"><?php echo $loggedIn ? 'Open My Dashboard' : 'Get Started'; ?> <i class="fa-solid fa-arrow-right"></i></a></div>
 </section>
+<section class="impact-section" id="rescue-care"><div class="impact-inner reveal-left"><span class="section-tag">Rescue. Adopt. Love.</span><h2>Small acts of care create life-changing stories.</h2><p>Our shelter brings together rescue, responsible adoption, and a community committed to animal welfare. You can make a difference by adopting, reporting animals in need, or supporting the shelter.</p><a href="#about" class="impact-link">Learn about our mission <i class="fa-solid fa-arrow-right"></i></a></div><div class="impact-art reveal-right"><i class="fa-solid fa-paw"></i><span>Give them a second chance.</span></div></section>
 
 
-<!-- =======================================================
-     ABOUT
-======================================================= -->
 
 <section
     class="about"
@@ -2193,11 +1731,11 @@ if (!$result) {
                     <i class="fa-solid fa-envelope"></i>
 
                     <h4>
-                        Email Us
+                        Facebook
                     </h4>
 
                     <p>
-                        https://www.facebook.com/sanpedrominianimelshelter
+                        <a href="https://www.facebook.com/sanpedrominianimelshelter" target="_blank" rel="noopener noreferrer">Message our shelter page</a>
                     </p>
 
                 </div>
@@ -2215,7 +1753,7 @@ if (!$result) {
                     </h4>
 
                     <p>
-                        +63 912 345 6789
+                        Contact us through our Facebook page
                     </p>
 
                 </div>
@@ -2266,7 +1804,7 @@ if (!$result) {
 
             <img
                 src="uploads/1773549198_stray dog.jpg"
-                alt="About San Pedro AnimalShelter"
+                alt="About San Pedro AnimalShelter" onerror="this.style.display='none';this.parentElement.classList.add('photo-unavailable');this.parentElement.setAttribute('aria-label','Shelter photo unavailable')"
             >
 
         </div>
@@ -2276,9 +1814,7 @@ if (!$result) {
 </section>
 
 
-<!-- =======================================================
-     FOOTER
-======================================================= -->
+
 
 <footer class="reveal">
 
@@ -2340,191 +1876,32 @@ if (!$result) {
 </footer>
 
 
-<!-- =======================================================
-     ADOPTION MODAL
-======================================================= -->
 
-<div
-    class="modal"
-    id="petModal"
->
-
-
-    <div class="modal-content">
-
-
-        <img
-            id="modalImg"
-            class="modal-img"
-            src=""
-            alt="Pet Image"
-        >
-
-
-        <div class="modal-body">
-
-
-            <span
-                class="close-btn"
-                onclick="closeModal()"
-            >
-                &times;
-            </span>
-
-
-            <span
-                class="section-tag"
-                id="modalBreed"
-            >
-                Breed
-            </span>
-
-
-            <h2 id="modalName">
-                Pet Name
-            </h2>
-
-
-            <p>
-
-                <strong>
-                    Age:
-                </strong>
-
-                <span id="modalAge"></span>
-
-                Years
-
-            </p>
-
-
-            <p id="modalDesc">
-                Pet Description goes here...
-            </p>
-
-
-            <hr
-                style="
-                    border:0;
-                    border-top:2px dashed #f1f2f6;
-                    margin:25px 0;
-                "
-            >
-
-
-            <h3
-                style="
-                    font-size:clamp(1.1rem,2vw,1.2rem);
-                    margin-bottom:10px;
-                    color:var(--secondary);
-                    font-weight:700;
-                "
-            >
-
-                Send Adoption Request
-
-            </h3>
-
-
-            <form
-                class="adopt-form"
-                method="POST"
-                action="index.php"
-            >
-
-
-                <input
-                    type="hidden"
-                    name="adopt_pet_id"
-                    id="modalPetId"
-                >
-
-
-                <input
-                    type="text"
-                    name="user_name"
-                    placeholder="Your Full Name"
-                    required
-                >
-
-
-                <input
-                    type="email"
-                    name="user_email"
-                    placeholder="Your Email Address"
-                    required
-                >
-
-
-                <button
-                    type="submit"
-                    class="submit-adopt"
-                >
-
-                    Confirm Request
-
-                    <i class="fa-solid fa-paw"></i>
-
-                </button>
-
-
-            </form>
-
-
-        </div>
-
-    </div>
-
-</div>
-
-
-<!-- =======================================================
-     JAVASCRIPT
-======================================================= -->
 
 <script>
 
 
-    /* =====================================================
-       MOBILE MENU TOGGLE
-    ===================================================== */
+    
 
     const mobileMenuBtn = document.getElementById('mobile-menu-btn');
     const navLinks = document.getElementById('nav-links');
-
     if (mobileMenuBtn && navLinks) {
-        
+        mobileMenuBtn.setAttribute('aria-expanded', 'false');
         mobileMenuBtn.addEventListener('click', () => {
-            navLinks.classList.toggle('active');
-            
+            const open = navLinks.classList.toggle('active');
+            mobileMenuBtn.setAttribute('aria-expanded', String(open));
             const icon = mobileMenuBtn.querySelector('i');
-            
-            if (navLinks.classList.contains('active')) {
-                icon.classList.remove('fa-bars');
-                icon.classList.add('fa-xmark');
-            } else {
-                icon.classList.remove('fa-xmark');
-                icon.classList.add('fa-bars');
-            }
+            icon.classList.toggle('fa-bars', !open);
+            icon.classList.toggle('fa-xmark', open);
         });
-
-        document.querySelectorAll('.nav-links a').forEach(link => {
-            
-            link.addEventListener('click', () => {
-                navLinks.classList.remove('active');
-                
-                const icon = mobileMenuBtn.querySelector('i');
-                icon.classList.remove('fa-xmark');
-                icon.classList.add('fa-bars');
-            });
-            
-        });
+        navLinks.querySelectorAll('a').forEach(link => link.addEventListener('click', () => {
+            navLinks.classList.remove('active');
+            mobileMenuBtn.setAttribute('aria-expanded', 'false');
+            const icon = mobileMenuBtn.querySelector('i');
+            icon.classList.add('fa-bars');
+            icon.classList.remove('fa-xmark');
+        }));
     }
-
-
-    /* =====================================================
-       NAVBAR SCROLL
-    ===================================================== */
 
     window.addEventListener('scroll', () => {
 
@@ -2558,9 +1935,7 @@ if (!$result) {
     });
 
 
-    /* =====================================================
-       SCROLL REVEAL
-    ===================================================== */
+    
 
     const observerOptions = {
 
@@ -2608,97 +1983,7 @@ if (!$result) {
         });
 
 
-    /* =====================================================
-       PET MODAL
-    ===================================================== */
-
-    const modal =
-        document.getElementById('petModal');
-
-
-    function openModal(
-        id,
-        name,
-        breed,
-        age,
-        desc,
-        img
-    ) {
-
-        document
-            .getElementById('modalPetId')
-            .value = id;
-
-
-        document
-            .getElementById('modalName')
-            .innerText = name;
-
-
-        document
-            .getElementById('modalBreed')
-            .innerText = breed;
-
-
-        document
-            .getElementById('modalAge')
-            .innerText = age;
-
-
-        document
-            .getElementById('modalDesc')
-            .innerText = desc;
-
-
-        document
-            .getElementById('modalImg')
-            .src = img;
-
-
-        modal.style.display = 'flex';
-
-
-        setTimeout(() => {
-
-            modal.classList.add('show');
-
-        }, 10);
-
-    }
-
-
-    function closeModal() {
-
-        modal.classList.remove('show');
-
-
-        setTimeout(() => {
-
-            modal.style.display = 'none';
-
-        }, 400);
-
-    }
-
-
-    /* =====================================================
-       CLOSE MODAL WHEN CLICKING OUTSIDE
-    ===================================================== */
-
-    window.onclick = function(event) {
-
-        if (event.target == modal) {
-
-            closeModal();
-
-        }
-
-    };
-
-
-    /* =====================================================
-       AUTO HIDE ALERT
-    ===================================================== */
+    
 
     setTimeout(() => {
 
@@ -2723,9 +2008,7 @@ if (!$result) {
     }, 4500);
 
 
-    /* =====================================================
-       SERVICE WORKER
-    ===================================================== */
+    
 
     if ('serviceWorker' in navigator) {
 
