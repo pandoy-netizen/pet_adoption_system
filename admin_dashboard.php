@@ -12,9 +12,14 @@ if (
     $_SESSION = [];
     if (ini_get('session.use_cookies')) {
         $params = session_get_cookie_params();
-        setcookie(session_name(), '', time() - 42000,
-            $params['path'], $params['domain'],
-            $params['secure'], $params['httponly']);
+        setcookie(session_name(), '', [
+            'expires' => time() - 42000,
+            'path' => $params['path'] ?? '/',
+            'domain' => $params['domain'] ?? '',
+            'secure' => $params['secure'] ?? false,
+            'httponly' => $params['httponly'] ?? true,
+            'samesite' => $params['samesite'] ?? 'Lax'
+        ]);
     }
     session_destroy();
     header("Location: /index.php", true, 302);
@@ -2142,6 +2147,13 @@ if ($hq) {
 .application-pet-photo{width:62px;height:62px;border-radius:14px}
 @media(max-width:420px){.application-identity{gap:10px}.application-avatar{width:54px;height:54px}.application-pet-photo{width:50px;height:50px}}
 </style>
+<style>
+.pet-card-img-wrap:has(.rescue-photo-placeholder){position:relative;background:linear-gradient(135deg,#172b45,#263e56);overflow:hidden}
+.rescue-photo-placeholder{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:#cbd5e1;text-align:center;padding:20px;box-sizing:border-box}
+.rescue-photo-placeholder i{font-size:48px;color:#f59e0b;opacity:.9}
+.rescue-photo-placeholder span{font-size:13px;font-weight:800;letter-spacing:.02em}
+.rescue-report-photo{position:relative;z-index:1;display:block;width:100%;height:100%;object-fit:cover}
+</style>
 </head>
 
 <body>
@@ -2526,7 +2538,18 @@ if ($hq) {
                     while($rep = mysqli_fetch_assoc($active_reports)) {
                         
                         $stat_color = ($rep['status'] == 'In Progress') ? 'badge-pending' : 'badge-danger';
-                        $r_img = empty($rep['image']) ? 'uploads/default.jpg' : 'uploads/'.$rep['image'];
+                        $report_photo = trim((string)($rep['image'] ?? ''));
+                        $r_img = '';
+                        if ($report_photo !== '') {
+                            if (filter_var($report_photo, FILTER_VALIDATE_URL)) {
+                                $r_img = $report_photo;
+                            } else {
+                                $r_img = '/' . ltrim(str_replace('\\', '/', $report_photo), '/');
+                                if (strpos($r_img, '/uploads/') !== 0) {
+                                    $r_img = '/uploads/' . basename($report_photo);
+                                }
+                            }
+                        }
                         $r_date = isset($rep['reported_at']) ? date('M j, g:i A', strtotime($rep['reported_at'])) : 'Recent';
                 ?>
                 
@@ -2537,11 +2560,19 @@ if ($hq) {
                     </span>
                     
                     <div class="pet-card-img-wrap">
-                        <img 
-                            src="<?php echo htmlspecialchars($r_img); ?>" 
-                            class="pet-card-img" 
-                            onerror="this.onerror=null; this.src='uploads/default.jpg';"
+                        <div class="rescue-photo-placeholder" aria-label="Rescue report photo unavailable">
+                            <i class="fas fa-paw"></i>
+                            <span>No rescue photo available</span>
+                        </div>
+                        <?php if ($r_img !== ''): ?>
+                        <img
+                            src="<?php echo htmlspecialchars($r_img, ENT_QUOTES, 'UTF-8'); ?>"
+                            class="pet-card-img rescue-report-photo"
+                            alt="Rescue report photo"
+                            loading="lazy"
+                            onerror="this.style.display='none';"
                         >
+                        <?php endif; ?>
                     </div>
                     
                     <div class="pet-card-content">
@@ -2700,7 +2731,18 @@ if ($hq) {
                     while($rep = mysqli_fetch_assoc($history_reports)) {
                         
                         $stat_color = ($rep['status'] == 'Rejected') ? 'badge-gray' : 'badge-success';
-                        $r_img = empty($rep['image']) ? 'uploads/default.jpg' : 'uploads/'.$rep['image'];
+                        $report_photo = trim((string)($rep['image'] ?? ''));
+                        $r_img = '';
+                        if ($report_photo !== '') {
+                            if (filter_var($report_photo, FILTER_VALIDATE_URL)) {
+                                $r_img = $report_photo;
+                            } else {
+                                $r_img = '/' . ltrim(str_replace('\\', '/', $report_photo), '/');
+                                if (strpos($r_img, '/uploads/') !== 0) {
+                                    $r_img = '/uploads/' . basename($report_photo);
+                                }
+                            }
+                        }
                         $r_date = isset($rep['reported_at']) ? date('M j, g:i A', strtotime($rep['reported_at'])) : 'Recent';
                 ?>
                 
@@ -2711,11 +2753,19 @@ if ($hq) {
                     </span>
                     
                     <div class="pet-card-img-wrap" style="height: 140px;">
-                        <img 
-                            src="<?php echo htmlspecialchars($r_img); ?>" 
-                            class="pet-card-img" 
-                            onerror="this.onerror=null; this.src='uploads/default.jpg';"
+                        <div class="rescue-photo-placeholder" aria-label="Rescue report photo unavailable">
+                            <i class="fas fa-paw"></i>
+                            <span>No rescue photo available</span>
+                        </div>
+                        <?php if ($r_img !== ''): ?>
+                        <img
+                            src="<?php echo htmlspecialchars($r_img, ENT_QUOTES, 'UTF-8'); ?>"
+                            class="pet-card-img rescue-report-photo"
+                            alt="Rescue report photo"
+                            loading="lazy"
+                            onerror="this.style.display='none';"
                         >
+                        <?php endif; ?>
                     </div>
                     
                     <div class="pet-card-content">
