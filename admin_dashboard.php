@@ -548,6 +548,67 @@ $adminPhoto = trim((string)($adminProfile['profile_photo'] ?? ''));
 if ($adminPhoto && !preg_match('~^uploads/[a-zA-Z0-9_./-]+$~', $adminPhoto)) $adminPhoto = '';
 $adminEscape = static function ($value) { return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8'); };
 
+if (empty($_SESSION['shelter_admin_csrf'])) $_SESSION['shelter_admin_csrf'] = bin2hex(random_bytes(32));
+$shelterAdminNotice = '';
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['shelter_action'])) {
+    $action = (string)$_POST['shelter_action'];
+    if (!hash_equals($_SESSION['shelter_admin_csrf'], (string)($_POST['shelter_csrf'] ?? ''))) {
+        $shelterAdminNotice = 'Invalid session token. Refresh and try again.';
+    } else {
+        try {
+            $sid = (int)($_POST['shelter_id'] ?? 0);
+            if ($action === 'delete' && $sid > 0) {
+                $stmt = $conn->prepare('DELETE FROM shelters WHERE id=?');
+                $stmt->bind_param('i', $sid); $stmt->execute(); $stmt->close();
+                $shelterAdminNotice = 'Shelter deleted.';
+            } elseif ($action === 'status' && $sid > 0) {
+                $status = (string)($_POST['verification_status'] ?? 'Pending');
+                if (!in_array($status, ['Pending','Approved','Rejected','Suspended'], true)) throw new RuntimeException('Invalid verification status.');
+                $stmt = $conn->prepare('UPDATE shelters SET verification_status=? WHERE id=?');
+                $stmt->bind_param('si', $status, $sid); $stmt->execute(); $stmt->close();
+                $shelterAdminNotice = 'Shelter verification updated.';
+            } elseif (in_array($action, ['add','edit'], true)) {
+                $name = trim((string)($_POST['shelter_name'] ?? ''));
+                $address = trim((string)($_POST['address'] ?? ''));
+                $city = trim((string)($_POST['city'] ?? ''));
+                $province = trim((string)($_POST['province'] ?? ''));
+                $latInput = trim((string)($_POST['latitude'] ?? ''));
+                $lngInput = trim((string)($_POST['longitude'] ?? ''));
+                $lat = $latInput === '' ? null : (float)$latInput;
+                $lng = $lngInput === '' ? null : (float)$lngInput;
+                $phone = trim((string)($_POST['contact_number'] ?? ''));
+                $email = trim((string)($_POST['contact_email'] ?? ''));
+                $description = trim((string)($_POST['description'] ?? ''));
+                $animals = trim((string)($_POST['animal_types'] ?? ''));
+                $capacity = (int)($_POST['capacity'] ?? 0);
+                $slots = (int)($_POST['available_slots'] ?? 0);
+                $rescue = isset($_POST['rescue_available']) ? 1 : 0;
+                $status = (string)($_POST['verification_status'] ?? 'Pending');
+                if ($name === '' || $address === '' || $city === '' || $province === '' || strlen($name)>150 || strlen($address)>255 || strlen($city)>100 || strlen($province)>100 || strlen($phone)>30 || strlen($email)>150 || strlen($animals)>255 || ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) || $capacity<0 || $slots<0 || $slots>$capacity || !in_array($status,['Pending','Approved','Rejected','Suspended'],true) || ($latInput!=='' && (!is_numeric($latInput)||$lat < -90||$lat>90)) || ($lngInput!=='' && (!is_numeric($lngInput)||$lng < -180||$lng>180)) || (($latInput==='') !== ($lngInput===''))) throw new RuntimeException('Check required fields, capacity, email and coordinates. Both GPS coordinates are required for the map.');
+                if ($action === 'add') {
+                    $stmt = $conn->prepare('INSERT INTO shelters (shelter_name,address,city,province,latitude,longitude,contact_number,contact_email,description,animal_types,capacity,available_slots,rescue_available,verification_status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
+                    $stmt->bind_param('ssssddssssiiss', $name,$address,$city,$province,$lat,$lng,$phone,$email,$description,$animals,$capacity,$slots,$rescue,$status);
+                } else {
+                    if ($sid<=0) throw new RuntimeException('Invalid shelter ID.');
+                    $stmt = $conn->prepare('UPDATE shelters SET shelter_name=?,address=?,city=?,province=?,latitude=?,longitude=?,contact_number=?,contact_email=?,description=?,animal_types=?,capacity=?,available_slots=?,rescue_available=?,verification_status=? WHERE id=?');
+                    $stmt->bind_param('ssssddssssiissi', $name,$address,$city,$province,$lat,$lng,$phone,$email,$description,$animals,$capacity,$slots,$rescue,$status,$sid);
+                }
+                $stmt->execute(); $stmt->close();
+                $shelterAdminNotice = $action === 'add' ? 'Shelter added successfully.' : 'Shelter updated successfully.';
+            }
+        } catch (Throwable $e) {
+            error_log('Shelter admin action: '.$e->getMessage());
+            $shelterAdminNotice = $e instanceof RuntimeException ? $e->getMessage() : 'Unable to save shelter. Check the database tables.';
+        }
+    }
+}
+$shelterAdminRows = [];
+try {
+    $shelterQuery = $conn->query('SELECT s.*, (SELECT ROUND(AVG(r.rating),1) FROM shelter_ratings r WHERE r.shelter_id=s.id) AS average_rating, (SELECT COUNT(*) FROM shelter_ratings r WHERE r.shelter_id=s.id) AS rating_count FROM shelters s ORDER BY s.id DESC');
+    while ($srow = $shelterQuery->fetch_assoc()) $shelterAdminRows[] = $srow;
+} catch (Throwable $e) { error_log('Shelter admin list: '.$e->getMessage()); $shelterAdminNotice = 'Shelter tables could not be loaded.'; }
+
+
 /* USER ACTIONS (ADD, EDIT, DELETE) */
 
 if (isset($_POST['add_user'])) {
@@ -2261,6 +2322,12 @@ if ($hq) {
 .rescue-photo-placeholder span{font-size:13px;font-weight:800;letter-spacing:.02em}
 .rescue-report-photo{position:relative;z-index:1;display:block;width:100%;height:100%;object-fit:cover}
 </style>
+<style>
+.shelter-admin-panel{background:var(--bg-surface);border:1px solid var(--border-color);border-radius:20px;padding:24px;box-shadow:var(--shadow)}
+.shelter-admin-panel h2{margin:0 0 20px}.shelter-form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.shelter-form-grid label{display:flex;flex-direction:column;gap:7px;font-weight:700;font-size:.88rem}.shelter-form-grid input,.shelter-form-grid textarea,.shelter-form-grid select,.shelter-admin-actions select{box-sizing:border-box;width:100%;padding:12px;border:1px solid var(--border-color);border-radius:10px;background:var(--bg-main);color:var(--text-dark);font:inherit}
+.shelter-form-grid .shelter-wide{grid-column:1/-1}.shelter-form-grid .shelter-check{flex-direction:row;align-items:center}.shelter-check input{width:auto}.shelter-notice{padding:14px;background:var(--primary-light);border-radius:12px;margin:16px 0}.shelter-table-scroll{overflow-x:auto}.shelter-admin-table{width:100%;border-collapse:collapse;min-width:900px}.shelter-admin-table th,.shelter-admin-table td{padding:12px;text-align:left;border-bottom:1px solid var(--border-color);vertical-align:top}.shelter-admin-actions{display:flex;gap:7px;align-items:center;flex-wrap:wrap}.shelter-admin-actions form{display:flex;gap:5px;align-items:center}.shelter-admin-actions .btn{padding:8px 12px;font-size:.8rem}
+</style>
 </head>
 
 <body>
@@ -2286,6 +2353,8 @@ if ($hq) {
     </button>
 
     <nav class="nav-links" id="navLinks">
+        <a href="?tab=shelters" class="nav-link <?php echo $activeTab === 'shelters' ? 'active' : ''; ?>"><i class="fas fa-map-marker-alt"></i> Shelters</a>
+        
 
         <a 
             href="?tab=dashboard" 
@@ -2435,6 +2504,58 @@ if ($hq) {
 
 </header>
 
+
+
+<section class="main-container <?php echo $activeTab === 'shelters' ? 'active' : ''; ?>" id="admin-shelters">
+ <div class="container">
+  <h1 style="font-size:2rem;font-weight:900;margin-bottom:8px"><i class="fas fa-house-medical"></i> Shelter Management</h1>
+  <p style="color:var(--text-muted)">Add shelters across the Philippines. Only Approved shelters with valid GPS coordinates appear on the client map.</p>
+  <?php if ($shelterAdminNotice !== ''): ?><div class="shelter-notice"><?php echo $adminEscape($shelterAdminNotice); ?></div><?php endif; ?>
+  <div class="shelter-admin-panel">
+   <h2 id="shelter-form-title">Add Animal Shelter</h2>
+   <form method="post" action="?tab=shelters" id="shelter-admin-form">
+    <input type="hidden" name="shelter_csrf" value="<?php echo $adminEscape($_SESSION['shelter_admin_csrf']); ?>">
+    <input type="hidden" name="shelter_action" id="shelter_action" value="add">
+    <input type="hidden" name="shelter_id" id="shelter_id" value="0">
+    <div class="shelter-form-grid">
+     <label>Shelter name *<input name="shelter_name" required maxlength="150"></label>
+     <label>Street address *<input name="address" required maxlength="255"></label>
+     <label>City / Municipality *<input name="city" required maxlength="100"></label>
+     <label>Province *<input name="province" required maxlength="100"></label>
+     <label>Latitude (GPS)<input name="latitude" type="number" step="any" min="-90" max="90" placeholder="14.5995"></label>
+     <label>Longitude (GPS)<input name="longitude" type="number" step="any" min="-180" max="180" placeholder="120.9842"></label>
+     <label>Phone<input name="contact_number" maxlength="30"></label>
+     <label>Email<input name="contact_email" type="email" maxlength="150"></label>
+     <label>Animal types<input name="animal_types" maxlength="255" placeholder="Dogs, Cats"></label>
+     <label>Capacity<input name="capacity" type="number" min="0" value="0" required></label>
+     <label>Available slots<input name="available_slots" type="number" min="0" value="0" required></label>
+     <label>Verification status<select name="verification_status"><option>Pending</option><option>Approved</option><option>Rejected</option><option>Suspended</option></select></label>
+     <label class="shelter-check"><input type="checkbox" name="rescue_available" value="1"> Accepting rescue requests</label>
+     <label class="shelter-wide">Description<textarea name="description" rows="3"></textarea></label>
+    </div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:16px"><button class="btn btn-primary" type="submit"><i class="fas fa-save"></i> Save Shelter</button><button class="btn" type="button" onclick="resetShelterAdminForm()">Clear / New</button></div>
+   </form>
+  </div>
+  <div class="shelter-admin-panel" style="margin-top:24px">
+   <h2>Registered Shelters (<?php echo count($shelterAdminRows); ?>)</h2>
+   <div class="shelter-table-scroll"><table class="shelter-admin-table"><thead><tr><th>Shelter</th><th>Location</th><th>Rescue / Slots</th><th>Rating</th><th>Status</th><th>Actions</th></tr></thead><tbody>
+   <?php foreach ($shelterAdminRows as $sh): ?>
+    <tr><td><strong><?php echo $adminEscape($sh['shelter_name']); ?></strong><div style="font-size:.8rem;color:var(--text-muted)"><?php echo $adminEscape($sh['contact_number']); ?></div></td>
+    <td><?php echo $adminEscape($sh['city'].', '.$sh['province']); ?></td>
+    <td><?php echo (int)$sh['rescue_available'] ? 'Available' : 'Unavailable'; ?> · <?php echo (int)$sh['available_slots']; ?>/<?php echo (int)$sh['capacity']; ?></td>
+    <td><?php echo $sh['average_rating'] === null ? 'No ratings' : $adminEscape($sh['average_rating']).' / 5 ('.(int)$sh['rating_count'].')'; ?></td>
+    <td><strong><?php echo $adminEscape($sh['verification_status']); ?></strong></td>
+    <td><div class="shelter-admin-actions">
+     <button type="button" class="btn" onclick='editShelterAdmin(<?php echo htmlspecialchars(json_encode($sh, JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT), ENT_QUOTES, "UTF-8"); ?>)'>Edit</button>
+     <form method="post" action="?tab=shelters"><input type="hidden" name="shelter_csrf" value="<?php echo $adminEscape($_SESSION['shelter_admin_csrf']); ?>"><input type="hidden" name="shelter_action" value="status"><input type="hidden" name="shelter_id" value="<?php echo (int)$sh['id']; ?>"><select name="verification_status" aria-label="Verification status"><?php foreach (['Pending','Approved','Rejected','Suspended'] as $opt): ?><option value="<?php echo $opt; ?>" <?php echo $sh['verification_status']===$opt?'selected':''; ?>><?php echo $opt; ?></option><?php endforeach; ?></select><button type="submit" class="btn">Update</button></form>
+     <form method="post" action="?tab=shelters" onsubmit="return confirm('Delete this shelter and all its ratings?')"><input type="hidden" name="shelter_csrf" value="<?php echo $adminEscape($_SESSION['shelter_admin_csrf']); ?>"><input type="hidden" name="shelter_action" value="delete"><input type="hidden" name="shelter_id" value="<?php echo (int)$sh['id']; ?>"><button type="submit" class="btn" style="color:#ef4444">Delete</button></form>
+    </div></td></tr>
+   <?php endforeach; ?>
+   <?php if (!$shelterAdminRows): ?><tr><td colspan="6">No shelters added yet.</td></tr><?php endif; ?>
+   </tbody></table></div>
+  </div>
+ </div>
+</section>
 
 <!-- =========================
      DASHBOARD
@@ -4607,6 +4728,10 @@ function openAdminProfile(){const el=document.getElementById('adminProfileOverla
 function closeAdminProfile(){document.getElementById('adminProfileOverlay').classList.remove('is-open');document.body.style.overflow=''}
 document.addEventListener('keydown',function(e){if(e.key==='Escape'&&document.getElementById('adminProfileOverlay').classList.contains('is-open'))closeAdminProfile()});
 <?php if ($adminProfileError): ?>document.addEventListener('DOMContentLoaded',openAdminProfile);<?php endif; ?>
+</script>
+<script>
+function resetShelterAdminForm(){const f=document.getElementById('shelter-admin-form');f.reset();f.elements.shelter_action.value='add';f.elements.shelter_id.value='0';document.getElementById('shelter-form-title').textContent='Add Animal Shelter';}
+function editShelterAdmin(s){const f=document.getElementById('shelter-admin-form');for(const k of ['shelter_name','address','city','province','latitude','longitude','contact_number','contact_email','description','animal_types','capacity','available_slots','verification_status']){if(f.elements[k])f.elements[k].value=s[k]??'';}f.elements.rescue_available.checked=Number(s.rescue_available)===1;f.elements.shelter_action.value='edit';f.elements.shelter_id.value=s.id;document.getElementById('shelter-form-title').textContent='Edit Shelter #'+s.id;document.getElementById('admin-shelters').scrollIntoView({behavior:'smooth'});}
 </script>
 </body>
 </html>
