@@ -537,106 +537,34 @@ if (isset($_SESSION['email_error'])) {
 >
 
 <title>Register - PAW Care</title>
+<script>(function(){try{var theme=localStorage.getItem('theme');document.documentElement.setAttribute('data-theme',theme==='dark'?'dark':'light')}catch(e){document.documentElement.setAttribute('data-theme','light')}})();</script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
 <style>
-body {
-    font-family: 'Segoe UI', sans-serif;
-    background: #f4f7f6;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 100vh;
-    margin: 0;
-}
-
-.login-container {
-    background: white;
-    padding: 40px;
-    border-radius: 10px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-    width: 350px;
-    text-align: center;
-}
-
-h2 {
-    color: #333;
-    margin-bottom: 25px;
-}
-
-input {
-    width: 100%;
-    padding: 12px;
-    margin-bottom: 15px;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-    box-sizing: border-box;
-}
-
-input:focus {
-    outline: none;
-    border-color: #d4a017;
-}
-
-button {
-    width: 100%;
-    padding: 12px;
-    background: #d4a017;
-    border: none;
-    color: white;
-    font-weight: bold;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: 0.3s;
-}
-
-button:hover {
-    background: #b8870f;
-}
-
-.error {
-    color: red;
-    font-size: 14px;
-    margin-bottom: 15px;
-}
-
-.success {
-    color: green;
-    font-size: 14px;
-    margin-bottom: 15px;
-}
-
-.login-link {
-    margin-top: 15px;
-    display: block;
-    color: #28a745;
-    text-decoration: none;
-    font-size: 13px;
-}
-
-.back-home {
-    margin-top: 15px;
-    display: block;
-    color: #666;
-    text-decoration: none;
-    font-size: 13px;
-}
-
-.smtp-error-box {
-    background: #fff0f0;
-    border: 2px solid #d00000;
-    color: #900;
-    padding: 15px;
-    margin-bottom: 20px;
-    border-radius: 10px;
-    text-align: left;
-    font-family: Arial, sans-serif;
-    font-size: 13px;
-    word-break: break-word;
-}
-
-.smtp-error-box strong {
-    color: #700;
-}
+:root{color-scheme:light;--primary:#ffd54f;--primary-hover:#ffc107;--bg:#f4f7f6;--text-dark:#2d3748;--text-muted:#718096;--surface:#fff;--input-bg:#f8fafc;--border:#e2e8f0;--shadow:0 10px 25px rgba(0,0,0,.08);--glow:rgba(255,213,79,.1);--error-bg:#fff5f5;--error-text:#c53030;--error-border:#feb2b2;--success-bg:#ecfdf5;--success-text:#047857}
+html[data-theme="dark"]{color-scheme:dark;--primary:#f59e0b;--primary-hover:#fbbf24;--bg:#0f172a;--text-dark:#f8fafc;--text-muted:#94a3b8;--surface:#1e293b;--input-bg:#0f172a;--border:#334155;--shadow:0 18px 48px rgba(0,0,0,.35);--glow:rgba(245,158,11,.08);--error-bg:#452027;--error-text:#fecaca;--error-border:#7f1d1d;--success-bg:#064e3b;--success-text:#a7f3d0}
+*{box-sizing:border-box}
+body{font-family:'Inter',sans-serif;background:var(--bg);background-image:radial-gradient(circle at 20% 30%,var(--glow),transparent 40%),radial-gradient(circle at 80% 70%,var(--glow),transparent 40%);display:flex;justify-content:center;align-items:center;min-height:100vh;min-height:100dvh;margin:0;padding:20px;color:var(--text-dark)}
+.login-container{background:var(--surface);padding:45px 40px;border-radius:24px;box-shadow:var(--shadow);border:1px solid var(--border);width:100%;max-width:420px;text-align:center}
+h2{color:var(--text-dark);font-size:26px;font-weight:700;margin:0 0 12px}
+.register-subtitle{font-size:14px;color:var(--text-muted);margin:0 0 28px}
+.logo-paw{font-size:40px;color:var(--primary);margin-bottom:10px}
+input{width:100%;padding:14px 18px;margin-bottom:15px;background:var(--input-bg);color:var(--text-dark);border:1px solid var(--border);border-radius:12px;font-family:inherit;font-size:15px;transition:border-color .2s,box-shadow .2s}
+input::placeholder{color:var(--text-muted);opacity:.8}
+input:focus{outline:none;border-color:var(--primary);background:var(--surface);box-shadow:0 0 0 4px rgba(255,213,79,.15)}
+button{width:100%;padding:14px;background:var(--primary);border:none;color:#111827;font-weight:700;font-size:16px;border-radius:12px;cursor:pointer;transition:.3s;margin-top:8px}
+button:hover{background:var(--primary-hover);transform:translateY(-2px)}
+.error,.success{font-size:13px;padding:12px;border-radius:10px;margin-bottom:18px;text-align:left}
+.error{background:var(--error-bg);color:var(--error-text);border:1px solid var(--error-border)}
+.success{background:var(--success-bg);color:var(--success-text);border:1px solid var(--success-text)}
+.login-link{margin-top:22px;padding-top:20px;border-top:1px solid var(--border);display:block;color:var(--text-dark);text-decoration:none;font-size:14px}
+.login-link strong{color:var(--primary-hover)}
+.back-home{margin-top:15px;display:block;color:var(--text-muted);text-decoration:none;font-size:13px}
+.login-link:hover,.back-home:hover{color:var(--primary-hover)}
+.smtp-error-box{background:var(--error-bg);border:1px solid var(--error-border);color:var(--error-text);padding:15px;margin-bottom:20px;border-radius:10px;text-align:left;font-size:13px;overflow-wrap:anywhere}
+.smtp-error-box strong{color:var(--error-text)}
+@media(max-width:480px){body{padding:16px}.login-container{padding:35px 24px;border-radius:20px}}
 </style>
 </head>
 
@@ -644,7 +572,9 @@ button:hover {
 
 <div class="login-container">
 
+    <div class="logo-paw"><i class="fa-solid fa-paw"></i></div>
     <h2>Create Your Account</h2>
+    <p class="register-subtitle">Join us and give a pet a loving home</p>
 
     <?php if ($message != ""): ?>
 
@@ -734,7 +664,7 @@ button:hover {
         href="login.php"
         class="login-link"
     >
-        Already have an account? Login here →
+        Already have an account? <strong>Login here</strong>
     </a>
 
     <a
