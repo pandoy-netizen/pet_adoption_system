@@ -107,7 +107,7 @@ $petDetails = [
         'breed' => 'French Bulldog',
         'age' => 2,
         'description' => 'Charlie is a friendly dog.',
-        'image' => '1791540871_aso',
+        'image' => '1791540871_aso.png',
     ],
     6 => [
         'name' => 'Daisy',
