@@ -640,6 +640,29 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['adopt_pet_id'])) {
 
 
 /* =========================================================
+   EDIT ANIMAL PHOTOS HERE - UPLOAD TO GITHUB /uploads/
+   Each pet uses its OWN local image. Edit only the filenames.
+
+   Pet ID 1 = Bella, 2 = Luna, 3 = Max,
+          4 = Milo, 5 = Charlie, 6 = Daisy.
+
+   Example: To change Bella, upload uploads/bella.jpg
+   and set 1 => 'bella.jpg'.
+
+   The files below are UNIQUE filenames already seen in
+   your GitHub uploads folder. They may not match the
+   animal's species. Replace them with your actual photos.
+========================================================= */
+$petImages = [
+    1 => '1773540406_stray dog.jpg', // Bella - change to bella.jpg
+    2 => '1773543039_stray dog.jpg', // Luna  - change to luna.jpg (cat photo)
+    3 => '1773547653_stray dog.jpg', // Max   - change to max.jpg
+    4 => '1773547695_stray dog.jpg', // Milo  - change to milo.jpg (cat photo)
+    5 => '1773547952_stray dog.jpg', // Charlie - change to charlie.jpg
+    6 => '1773548689_stray dog.jpg'  // Daisy - change to daisy.jpg
+];
+
+/* =========================================================
    GET AVAILABLE PETS
 ========================================================= */
 
@@ -1937,17 +1960,7 @@ if (!$result) {
 
             while($row = mysqli_fetch_assoc($result)){
 
-                $petImages = [
-                    1 => '1773540406_stray dog.jpg',
-                    2 => '1773543039_stray dog.jpg',
-                    3 => '1773547653_stray dog.jpg',
-                    4 => '1773547695_stray dog.jpg',
-                    5 => '1773547952_stray dog.jpg',
-                    6 => '1773548689_stray dog.jpg'
-                ];
-
-                $petImg = $petImages[(int)$row['id']]
-                    ?? 'default-pet.jpg';
+                $petImg = $petImages[(int)$row['id']] ?? 'default-pet.jpg';
 
 
                 $petDesc =
@@ -2212,7 +2225,7 @@ if (!$result) {
         <div class="about-image reveal-right">
 
             <img
-                src="https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80"
+                src="uploads/1773549198_stray dog.jpg"
                 alt="About San Pedro AnimalShelter"
             >
 
