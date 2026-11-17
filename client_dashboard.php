@@ -991,6 +991,19 @@ section{scroll-margin-top:90px}
     .introjs-tooltip { max-width: calc(100vw - 24px) !important; min-width: 0 !important; }
     .introjs-tooltipbuttons { display: flex; flex-wrap: wrap; gap: 5px; }
 }
+
+/* Exact section navigation with the sticky dashboard header. */
+html { scroll-behavior: smooth; scroll-padding-top: 94px; }
+main section[id], #lost_found, #donations { scroll-margin-top: 94px; }
+@media (max-width: 992px) {
+    html { scroll-padding-top: 82px; }
+    main section[id], #lost_found, #donations { scroll-margin-top: 82px; }
+}
+/* Keep the community and donation sections visually distinct in either theme. */
+#community_feed { background: var(--bg-main); }
+#donation-section { margin: 0; border-radius: 0; box-shadow: none; border-left: 0; border-right: 0; border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color); padding: 72px 20px; }
+#donation-section > div:nth-of-type(2) { box-shadow: var(--shadow); }
+
 </style>
 </head>
 
@@ -1079,61 +1092,138 @@ section{scroll-margin-top:90px}
         </div>
     </section>
 
-    
-    <?php if($has_approved_application): ?>
-    <section id="smart_monitor" class="bg-white">
+    <section id="community_feed" class="bg-light">
         <div class="container">
-            <div class="text-center">
-                <h2 class="section-title"><i class="fas fa-heartbeat" style="color:var(--success);"></i> Post-Adoption Monitor</h2>
-                <p class="section-subtitle">Assuring your pet's safety and well-being. Our automated system syncs with your pet's Smart Collar and analyzes your feed activities to update the shelter automatically.</p>
-            </div>
+            <h2 class="section-title text-center">Community Board</h2>
+            <p class="section-subtitle text-center">Share your adoption journey, report missing pets, and connect with other pet lovers.</p>
             
-            <?php 
-            mysqli_data_seek($check_approval, 0);
-            while($adopted = mysqli_fetch_assoc($check_approval)): 
-                $seed = crc32($adopted['pet_name']);
-                $activity_hrs = number_format(($seed % 30) / 10 + 1.5, 1);
-                $sleep_hrs = number_format(($seed % 50) / 10 + 10, 1);
-                $img = !empty($adopted['image']) ? (filter_var($adopted['image'], FILTER_VALIDATE_URL) ? $adopted['image'] : "uploads/".$adopted['image']) : "uploads/default.jpg";
-            ?>
-            <div class="monitor-panel">
-                <div class="monitor-grid">
-                    <div class="text-center">
-                        <img src="<?php echo $img; ?>" style="width:160px; height:160px; border-radius:50%; object-fit:cover; border:6px solid var(--success-light); margin-bottom:20px; box-shadow:var(--shadow);">
-                        <h3 style="font-size:1.8rem; font-weight:900; margin:0 0 5px; color:var(--text-dark);"><?php echo htmlspecialchars($adopted['pet_name']); ?></h3>
-                        <p style="color:var(--text-muted); margin:0 0 20px; font-weight:700;"><?php echo htmlspecialchars($adopted['breed']); ?></p>
-                        <div class="badge badge-success" style="padding: 8px 16px; font-size: 0.85rem;">
-                            <span class="pulse-dot"></span> IoT Collar Sync Active
+            <div class="grid" style="grid-template-columns: 2fr 1fr; gap: 40px;" id="lost_found">
+                
+                
+                <div>
+                    <h3 style="margin-top:0; color:var(--text-dark); display:flex; align-items:center; gap:10px;"><i class="fas fa-comments" style="color:var(--secondary);"></i> Activity Feed</h3>
+                    
+                    <div class="feed-input-card" style="margin-top: 20px;">
+                        <div class="feed-input-top">
+                            <div class="user-avatar-circle"><?php echo $initials; ?></div>
+                            <form action="" method="POST" enctype="multipart/form-data" style="display:contents;" id="community-post-form">
+                                <input type="text" name="post_content" class="fake-input-bar" placeholder="What's on your mind, <?php echo $first_name; ?>?" required>
+                                <input type="hidden" name="post_location" id="post_loc_val" value="">
+                                <input type="file" name="post_image" id="post_img_val" accept="image/*" style="display:none;" onchange="showImagePreview(this)">
+                                <input type="submit" name="submit_community_post" id="hidden_post_btn" style="display:none;">
+                            </form>
+                        </div>
+                        
+                        
+                        <div id="attachment-notif" style="padding: 20px 0 0 60px; display: none;">
+                            <div style="position: relative; display: inline-block;">
+                                <img id="image-preview" src="" style="max-width: 250px; max-height: 250px; border-radius: var(--radius-md); box-shadow: var(--shadow-sm); object-fit: cover; border: 1px solid var(--border-color);">
+                                <button type="button" onclick="removeAttachment()" class="img-remove-btn" title="Remove Photo"><i class="fas fa-times" style="font-size:12px;"></i></button>
+                            </div>
+                        </div>
+                        
+                        <div id="location-notif" style="font-size: 0.85rem; color: var(--secondary); font-weight: 700; padding: 15px 0 0 60px; display: none;">
+                            <i class="fas fa-map-marker-alt"></i> Location Tagged: <span id="location-name-text"></span>
+                        </div>
+
+                        <div class="feed-action-row">
+                            <div class="action-btn" onclick="document.getElementById('post_img_val').click()"><i class="fas fa-image" style="color:var(--success);"></i> Photo/video</div>
+                            <div class="action-btn" onclick="getCommunityLocation()"><i class="fas fa-map-marker-alt" style="color:var(--danger);"></i> Location</div>
+                            <div class="action-btn" style="color:var(--secondary); background: rgba(59, 130, 246, 0.1);" onclick="document.getElementById('hidden_post_btn').click()"><i class="fas fa-paper-plane"></i> Share Post</div>
                         </div>
                     </div>
 
-                    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:25px;">
-                        <div class="pet-vital-card">
-                            <div style="color:var(--text-muted); font-size:0.85rem; font-weight:800; text-transform:uppercase;"><i class="fas fa-running" style="color:var(--secondary);"></i> Daily Activity</div>
-                            <div style="font-size:2rem; font-weight:900; color:var(--text-dark);"><?php echo $activity_hrs; ?> <span style="font-size:1rem; color:var(--text-light);">Hours</span></div>
-                            <div class="vital-row">Status: <span class="badge badge-success">Optimal</span></div>
-                        </div>
-                        <div class="pet-vital-card">
-                            <div style="color:var(--text-muted); font-size:0.85rem; font-weight:800; text-transform:uppercase;"><i class="fas fa-moon" style="color:var(--primary);"></i> Rest Pattern</div>
-                            <div style="font-size:2rem; font-weight:900; color:var(--text-dark);"><?php echo $sleep_hrs; ?> <span style="font-size:1rem; color:var(--text-light);">Hours</span></div>
-                            <div class="vital-row">Status: <span class="badge badge-success">Very Low Stress</span></div>
-                        </div>
-                        <div class="pet-vital-card" style="grid-column: 1 / -1; flex-direction:row; justify-content:space-between; align-items:center; background:rgba(245, 158, 11, 0.1); border-color:var(--primary);">
+                    
+                    <?php 
+                    $fetch_sql = "SELECT * FROM community_posts ORDER BY id DESC";
+                    $fetch_res = mysqli_query($conn, $fetch_sql);
+                    if($fetch_res && mysqli_num_rows($fetch_res) > 0){
+                        while($post = mysqli_fetch_assoc($fetch_res)){
+                            $post_initials = strtoupper(substr($post['user_display_name'], 0, 1));
+                            $formatted_date = date("F j, g:i a", strtotime($post['created_at']));
+                    ?>
+                    <div class="post-card">
+                        <div style="display:flex; align-items:center; gap:12px; margin-bottom:20px;">
+                            <div class="user-avatar-circle" style="background:var(--text-muted);"><?php echo $post_initials; ?></div>
                             <div>
-                                <div style="color:var(--primary-hover); font-size:1rem; font-weight:900; margin-bottom:5px;"><i class="fas fa-brain"></i> Wellness Assessment</div>
-                                <div style="color:var(--text-muted); font-size:0.9rem; font-weight:600;">Analyzed from Feed Posts & Smart Vitals</div>
+                                <p class="post-author"><?php echo htmlspecialchars($post['user_display_name']); ?></p>
+                                <div class="post-meta"><?php echo $formatted_date; ?></div>
                             </div>
-                            <div class="badge" style="background:var(--primary); color:white; padding:12px 24px; font-size: 0.95rem;">Thriving / Safe</div>
                         </div>
+                        <div style="font-size:1rem; color:var(--text-dark); line-height:1.6; margin-bottom:20px;"><?php echo htmlspecialchars($post['content']); ?></div>
+                        
+                        <?php if(!empty($post['location'])): ?>
+                            <div style="color: var(--secondary); font-weight: 700; font-size: 0.85rem; margin-bottom: 15px; display: flex; align-items: center; gap: 6px;"><i class="fas fa-map-marker-alt"></i> <?php echo htmlspecialchars($post['location']); ?></div>
+                        <?php endif; ?>
+                        
+                        <?php if(!empty($post['image'])): ?>
+                            <img src="uploads/<?php echo $post['image']; ?>" style="width:100%; border-radius:var(--radius-md); max-height: 400px; object-fit: cover; border: 1px solid var(--border-color);">
+                        <?php endif; ?>
                     </div>
+                    <?php } } else { echo "<div class='text-center' style='color:var(--text-muted); font-size:1rem; padding:40px; border:1px dashed var(--border-color); border-radius:var(--radius-lg);'>No posts yet. Start the conversation!</div>"; } ?>
                 </div>
+
+                
+                <div>
+                    <h3 style="margin-top:0; color:var(--text-dark); display:flex; align-items:center; gap:10px;"><i class="fas fa-search-location" style="color:var(--danger);"></i> Lost Pets Alerts</h3>
+                    
+                    <?php if($lost_success) echo "<div class='alert alert-success' style='font-size:0.85rem;'><i class='fas fa-check-circle'></i> $lost_success</div>"; ?>
+                    
+                    <div class="form-container" style="padding: 20px; margin-top: 20px; margin-bottom: 30px; border-left: 4px solid var(--danger);">
+                        <h4 style="margin: 0 0 15px; font-size: 1.1rem; color: var(--text-dark);">Report a Lost Pet</h4>
+                        <form action="" method="POST" enctype="multipart/form-data">
+                            <input type="text" name="l_pet_name" placeholder="Pet's Name" required style="padding: 10px; margin-bottom:10px;">
+                            <input type="text" name="l_location" placeholder="Last seen location" required style="padding: 10px; margin-bottom:10px;">
+                            <textarea name="l_description" rows="2" placeholder="Describe the pet (color, collar, etc.)" required style="padding: 10px; margin-bottom:10px;"></textarea>
+                            <label style="font-size:0.75rem; display:block; margin-bottom:5px;">Upload Photo</label>
+                            <input type="file" name="l_image" accept="image/*" style="font-size:0.85rem; padding:5px; margin-bottom:15px;">
+                            <button type="submit" name="submit_lost_pet" class="btn btn-outline" style="width: 100%; font-size: 0.9rem; padding: 10px; color: var(--danger); border-color: var(--danger);">Alert Community</button>
+                        </form>
+                    </div>
+
+                    <?php
+                    $lost_sql = "SELECT * FROM lost_pets WHERE status='Lost' ORDER BY id DESC LIMIT 5";
+                    $lost_res = mysqli_query($conn, $lost_sql);
+                    if ($lost_res && mysqli_num_rows($lost_res) > 0) {
+                        while ($lpet = mysqli_fetch_assoc($lost_res)) {
+                            $stored_image = trim((string)($lpet['image'] ?? ''));
+                            $l_img = $stored_image !== '' ? (preg_match('~^(https?://|uploads/)~i', $stored_image) ? $stored_image : 'uploads/' . ltrim($stored_image, '/')) : 'uploads/default_lost.jpg';
+                            $pet_payload = [
+                                'id' => (int)$lpet['id'],
+                                'name' => $lpet['pet_name'] ?? '',
+                                'description' => $lpet['description'] ?? '',
+                                'location' => $lpet['location'] ?? '',
+                                'image' => $l_img,
+                                'reported' => !empty($lpet['reported_at']) ? date('M j, Y · g:i A', strtotime($lpet['reported_at'])) : '',
+                                'contact' => $lpet['contact_info'] ?? '',
+                                'reporter' => $lpet['user_display_name'] ?? ''
+                            ];
+                            $json_payload = htmlspecialchars(json_encode($pet_payload, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_INVALID_UTF8_SUBSTITUTE), ENT_QUOTES, 'UTF-8');
+                    ?>
+                    <article class="lost-alert-card">
+                        <button type="button" class="lost-photo-button" data-lost-pet="<?php echo $json_payload; ?>" onclick="showLostPet(this)" aria-label="View photo and details of <?php echo htmlspecialchars($lpet['pet_name'] ?? 'lost pet', ENT_QUOTES, 'UTF-8'); ?>">
+                            <img src="<?php echo htmlspecialchars($l_img, ENT_QUOTES, 'UTF-8'); ?>" loading="lazy" alt="Missing pet <?php echo htmlspecialchars($lpet['pet_name'] ?? '', ENT_QUOTES, 'UTF-8'); ?>" onerror="this.onerror=null;this.style.display='none';this.parentElement.classList.add('lost-no-photo');this.parentElement.insertAdjacentHTML('beforeend','<i class=&quot;fas fa-paw&quot;></i>')">
+                            <span class="lost-photo-zoom"><i class="fas fa-expand"></i></span>
+                        </button>
+                        <div class="lost-alert-content">
+                            <span class="lost-alert-status"><i class="fas fa-exclamation-circle"></i> MISSING</span>
+                            <h4><?php echo htmlspecialchars($lpet['pet_name'] ?? '', ENT_QUOTES, 'UTF-8'); ?></h4>
+                            <p class="lost-alert-description"><?php echo htmlspecialchars($lpet['description'] ?? '', ENT_QUOTES, 'UTF-8'); ?></p>
+                            <div class="lost-alert-location"><i class="fas fa-map-marker-alt"></i><span><?php echo htmlspecialchars($lpet['location'] ?? '', ENT_QUOTES, 'UTF-8'); ?></span></div>
+                            <div class="lost-alert-actions">
+                                <button type="button" class="lost-action-primary" data-lost-pet="<?php echo $json_payload; ?>" onclick="showLostPet(this)"><i class="fas fa-eye"></i> View Details</button>
+                                <button type="button" class="lost-action-secondary" data-lost-pet="<?php echo $json_payload; ?>" onclick="reportLostSighting(this)"><i class="fas fa-map-pin"></i> I Saw This Pet</button>
+                            </div>
+                        </div>
+                    </article>
+                    <?php } } else { echo "<div class='text-center' style='padding:20px; font-size:0.9rem; color:var(--text-muted); border:1px dashed var(--border-color); border-radius:var(--radius-md);'>No lost pets reported locally.</div>"; } ?>
+                </div>
+
             </div>
-            <?php endwhile; ?>
         </div>
     </section>
-    <?php endif; ?>
 
-
+    
 <section id="donation-section" class="donation-theme-section" style="
     background:var(--bg-surface);
     padding:28px;
@@ -1203,14 +1293,69 @@ section{scroll-margin-top:90px}
     </div>
 
    
-    </p>
-
     <p style="font-size:12px;color:#888;">
         Donations remain pending until reviewed by the admin.
     </p>
 </section>
-</div>
     
+
+
+
+    
+    <?php if($has_approved_application): ?>
+    <section id="smart_monitor" class="bg-white">
+        <div class="container">
+            <div class="text-center">
+                <h2 class="section-title"><i class="fas fa-heartbeat" style="color:var(--success);"></i> Post-Adoption Monitor</h2>
+                <p class="section-subtitle">Assuring your pet's safety and well-being. Our automated system syncs with your pet's Smart Collar and analyzes your feed activities to update the shelter automatically.</p>
+            </div>
+            
+            <?php 
+            mysqli_data_seek($check_approval, 0);
+            while($adopted = mysqli_fetch_assoc($check_approval)): 
+                $seed = crc32($adopted['pet_name']);
+                $activity_hrs = number_format(($seed % 30) / 10 + 1.5, 1);
+                $sleep_hrs = number_format(($seed % 50) / 10 + 10, 1);
+                $img = !empty($adopted['image']) ? (filter_var($adopted['image'], FILTER_VALIDATE_URL) ? $adopted['image'] : "uploads/".$adopted['image']) : "uploads/default.jpg";
+            ?>
+            <div class="monitor-panel">
+                <div class="monitor-grid">
+                    <div class="text-center">
+                        <img src="<?php echo $img; ?>" style="width:160px; height:160px; border-radius:50%; object-fit:cover; border:6px solid var(--success-light); margin-bottom:20px; box-shadow:var(--shadow);">
+                        <h3 style="font-size:1.8rem; font-weight:900; margin:0 0 5px; color:var(--text-dark);"><?php echo htmlspecialchars($adopted['pet_name']); ?></h3>
+                        <p style="color:var(--text-muted); margin:0 0 20px; font-weight:700;"><?php echo htmlspecialchars($adopted['breed']); ?></p>
+                        <div class="badge badge-success" style="padding: 8px 16px; font-size: 0.85rem;">
+                            <span class="pulse-dot"></span> IoT Collar Sync Active
+                        </div>
+                    </div>
+
+                    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:25px;">
+                        <div class="pet-vital-card">
+                            <div style="color:var(--text-muted); font-size:0.85rem; font-weight:800; text-transform:uppercase;"><i class="fas fa-running" style="color:var(--secondary);"></i> Daily Activity</div>
+                            <div style="font-size:2rem; font-weight:900; color:var(--text-dark);"><?php echo $activity_hrs; ?> <span style="font-size:1rem; color:var(--text-light);">Hours</span></div>
+                            <div class="vital-row">Status: <span class="badge badge-success">Optimal</span></div>
+                        </div>
+                        <div class="pet-vital-card">
+                            <div style="color:var(--text-muted); font-size:0.85rem; font-weight:800; text-transform:uppercase;"><i class="fas fa-moon" style="color:var(--primary);"></i> Rest Pattern</div>
+                            <div style="font-size:2rem; font-weight:900; color:var(--text-dark);"><?php echo $sleep_hrs; ?> <span style="font-size:1rem; color:var(--text-light);">Hours</span></div>
+                            <div class="vital-row">Status: <span class="badge badge-success">Very Low Stress</span></div>
+                        </div>
+                        <div class="pet-vital-card" style="grid-column: 1 / -1; flex-direction:row; justify-content:space-between; align-items:center; background:rgba(245, 158, 11, 0.1); border-color:var(--primary);">
+                            <div>
+                                <div style="color:var(--primary-hover); font-size:1rem; font-weight:900; margin-bottom:5px;"><i class="fas fa-brain"></i> Wellness Assessment</div>
+                                <div style="color:var(--text-muted); font-size:0.9rem; font-weight:600;">Analyzed from Feed Posts & Smart Vitals</div>
+                            </div>
+                            <div class="badge" style="background:var(--primary); color:white; padding:12px 24px; font-size: 0.95rem;">Thriving / Safe</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <?php endwhile; ?>
+        </div>
+    </section>
+    <?php endif; ?>
+
+
     <section id="pets" class="bg-white">
         <div class="container">
             <h2 class="section-title text-center">Available Pets</h2>
@@ -1504,138 +1649,6 @@ section{scroll-margin-top:90px}
 
             
             <div id="ai-results-container" class="grid" style="margin-top: 50px; display: none;"></div>
-        </div>
-    </section>
-
-    
-    <section id="community_feed" class="bg-light">
-        <div class="container">
-            <h2 class="section-title text-center">Community Board</h2>
-            <p class="section-subtitle text-center">Share your adoption journey, report missing pets, and connect with other pet lovers.</p>
-            
-            <div class="grid" style="grid-template-columns: 2fr 1fr; gap: 40px;" id="lost_found">
-                
-                
-                <div>
-                    <h3 style="margin-top:0; color:var(--text-dark); display:flex; align-items:center; gap:10px;"><i class="fas fa-comments" style="color:var(--secondary);"></i> Activity Feed</h3>
-                    
-                    <div class="feed-input-card" style="margin-top: 20px;">
-                        <div class="feed-input-top">
-                            <div class="user-avatar-circle"><?php echo $initials; ?></div>
-                            <form action="" method="POST" enctype="multipart/form-data" style="display:contents;" id="community-post-form">
-                                <input type="text" name="post_content" class="fake-input-bar" placeholder="What's on your mind, <?php echo $first_name; ?>?" required>
-                                <input type="hidden" name="post_location" id="post_loc_val" value="">
-                                <input type="file" name="post_image" id="post_img_val" accept="image/*" style="display:none;" onchange="showImagePreview(this)">
-                                <input type="submit" name="submit_community_post" id="hidden_post_btn" style="display:none;">
-                            </form>
-                        </div>
-                        
-                        
-                        <div id="attachment-notif" style="padding: 20px 0 0 60px; display: none;">
-                            <div style="position: relative; display: inline-block;">
-                                <img id="image-preview" src="" style="max-width: 250px; max-height: 250px; border-radius: var(--radius-md); box-shadow: var(--shadow-sm); object-fit: cover; border: 1px solid var(--border-color);">
-                                <button type="button" onclick="removeAttachment()" class="img-remove-btn" title="Remove Photo"><i class="fas fa-times" style="font-size:12px;"></i></button>
-                            </div>
-                        </div>
-                        
-                        <div id="location-notif" style="font-size: 0.85rem; color: var(--secondary); font-weight: 700; padding: 15px 0 0 60px; display: none;">
-                            <i class="fas fa-map-marker-alt"></i> Location Tagged: <span id="location-name-text"></span>
-                        </div>
-
-                        <div class="feed-action-row">
-                            <div class="action-btn" onclick="document.getElementById('post_img_val').click()"><i class="fas fa-image" style="color:var(--success);"></i> Photo/video</div>
-                            <div class="action-btn" onclick="getCommunityLocation()"><i class="fas fa-map-marker-alt" style="color:var(--danger);"></i> Location</div>
-                            <div class="action-btn" style="color:var(--secondary); background: rgba(59, 130, 246, 0.1);" onclick="document.getElementById('hidden_post_btn').click()"><i class="fas fa-paper-plane"></i> Share Post</div>
-                        </div>
-                    </div>
-
-                    
-                    <?php 
-                    $fetch_sql = "SELECT * FROM community_posts ORDER BY id DESC";
-                    $fetch_res = mysqli_query($conn, $fetch_sql);
-                    if($fetch_res && mysqli_num_rows($fetch_res) > 0){
-                        while($post = mysqli_fetch_assoc($fetch_res)){
-                            $post_initials = strtoupper(substr($post['user_display_name'], 0, 1));
-                            $formatted_date = date("F j, g:i a", strtotime($post['created_at']));
-                    ?>
-                    <div class="post-card">
-                        <div style="display:flex; align-items:center; gap:12px; margin-bottom:20px;">
-                            <div class="user-avatar-circle" style="background:var(--text-muted);"><?php echo $post_initials; ?></div>
-                            <div>
-                                <p class="post-author"><?php echo htmlspecialchars($post['user_display_name']); ?></p>
-                                <div class="post-meta"><?php echo $formatted_date; ?></div>
-                            </div>
-                        </div>
-                        <div style="font-size:1rem; color:var(--text-dark); line-height:1.6; margin-bottom:20px;"><?php echo htmlspecialchars($post['content']); ?></div>
-                        
-                        <?php if(!empty($post['location'])): ?>
-                            <div style="color: var(--secondary); font-weight: 700; font-size: 0.85rem; margin-bottom: 15px; display: flex; align-items: center; gap: 6px;"><i class="fas fa-map-marker-alt"></i> <?php echo htmlspecialchars($post['location']); ?></div>
-                        <?php endif; ?>
-                        
-                        <?php if(!empty($post['image'])): ?>
-                            <img src="uploads/<?php echo $post['image']; ?>" style="width:100%; border-radius:var(--radius-md); max-height: 400px; object-fit: cover; border: 1px solid var(--border-color);">
-                        <?php endif; ?>
-                    </div>
-                    <?php } } else { echo "<div class='text-center' style='color:var(--text-muted); font-size:1rem; padding:40px; border:1px dashed var(--border-color); border-radius:var(--radius-lg);'>No posts yet. Start the conversation!</div>"; } ?>
-                </div>
-
-                
-                <div>
-                    <h3 style="margin-top:0; color:var(--text-dark); display:flex; align-items:center; gap:10px;"><i class="fas fa-search-location" style="color:var(--danger);"></i> Lost Pets Alerts</h3>
-                    
-                    <?php if($lost_success) echo "<div class='alert alert-success' style='font-size:0.85rem;'><i class='fas fa-check-circle'></i> $lost_success</div>"; ?>
-                    
-                    <div class="form-container" style="padding: 20px; margin-top: 20px; margin-bottom: 30px; border-left: 4px solid var(--danger);">
-                        <h4 style="margin: 0 0 15px; font-size: 1.1rem; color: var(--text-dark);">Report a Lost Pet</h4>
-                        <form action="" method="POST" enctype="multipart/form-data">
-                            <input type="text" name="l_pet_name" placeholder="Pet's Name" required style="padding: 10px; margin-bottom:10px;">
-                            <input type="text" name="l_location" placeholder="Last seen location" required style="padding: 10px; margin-bottom:10px;">
-                            <textarea name="l_description" rows="2" placeholder="Describe the pet (color, collar, etc.)" required style="padding: 10px; margin-bottom:10px;"></textarea>
-                            <label style="font-size:0.75rem; display:block; margin-bottom:5px;">Upload Photo</label>
-                            <input type="file" name="l_image" accept="image/*" style="font-size:0.85rem; padding:5px; margin-bottom:15px;">
-                            <button type="submit" name="submit_lost_pet" class="btn btn-outline" style="width: 100%; font-size: 0.9rem; padding: 10px; color: var(--danger); border-color: var(--danger);">Alert Community</button>
-                        </form>
-                    </div>
-
-                    <?php
-                    $lost_sql = "SELECT * FROM lost_pets WHERE status='Lost' ORDER BY id DESC LIMIT 5";
-                    $lost_res = mysqli_query($conn, $lost_sql);
-                    if ($lost_res && mysqli_num_rows($lost_res) > 0) {
-                        while ($lpet = mysqli_fetch_assoc($lost_res)) {
-                            $stored_image = trim((string)($lpet['image'] ?? ''));
-                            $l_img = $stored_image !== '' ? (preg_match('~^(https?://|uploads/)~i', $stored_image) ? $stored_image : 'uploads/' . ltrim($stored_image, '/')) : 'uploads/default_lost.jpg';
-                            $pet_payload = [
-                                'id' => (int)$lpet['id'],
-                                'name' => $lpet['pet_name'] ?? '',
-                                'description' => $lpet['description'] ?? '',
-                                'location' => $lpet['location'] ?? '',
-                                'image' => $l_img,
-                                'reported' => !empty($lpet['reported_at']) ? date('M j, Y · g:i A', strtotime($lpet['reported_at'])) : '',
-                                'contact' => $lpet['contact_info'] ?? '',
-                                'reporter' => $lpet['user_display_name'] ?? ''
-                            ];
-                            $json_payload = htmlspecialchars(json_encode($pet_payload, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_INVALID_UTF8_SUBSTITUTE), ENT_QUOTES, 'UTF-8');
-                    ?>
-                    <article class="lost-alert-card">
-                        <button type="button" class="lost-photo-button" data-lost-pet="<?php echo $json_payload; ?>" onclick="showLostPet(this)" aria-label="View photo and details of <?php echo htmlspecialchars($lpet['pet_name'] ?? 'lost pet', ENT_QUOTES, 'UTF-8'); ?>">
-                            <img src="<?php echo htmlspecialchars($l_img, ENT_QUOTES, 'UTF-8'); ?>" loading="lazy" alt="Missing pet <?php echo htmlspecialchars($lpet['pet_name'] ?? '', ENT_QUOTES, 'UTF-8'); ?>" onerror="this.onerror=null;this.style.display='none';this.parentElement.classList.add('lost-no-photo');this.parentElement.insertAdjacentHTML('beforeend','<i class=&quot;fas fa-paw&quot;></i>')">
-                            <span class="lost-photo-zoom"><i class="fas fa-expand"></i></span>
-                        </button>
-                        <div class="lost-alert-content">
-                            <span class="lost-alert-status"><i class="fas fa-exclamation-circle"></i> MISSING</span>
-                            <h4><?php echo htmlspecialchars($lpet['pet_name'] ?? '', ENT_QUOTES, 'UTF-8'); ?></h4>
-                            <p class="lost-alert-description"><?php echo htmlspecialchars($lpet['description'] ?? '', ENT_QUOTES, 'UTF-8'); ?></p>
-                            <div class="lost-alert-location"><i class="fas fa-map-marker-alt"></i><span><?php echo htmlspecialchars($lpet['location'] ?? '', ENT_QUOTES, 'UTF-8'); ?></span></div>
-                            <div class="lost-alert-actions">
-                                <button type="button" class="lost-action-primary" data-lost-pet="<?php echo $json_payload; ?>" onclick="showLostPet(this)"><i class="fas fa-eye"></i> View Details</button>
-                                <button type="button" class="lost-action-secondary" data-lost-pet="<?php echo $json_payload; ?>" onclick="reportLostSighting(this)"><i class="fas fa-map-pin"></i> I Saw This Pet</button>
-                            </div>
-                        </div>
-                    </article>
-                    <?php } } else { echo "<div class='text-center' style='padding:20px; font-size:0.9rem; color:var(--text-muted); border:1px dashed var(--border-color); border-radius:var(--radius-md);'>No lost pets reported locally.</div>"; } ?>
-                </div>
-
-            </div>
         </div>
     </section>
 
@@ -2992,6 +3005,31 @@ document.addEventListener('keydown',function(e){if(e.key==='Escape')closeLostPet
         sections.forEach(section=>observer.observe(section));
     }
     document.querySelectorAll('img').forEach(img=>{if(!img.hasAttribute('loading')&&!img.closest('.hero'))img.loading='lazy';});
+})();
+</script>
+
+<script>
+(function(){
+  function jumpToTarget(hash, smooth) {
+    if (!hash || hash === '#') return;
+    const target = document.getElementById(decodeURIComponent(hash.slice(1)));
+    if (!target) return;
+    const header = document.querySelector('.header');
+    const offset = (header ? header.getBoundingClientRect().height : 0) + 14;
+    const top = Math.max(0, window.scrollY + target.getBoundingClientRect().top - offset);
+    window.scrollTo({top: top, behavior: smooth ? 'smooth' : 'instant'});
+  }
+  document.querySelectorAll('a[href^="#"]').forEach(function(link){
+    link.addEventListener('click', function(event){
+      const hash = link.getAttribute('href');
+      if (!hash || hash === '#' || !document.getElementById(hash.slice(1))) return;
+      event.preventDefault();
+      history.pushState(null, '', hash);
+      jumpToTarget(hash, true);
+    });
+  });
+  window.addEventListener('hashchange', function(){ jumpToTarget(location.hash, true); });
+  window.addEventListener('load', function(){ if(location.hash) setTimeout(function(){jumpToTarget(location.hash, false);}, 80); });
 })();
 </script>
 </body> 
