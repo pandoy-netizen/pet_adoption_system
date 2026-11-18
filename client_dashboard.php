@@ -197,6 +197,8 @@ try { @mysqli_query($conn, "ALTER TABLE adoption_applications ADD COLUMN applica
 try { @mysqli_query($conn, "ALTER TABLE pets ADD COLUMN size VARCHAR(50) DEFAULT 'Medium'"); } catch (Exception $e) {}
 try { @mysqli_query($conn, "ALTER TABLE pets ADD COLUMN temperament VARCHAR(100) DEFAULT 'Friendly'"); } catch (Exception $e) {}
 try { @mysqli_query($conn, "ALTER TABLE rescue_reports ADD COLUMN reported_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP"); } catch (Exception $e) {}
+try { @mysqli_query($conn, "ALTER TABLE lost_pets ADD COLUMN latitude DECIMAL(10,7) DEFAULT NULL"); } catch (Exception $e) {}
+try { @mysqli_query($conn, "ALTER TABLE lost_pets ADD COLUMN longitude DECIMAL(10,7) DEFAULT NULL"); } catch (Exception $e) {}
 
 
 
@@ -252,6 +254,10 @@ if(isset($_POST['submit_lost_pet'])){
     $l_pet_name = mysqli_real_escape_string($conn, $_POST['l_pet_name']);
     $l_desc = mysqli_real_escape_string($conn, $_POST['l_description']);
     $l_loc = mysqli_real_escape_string($conn, $_POST['l_location']);
+    $lostLat = filter_var($_POST['l_lat'] ?? '', FILTER_VALIDATE_FLOAT);
+    $lostLon = filter_var($_POST['l_lon'] ?? '', FILTER_VALIDATE_FLOAT);
+    $lostLatSql = ($lostLat !== false && abs($lostLat) <= 90) ? (string)$lostLat : 'NULL';
+    $lostLonSql = ($lostLon !== false && abs($lostLon) <= 180) ? (string)$lostLon : 'NULL';
     
     $imageName = "default_lost.jpg";
     if(!empty($_FILES["l_image"]["name"])){
@@ -259,8 +265,8 @@ if(isset($_POST['submit_lost_pet'])){
         move_uploaded_file($_FILES["l_image"]["tmp_name"], "uploads/" . $imageName);
     }
     
-    $sql = "INSERT INTO lost_pets (user_id, user_display_name, contact_info, pet_name, description, location, image, status) 
-            VALUES ('$user_id', '$full_name', '$contact_info', '$l_pet_name', '$l_desc', '$l_loc', '$imageName', 'Lost')";
+    $sql = "INSERT INTO lost_pets (user_id, user_display_name, contact_info, pet_name, description, location, latitude, longitude, image, status) 
+            VALUES ('$user_id', '$full_name', '$contact_info', '$l_pet_name', '$l_desc', '$l_loc', $lostLatSql, $lostLonSql, '$imageName', 'Lost')";
     if(mysqli_query($conn, $sql)){
         $lost_success = "Lost pet alert posted successfully. The community will keep an eye out!";
         $scroll_target = "lost_found";
@@ -457,7 +463,7 @@ if(isset($_POST['submit_stray'])){
     $sql = "INSERT INTO rescue_reports (user_id, reporter_name, contact_info, location, latitude, longitude, description, image, status) 
             VALUES ('$user_id', '$full_name', '$contact_info', '$address', '$lat', '$lon', '$desc', '$imageName', 'Action Needed')";
     @mysqli_query($conn, $sql); 
-    $stray_success = "Stray reported successfully! The rescue team has received the exact GPS coordinates and address.";
+    $stray_success = "Stray reported successfully! Your report was submitted with the location details provided. The rescue team can review it.";
     $scroll_target = "report_stray"; 
 }
 
@@ -1250,7 +1256,7 @@ html { scroll-padding-top: 100px; }
                         <h4 style="margin: 0 0 15px; font-size: 1.1rem; color: var(--text-dark);">Report a Lost Pet</h4>
                         <form action="" method="POST" enctype="multipart/form-data">
                             <input type="text" name="l_pet_name" placeholder="Pet's Name" required style="padding: 10px; margin-bottom:10px;">
-                            <input type="text" name="l_location" placeholder="Last seen location" required style="padding: 10px; margin-bottom:10px;">
+                            <input type="text" id="lost-last-seen" name="l_location" placeholder="Last seen location (choose on Smart Map or type manually)" required style="padding: 10px; margin-bottom:10px;"><input type="hidden" id="lost-lat" name="l_lat"><input type="hidden" id="lost-lon" name="l_lon"><button type="button" class="btn btn-secondary" onclick="openSmartMap('lost')" style="margin-bottom:12px;width:100%"><i class="fas fa-map-pin"></i> Select Last-Seen Location on Map</button>
                             <textarea name="l_description" rows="2" placeholder="Describe the pet (color, collar, etc.)" required style="padding: 10px; margin-bottom:10px;"></textarea>
                             <label style="font-size:0.75rem; display:block; margin-bottom:5px;">Upload Photo</label>
                             <input type="file" name="l_image" accept="image/*" style="font-size:0.85rem; padding:5px; margin-bottom:15px;">
@@ -1521,7 +1527,7 @@ html { scroll-padding-top: 100px; }
                     <p style="color:var(--text-muted); font-size:0.95rem; line-height:1.6; font-style: italic;">"Luna was very shy at first, but with a little love and patience, she has blossomed into the sweetest cat."</p>
                 </div>
                 <div class="post-card text-center" style="padding: 35px 25px;">
-                    <img src="https://images.unsplash.com/photo-1537151608804-ea6f1184aca9?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80" style="width:120px; height:120px; border-radius:50%; object-fit:cover; margin:0 auto 20px; border:4px solid var(--badge-success-bg); box-shadow: var(--shadow);">
+                    <img src="https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=300&q=80" onerror="this.onerror=null;this.src='data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22300%22%20height%3D%22300%22%20viewBox%3D%220%200%20300%20300%22%3E%3Crect%20width%3D%22300%22%20height%3D%22300%22%20fill%3D%22%23dbeafe%22%2F%3E%3Ccircle%20cx%3D%22150%22%20cy%3D%22150%22%20r%3D%22110%22%20fill%3D%22%23fbbf24%22%2F%3E%3Cellipse%20cx%3D%2288%22%20cy%3D%22120%22%20rx%3D%2232%22%20ry%3D%2268%22%20fill%3D%22%2392400e%22%2F%3E%3Cellipse%20cx%3D%22212%22%20cy%3D%22120%22%20rx%3D%2232%22%20ry%3D%2268%22%20fill%3D%22%2392400e%22%2F%3E%3Cellipse%20cx%3D%22150%22%20cy%3D%22170%22%20rx%3D%2262%22%20ry%3D%2253%22%20fill%3D%22%23fef3c7%22%2F%3E%3Ccircle%20cx%3D%22123%22%20cy%3D%22137%22%20r%3D%229%22%20fill%3D%22%231e293b%22%2F%3E%3Ccircle%20cx%3D%22177%22%20cy%3D%22137%22%20r%3D%229%22%20fill%3D%22%231e293b%22%2F%3E%3Cellipse%20cx%3D%22150%22%20cy%3D%22174%22%20rx%3D%2218%22%20ry%3D%2213%22%20fill%3D%22%231e293b%22%2F%3E%3Cpath%20d%3D%22M137%20196%20Q150%20211%20163%20196%22%20stroke%3D%22%231e293b%22%20stroke-width%3D%227%22%20fill%3D%22none%22%20stroke-linecap%3D%22round%22%2F%3E%3C%2Fsvg%3E'" style="width:120px; height:120px; border-radius:50%; object-fit:cover; margin:0 auto 20px; border:4px solid var(--badge-success-bg); box-shadow: var(--shadow);">
                     <h3 style="margin:0 0 10px; color:var(--text-dark);">Buddy's New Start</h3>
                     <div style="color:var(--primary); margin-bottom:15px;"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></div>
                     <p style="color:var(--text-muted); font-size:0.95rem; line-height:1.6; font-style: italic;">"Our morning runs are never lonely anymore. Buddy is the perfect companion for our active lifestyle."</p>
@@ -1633,7 +1639,7 @@ html { scroll-padding-top: 100px; }
   <?php if ($shelterClientNotice !== ''): ?><div class="shelter-client-notice"><?php echo htmlspecialchars($shelterClientNotice,ENT_QUOTES,'UTF-8'); ?></div><?php endif; ?>
   <div class="shelter-finder-controls"><input type="search" id="shelterSearch" placeholder="Search shelter, city, province or animal type..." aria-label="Search shelters"><select id="shelterFilter" aria-label="Shelter filter"><option value="all">All verified shelters</option><option value="rescue">Rescue available</option><option value="slots">With available slots</option><option value="open">Open now</option></select><button type="button" class="btn btn-primary" id="locateShelterBtn"><i class="fas fa-location-crosshairs"></i> Find Near Me</button></div>
   <p id="shelterLocationStatus" class="shelter-hint">Allow location access to rank shelters by distance. Shelters without GPS coordinates will still appear in the list.</p>
-  <div class="shelter-finder-layout"><div id="shelterFinderMap" role="region" aria-label="Verified shelter map"></div><div class="shelter-finder-list" id="shelterFinderList" aria-live="polite"></div></div>
+  <div class="smart-map-toolbar" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:15px 0"><button type="button" class="btn btn-primary" data-map-mode="shelter">Find Shelters</button><button type="button" class="btn btn-outline" data-map-mode="stray">Pin Rescue Location</button><button type="button" class="btn btn-outline" data-map-mode="lost">Pin Last-Seen Location</button><span id="smartMapModeInfo" class="shelter-hint">Showing verified shelters. Select a mode to mark a report location.</span></div><div class="shelter-finder-layout"><div id="shelterFinderMap" role="region" aria-label="Verified shelter map"></div><div class="shelter-finder-list" id="shelterFinderList" aria-live="polite"></div></div>
   <div class="shelter-review-panel" id="shelterReviewPanel" hidden><h3 id="shelterReviewTitle">Rate Shelter</h3><form method="post" action="client_dashboard.php#shelter_finder"><input type="hidden" name="submit_shelter_rating" value="1"><input type="hidden" name="shelter_csrf" value="<?php echo htmlspecialchars($_SESSION['shelter_client_csrf'],ENT_QUOTES,'UTF-8'); ?>"><input type="hidden" name="shelter_id" id="reviewShelterId"><label>Rating <select name="rating" required><option value="5">★★★★★ — 5</option><option value="4">★★★★ — 4</option><option value="3">★★★ — 3</option><option value="2">★★ — 2</option><option value="1">★ — 1</option></select></label><label>Review (optional)<textarea name="review" maxlength="1500" rows="3" placeholder="Share your experience with this shelter"></textarea></label><div style="display:flex;gap:12px"><button type="submit" class="btn btn-primary">Save Rating</button><button type="button" class="btn" onclick="document.getElementById('shelterReviewPanel').hidden=true">Cancel</button></div></form></div>
  </div>
 </section>
@@ -2071,7 +2077,7 @@ html { scroll-padding-top: 100px; }
     <section id="report_stray" class="bg-white">
         <div class="container">
             <h2 class="section-title text-center"><i class="fas fa-camera" style="color:var(--primary);"></i> Report an Emergency Stray</h2>
-            <p class="section-subtitle text-center">Help us rescue animals in immediate danger. Pin the exact location below.</p>
+            <p class="section-subtitle text-center">Help us rescue animals in immediate danger. Use the shared Smart Map to select and confirm the rescue location.</p>
             
             <?php if($stray_success) echo "<div class='alert alert-success'><i class='fas fa-check-circle'></i> $stray_success</div>"; ?>
             
@@ -2089,7 +2095,7 @@ html { scroll-padding-top: 100px; }
                         
                         <div class="form-group">
                             <label>Detected Location</label>
-                            <textarea name="address" id="detected-address" rows="2" placeholder="Waiting for GPS verification..." readonly required style="background:var(--bg-main); cursor:not-allowed; border:1px dashed var(--border-color);"></textarea>
+                            <textarea name="address" id="detected-address" rows="2" placeholder="Waiting for GPS verification..." required style="background:var(--bg-main); border:1px dashed var(--border-color);"></textarea>
                         </div>
                         
                         <input type="hidden" name="lat" id="lat"><input type="hidden" name="lon" id="lon">
@@ -2104,11 +2110,7 @@ html { scroll-padding-top: 100px; }
                 </div>
 
                 
-                <div class="map-container-stray">
-                    <h3 style="margin-top:0; font-size: 1.4rem; display:flex; align-items:center; gap:10px; color: var(--text-dark); border-bottom: 2px dashed var(--border-color); padding-bottom: 15px; margin-bottom: 15px;"><i class="fas fa-map-marked-alt" style="color:var(--secondary);"></i> Live Tracking Map</h3>
-                    <p style="font-size:0.95rem; color:var(--text-muted); margin-bottom:0;">Click the reported pin on the map to generate the fastest route.</p>
-                    <div id="strayMapLive"></div>
-                </div>
+                <div class="map-container-stray" style="display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:15px"><i class="fas fa-map-marked-alt" style="font-size:52px;color:var(--secondary)"></i><h3 style="margin:0">One Smart Location Map</h3><p style="color:var(--text-muted)">Use the same verified-shelter map to select the animal's actual location. Click the map to adjust the pin before submitting.</p><button type="button" class="btn btn-primary" onclick="openSmartMap('stray')"><i class="fas fa-map-pin"></i> Open Smart Map &amp; Set Rescue Pin</button></div>
             </div>
         </div>
     </section>
@@ -2536,93 +2538,18 @@ html { scroll-padding-top: 100px; }
     }
 
 
-    var map = L.map('strayMapLive').setView([14.35, 121.05], 13);
-    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', { attribution: 'Tiles &copy; Esri' }).addTo(map);
-
-    L.Control.Fullscreen = L.Control.extend({
-        onAdd: function(map) {
-            var btn = L.DomUtil.create('a', 'custom-fullscreen-btn');
-            btn.innerHTML = '<i class="fas fa-expand"></i>';
-            btn.title = "View Fullscreen";
-            btn.style.cssText = "background:white; width:34px; height:34px; line-height:34px; text-align:center; font-size:16px; color:#0F172A; border-radius:4px; border:2px solid rgba(0,0,0,0.2); cursor:pointer; display:block; text-decoration:none;";
-            btn.onclick = function(e){
-                e.preventDefault();
-                var mapElem = document.getElementById('strayMapLive');
-                if (!document.fullscreenElement) {
-                    if (mapElem.requestFullscreen) { mapElem.requestFullscreen(); }
-                    else if (mapElem.webkitRequestFullscreen) { mapElem.webkitRequestFullscreen(); }
-                    else if (mapElem.msRequestFullscreen) { mapElem.msRequestFullscreen(); }
-                    btn.innerHTML = '<i class="fas fa-compress"></i>';
-                } else {
-                    if (document.exitFullscreen) { document.exitFullscreen(); }
-                    btn.innerHTML = '<i class="fas fa-expand"></i>';
-                }
-            };
-            return btn;
-        }
-    });
-    new L.Control.Fullscreen({ position: 'topleft' }).addTo(map);
-
-    var routingControl = null;
-    var strayLat = 14.36; var strayLng = 121.06;
-    var strayMarker = L.marker([strayLat, strayLng]).addTo(map);
-    
-    strayMarker.bindPopup(`<div style="text-align:center; font-family:'Nunito', sans-serif;">
-        <h4 style="margin:0 0 5px; font-size:16px; color:var(--danger);"><i class="fas fa-exclamation-circle"></i> Stray Detected</h4>
-        <p id="routing-status" style="margin:0; font-size:14px;"><strong>Click this pin to generate route.</strong></p>
-    </div>`);
-
-    strayMarker.on('click', function() {
-        document.getElementById('routing-status').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Calculating fastest route...';
-        
-        if(navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(pos => {
-                var userLat = pos.coords.latitude; 
-                var userLng = pos.coords.longitude;
-                
-                if(routingControl) map.removeControl(routingControl);
-                
-                routingControl = L.Routing.control({
-                    waypoints: [ L.latLng(userLat, userLng), L.latLng(strayLat, strayLng) ],
-                    routeWhileDragging: false, 
-                    showAlternatives: false,
-                    collapsible: true,
-                    fitSelectedRoutes: true,
-                    lineOptions: { styles: [{color: '#3B82F6', opacity: 0.9, weight: 6}] },
-                    createMarker: function(i, wp) { 
-                        if(i === 0) return L.marker(wp.latLng).bindPopup("<b>Rescue Van (You)</b>").openPopup(); 
-                        return null; 
-                    },
-                    show: true
-                }).addTo(map);
-                
-                setTimeout(() => { 
-                    strayMarker.setPopupContent(`<div style="text-align:center; font-family:'Nunito', sans-serif;">
-                        <p style="color:var(--success); font-weight:800; font-size:16px; margin:0;">Route Acquired!</p>
-                        <p style="font-size:12px; color:var(--text-muted); margin-top:5px;">Check the panel. Close it anytime.</p>
-                    </div>`); 
-                }, 1500);
-                
-            }, err => { alert("Please allow location access to calculate the route."); });
-        }
-    });
-
     function getDetailedLocation(btn) {
-        if (navigator.geolocation) {
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Pinging...';
-            navigator.geolocation.getCurrentPosition(pos => {
-                let lat = pos.coords.latitude; let lon = pos.coords.longitude;
-                document.getElementById('lat').value = lat; document.getElementById('lon').value = lon;
-                fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`)
-                .then(res => res.json()).then(data => {
-                    document.getElementById('detected-address').value = data.display_name;
-                    btn.innerHTML = '<i class="fas fa-check"></i> Coordinate Locked'; 
-                    btn.style.background = 'var(--success)';
-                    btn.style.borderColor = 'var(--success)';
-                    map.setView([lat, lon], 17); L.marker([lat, lon]).addTo(map).bindPopup("Emergency Location").openPopup();
-                });
-            });
-        }
+        if (!navigator.geolocation) { alert('Location is not supported by this browser. Use the Smart Map to select the location.'); return; }
+        const old = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Detecting location...';
+        navigator.geolocation.getCurrentPosition(async pos => {
+            try {
+                await window.smartMapSetLocation('stray', pos.coords.latitude, pos.coords.longitude, true);
+                btn.innerHTML = '<i class="fas fa-check"></i> Location detected — review on map';
+            } catch (e) { btn.innerHTML = old; alert('Could not resolve the address. Select a pin on the Smart Map.'); }
+            btn.disabled = false;
+        }, () => { btn.disabled = false; btn.innerHTML = old; alert('Location unavailable or permission denied. Select the location manually on the Smart Map.'); }, {enableHighAccuracy:true,timeout:15000,maximumAge:0});
     }
 </script>
 
@@ -3152,8 +3079,15 @@ document.addEventListener('keydown',function(e){if(e.key==='Escape')closeLostPet
  const shelters=<?php echo $shelterClientJson ?: '[]'; ?>;
  const list=document.getElementById('shelterFinderList');if(!list)return;
  const search=document.getElementById('shelterSearch'),filter=document.getElementById('shelterFilter'),status=document.getElementById('shelterLocationStatus');
- let userPosition=null, map=null,markers=[];
+ let userPosition=null, map=null,markers=[],selectedPin=null,smartMode='shelter';
  const esc=s=>String(s??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+ const modeInfo=document.getElementById('smartMapModeInfo');
+ function chooseMode(mode){smartMode=['shelter','stray','lost'].includes(mode)?mode:'shelter';document.querySelectorAll('[data-map-mode]').forEach(b=>{b.classList.toggle('btn-primary',b.dataset.mapMode===smartMode);b.classList.toggle('btn-outline',b.dataset.mapMode!==smartMode);});modeInfo.textContent=smartMode==='shelter'?'Showing admin-approved shelters.':smartMode==='stray'?'Click the map to mark where the animal needs rescue.': 'Click the map to mark where your pet was last seen.';if(map)setTimeout(()=>map.invalidateSize(),250);}
+ window.openSmartMap=function(mode){chooseMode(mode);document.getElementById('shelter_finder').scrollIntoView({behavior:'smooth',block:'start'});};
+ async function reverseAddress(lat,lng){const url='https://nominatim.openstreetmap.org/reverse?format=jsonv2&addressdetails=1&lat='+encodeURIComponent(lat)+'&lon='+encodeURIComponent(lng);try{const response=await fetch(url,{headers:{'Accept':'application/json'}});if(!response.ok)throw new Error('Address lookup failed');const data=await response.json();return data.display_name||lat.toFixed(6)+', '+lng.toFixed(6);}catch(e){return lat.toFixed(6)+', '+lng.toFixed(6)+' (address unavailable — please edit)';}}
+ window.smartMapSetLocation=async function(mode,lat,lng,focus){chooseMode(mode);if(!Number.isFinite(lat)||!Number.isFinite(lng)||Math.abs(lat)>90||Math.abs(lng)>180)throw new Error('Invalid coordinates');if(map){if(selectedPin)map.removeLayer(selectedPin);selectedPin=L.marker([lat,lng],{draggable:true}).addTo(map).bindPopup('Selected '+(mode==='lost'?'last-seen':'rescue')+' location').openPopup();selectedPin.on('dragend',e=>{const p=e.target.getLatLng();window.smartMapSetLocation(smartMode,p.lat,p.lng,false);});if(focus)map.setView([lat,lng],16);}const addr=await reverseAddress(lat,lng);if(mode==='stray'){document.getElementById('lat').value=lat;document.getElementById('lon').value=lng;document.getElementById('detected-address').value=addr;}else if(mode==='lost'){document.getElementById('lost-lat').value=lat;document.getElementById('lost-lon').value=lng;document.getElementById('lost-last-seen').value=addr;}modeInfo.textContent='Selected: '+addr+' — verify the pin and address before submitting.';return addr;};
+ document.querySelectorAll('[data-map-mode]').forEach(b=>b.addEventListener('click',()=>chooseMode(b.dataset.mapMode)));
+
  const valid=s=>s.latitude!==null&&s.longitude!==null&&s.latitude!==''&&s.longitude!==''&&Number.isFinite(Number(s.latitude))&&Number.isFinite(Number(s.longitude))&&Math.abs(Number(s.latitude))<=90&&Math.abs(Number(s.longitude))<=180;
  const rad=n=>n*Math.PI/180;
  const km=s=>{if(!userPosition||!valid(s))return null;const a=rad(Number(s.latitude)-userPosition.lat),b=rad(Number(s.longitude)-userPosition.lng),q=Math.sin(a/2)**2+Math.cos(rad(userPosition.lat))*Math.cos(rad(Number(s.latitude)))*Math.sin(b/2)**2;return 6371*2*Math.atan2(Math.sqrt(q),Math.sqrt(1-q));};
@@ -3162,6 +3096,7 @@ document.addEventListener('keydown',function(e){if(e.key==='Escape')closeLostPet
  if(typeof L!=='undefined'){
   map=L.map('shelterFinderMap').setView([12.8797,121.774],6);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'&copy; OpenStreetMap contributors',maxZoom:19}).addTo(map);
+  map.on('click',e=>{if(smartMode!=='shelter')window.smartMapSetLocation(smartMode,e.latlng.lat,e.latlng.lng,false);});
  }else{document.getElementById('shelterFinderMap').textContent='Map could not load. The shelter directory is still available.';}
  function render(){const q=search.value.toLowerCase().trim(),f=filter.value;const rows=shelters.filter(s=>(!q||[s.shelter_name,s.address,s.city,s.province,s.animal_types].join(' ').toLowerCase().includes(q))&&(f!=='rescue'||Number(s.rescue_available)===1)&&(f!=='slots'||Number(s.available_slots)>0)&&(f!=='open'||hoursStatus(s).open)).sort((a,b)=>userPosition?score(b)-score(a):a.shelter_name.localeCompare(b.shelter_name));
   if(map){markers.forEach(m=>map.removeLayer(m));markers=[];}
@@ -3175,6 +3110,8 @@ document.addEventListener('keydown',function(e){if(e.key==='Escape')closeLostPet
  }
  search.addEventListener('input',render);filter.addEventListener('change',render);
  document.getElementById('locateShelterBtn').addEventListener('click',()=>{if(!navigator.geolocation){status.textContent='Location is not supported by this browser.';return;}status.textContent='Requesting your location...';navigator.geolocation.getCurrentPosition(p=>{userPosition={lat:p.coords.latitude,lng:p.coords.longitude};status.textContent='Nearby shelters are now ranked by location, rescue availability, available slots and ratings.';if(map){L.circleMarker([userPosition.lat,userPosition.lng],{radius:8,color:'#2563eb'}).addTo(map).bindPopup('Your approximate location');map.setView([userPosition.lat,userPosition.lng],10);}render();},()=>{status.textContent='Location access was denied or unavailable. You can still search all verified shelters.';},{enableHighAccuracy:false,timeout:12000,maximumAge:300000});});
+ document.getElementById('detected-address')?.addEventListener('input',()=>{document.getElementById('lat').value='';document.getElementById('lon').value='';});
+ document.getElementById('lost-last-seen')?.addEventListener('input',()=>{document.getElementById('lost-lat').value='';document.getElementById('lost-lon').value='';});
  render();setInterval(render,60000);setTimeout(()=>map&&map.invalidateSize(),300);
 })();
 </script>
