@@ -2566,8 +2566,8 @@ if ($hq) {
      <label>Street address *<input name="address" required maxlength="255"></label>
      <label>City / Municipality *<input name="city" required maxlength="100"></label>
      <label>Province *<input name="province" required maxlength="100"></label>
-     <label>Latitude (GPS)<input name="latitude" type="number" step="any" min="-90" max="90" placeholder="14.5995"></label>
-     <label>Longitude (GPS)<input name="longitude" type="number" step="any" min="-180" max="180" placeholder="120.9842"></label>
+     <input name="latitude" type="hidden">
+     <input name="longitude" type="hidden">
      <label>Phone<input name="contact_number" maxlength="30"></label>
      <label>Email<input name="contact_email" type="email" maxlength="150"></label>
      <label>Animal types<input name="animal_types" maxlength="255" placeholder="Dogs, Cats"></label>
