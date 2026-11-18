@@ -1639,7 +1639,7 @@ html { scroll-padding-top: 100px; }
   <?php if ($shelterClientNotice !== ''): ?><div class="shelter-client-notice"><?php echo htmlspecialchars($shelterClientNotice,ENT_QUOTES,'UTF-8'); ?></div><?php endif; ?>
   <div class="shelter-finder-controls"><input type="search" id="shelterSearch" placeholder="Search shelter, city, province or animal type..." aria-label="Search shelters"><select id="shelterFilter" aria-label="Shelter filter"><option value="all">All verified shelters</option><option value="rescue">Rescue available</option><option value="slots">With available slots</option><option value="open">Open now</option></select><button type="button" class="btn btn-primary" id="locateShelterBtn"><i class="fas fa-location-crosshairs"></i> Find Near Me</button></div>
   <p id="shelterLocationStatus" class="shelter-hint">Allow location access to rank shelters by distance. Shelters without GPS coordinates will still appear in the list.</p>
-  <div class="smart-map-toolbar" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:15px 0"><button type="button" class="btn btn-primary" data-map-mode="shelter">Find Shelters</button><button type="button" class="btn btn-outline" data-map-mode="stray">Pin Rescue Location</button><button type="button" class="btn btn-outline" data-map-mode="lost">Pin Last-Seen Location</button><span id="smartMapModeInfo" class="shelter-hint">Showing verified shelters. Select a mode to mark a report location.</span></div><div class="shelter-finder-layout"><div id="shelterFinderMap" role="region" aria-label="Verified shelter map"></div><div class="shelter-finder-list" id="shelterFinderList" aria-live="polite"></div></div>
+  <div class="smart-map-toolbar" style="margin:12px 0"><span id="smartMapModeInfo" class="shelter-hint" role="status" aria-live="polite">Showing admin-approved shelters. Choose a location from a report form when needed.</span></div><div class="shelter-finder-layout"><div id="shelterFinderMap" role="region" aria-label="Verified shelter map"></div><div class="shelter-finder-list" id="shelterFinderList" aria-live="polite"></div></div>
   <div class="shelter-review-panel" id="shelterReviewPanel" hidden><h3 id="shelterReviewTitle">Rate Shelter</h3><form method="post" action="client_dashboard.php#shelter_finder"><input type="hidden" name="submit_shelter_rating" value="1"><input type="hidden" name="shelter_csrf" value="<?php echo htmlspecialchars($_SESSION['shelter_client_csrf'],ENT_QUOTES,'UTF-8'); ?>"><input type="hidden" name="shelter_id" id="reviewShelterId"><label>Rating <select name="rating" required><option value="5">★★★★★ — 5</option><option value="4">★★★★ — 4</option><option value="3">★★★ — 3</option><option value="2">★★ — 2</option><option value="1">★ — 1</option></select></label><label>Review (optional)<textarea name="review" maxlength="1500" rows="3" placeholder="Share your experience with this shelter"></textarea></label><div style="display:flex;gap:12px"><button type="submit" class="btn btn-primary">Save Rating</button><button type="button" class="btn" onclick="document.getElementById('shelterReviewPanel').hidden=true">Cancel</button></div></form></div>
  </div>
 </section>
@@ -2074,6 +2074,29 @@ html { scroll-padding-top: 100px; }
     </section>
 
     
+    <style>
+    #report_stray .rescue-workspace{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(320px,.85fr);gap:24px;align-items:stretch;max-width:1180px;margin:0 auto}
+    #report_stray .rescue-form-card,#report_stray .rescue-assist-card{border:1px solid var(--border-color);border-radius:22px;background:var(--bg-surface);box-shadow:var(--shadow);padding:clamp(22px,3vw,34px)}
+    #report_stray .rescue-form-card h3{margin:0 0 24px;padding-bottom:16px;border-bottom:1px solid var(--border-color)}
+    #report_stray .rescue-step{display:flex;align-items:center;gap:12px;margin:20px 0 12px;font-weight:900;color:var(--text-dark)}
+    #report_stray .rescue-step:first-of-type{margin-top:0}
+    #report_stray .rescue-step-number{display:inline-grid;place-items:center;width:29px;height:29px;border-radius:10px;background:var(--primary-light);color:var(--primary-hover);font-size:.84rem;flex-shrink:0}
+    #report_stray .rescue-help{font-size:.87rem;line-height:1.55;color:var(--text-muted);margin:-7px 0 15px}
+    #report_stray .rescue-assist-card{display:flex;flex-direction:column;gap:20px;background:linear-gradient(155deg,var(--bg-surface),var(--bg-main))}
+    #report_stray .rescue-assist-heading{display:flex;align-items:center;gap:14px}
+    #report_stray .rescue-assist-icon{display:grid;place-items:center;width:54px;height:54px;flex-shrink:0;border-radius:16px;background:var(--primary-light);color:var(--primary-hover);font-size:23px}
+    #report_stray .rescue-assist-heading h3{margin:0 0 4px;font-size:1.25rem}
+    #report_stray .rescue-assist-heading p{margin:0;color:var(--text-muted);font-size:.88rem}
+    #report_stray .rescue-guide{display:grid;gap:12px}
+    #report_stray .rescue-guide-item{display:flex;align-items:flex-start;gap:12px;padding:15px;border:1px solid var(--border-color);border-radius:14px;background:var(--bg-surface)}
+    #report_stray .rescue-guide-item>i{margin-top:3px;color:var(--primary);width:19px;text-align:center}
+    #report_stray .rescue-guide-item strong{display:block;margin-bottom:3px;font-size:.94rem}
+    #report_stray .rescue-guide-item span{display:block;color:var(--text-muted);font-size:.85rem;line-height:1.5}
+    #report_stray .rescue-assist-footer{margin-top:auto;padding:15px;border-radius:14px;background:var(--primary-light);color:var(--text-dark);font-size:.86rem;line-height:1.55}
+    #report_stray .rescue-assist-card .btn{width:100%;box-sizing:border-box}
+    #report_stray .rescue-photo-input{padding:14px;background:var(--bg-main);border:2px dashed var(--border-color);margin-top:8px}
+    @media(max-width:850px){#report_stray .rescue-workspace{grid-template-columns:1fr}#report_stray .rescue-assist-card{gap:16px}}
+    </style>
     <section id="report_stray" class="bg-white">
         <div class="container">
             <h2 class="section-title text-center"><i class="fas fa-camera" style="color:var(--primary);"></i> Report an Emergency Stray</h2>
@@ -2081,36 +2104,46 @@ html { scroll-padding-top: 100px; }
             
             <?php if($stray_success) echo "<div class='alert alert-success'><i class='fas fa-check-circle'></i> $stray_success</div>"; ?>
             
-            <div class="profile-grid">
-                
-                <div class="form-container">
-                    <h3><i class="fas fa-exclamation-triangle" style="color:var(--danger);"></i> Submit Details</h3>
+            <div class="rescue-workspace">
+                <div class="rescue-form-card">
+                    <h3><i class="fas fa-clipboard-list" style="color:var(--primary)"></i> Rescue Report Details</h3>
                     <form method="POST" enctype="multipart/form-data" action="">
+                        <div class="rescue-step"><span class="rescue-step-number">01</span> Add a clear photo</div>
+                        <p class="rescue-help">Show the animal and its surroundings so responders can recognize the situation.</p>
                         <div class="form-group">
-                            <label>Visual Evidence (Photo)</label>
-                            <input type="file" name="stray_photo" accept="image/*" required style="padding: 12px; background: transparent; border: 2px dashed var(--border-color); margin-top: 8px;">
+                            <label for="stray-report-photo">Visual Evidence (Photo)</label>
+                            <input id="stray-report-photo" class="rescue-photo-input" type="file" name="stray_photo" accept="image/*" required>
                         </div>
-                        
-                        <button type="button" class="btn btn-secondary" style="width:100%; margin-bottom: 15px;" onclick="getDetailedLocation(this)"><i class="fas fa-crosshairs"></i> Get My Location</button>
-                        
+                        <div class="rescue-step"><span class="rescue-step-number">02</span> Confirm the rescue location</div>
+                        <p class="rescue-help">Use GPS if you are at the scene, or open the Smart Map to pin the animal's actual location.</p>
+                        <button type="button" class="btn btn-secondary" style="width:100%;margin-bottom:14px" onclick="getDetailedLocation(this)"><i class="fas fa-crosshairs"></i> Use My Current Location</button>
                         <div class="form-group">
-                            <label>Detected Location</label>
-                            <textarea name="address" id="detected-address" rows="2" placeholder="Waiting for GPS verification..." required style="background:var(--bg-main); border:1px dashed var(--border-color);"></textarea>
+                            <label for="detected-address">Rescue Location / Address</label>
+                            <textarea name="address" id="detected-address" rows="2" placeholder="Confirm the address or select the location on the map..." required style="background:var(--bg-main);border:1px dashed var(--border-color)"></textarea>
                         </div>
-                        
                         <input type="hidden" name="lat" id="lat"><input type="hidden" name="lon" id="lon">
-                        
+                        <div class="rescue-step"><span class="rescue-step-number">03</span> Describe the situation</div>
+                        <p class="rescue-help">Include visible injuries, behavior, nearby landmarks, and any immediate danger.</p>
                         <div class="form-group">
-                            <label>Condition Notes</label>
-                            <textarea name="description" rows="3" placeholder="Describe the stray's health status..." required></textarea>
+                            <label for="stray-report-description">Condition Notes</label>
+                            <textarea id="stray-report-description" name="description" rows="4" placeholder="Example: Injured dog near the corner store, unable to walk..." required></textarea>
                         </div>
-                        
-                        <button type="submit" name="submit_stray" class="btn btn-primary" style="width:100%;">Dispatch Rescue Request <i class="fas fa-paper-plane"></i></button>
+                        <button type="submit" name="submit_stray" class="btn btn-primary" style="width:100%">Submit Rescue Request <i class="fas fa-paper-plane"></i></button>
                     </form>
                 </div>
-
-                
-                <div class="map-container-stray" style="display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:15px"><i class="fas fa-map-marked-alt" style="font-size:52px;color:var(--secondary)"></i><h3 style="margin:0">One Smart Location Map</h3><p style="color:var(--text-muted)">Use the same verified-shelter map to select the animal's actual location. Click the map to adjust the pin before submitting.</p><button type="button" class="btn btn-primary" onclick="openSmartMap('stray')"><i class="fas fa-map-pin"></i> Open Smart Map &amp; Set Rescue Pin</button></div>
+                <aside class="rescue-assist-card" aria-label="Rescue report assistance">
+                    <div class="rescue-assist-heading">
+                        <div class="rescue-assist-icon"><i class="fas fa-map-marked-alt"></i></div>
+                        <div><h3>Location &amp; Rescue Guide</h3><p>Everything you need before submitting</p></div>
+                    </div>
+                    <div class="rescue-guide">
+                        <div class="rescue-guide-item"><i class="fas fa-location-dot"></i><div><strong>Mark the actual location</strong><span>Use the shared Smart Map to place or adjust the rescue pin. The address is filled in when available.</span></div></div>
+                        <div class="rescue-guide-item"><i class="fas fa-shield-heart"></i><div><strong>Nearby verified shelters</strong><span>See admin-approved shelters and their available rescue details in the same map.</span></div></div>
+                        <div class="rescue-guide-item"><i class="fas fa-camera"></i><div><strong>Make your report useful</strong><span>Upload a clear photo and describe the animal's condition and nearby landmarks.</span></div></div>
+                    </div>
+                    <button type="button" class="btn btn-primary" onclick="openSmartMap('stray')"><i class="fas fa-map-pin"></i> Set Rescue Location on Smart Map</button>
+                    <div class="rescue-assist-footer"><i class="fas fa-circle-info" style="margin-right:7px"></i> Please review the location before submitting. A report is a request for review, not confirmation that a rescue team has been dispatched.</div>
+                </aside>
             </div>
         </div>
     </section>
@@ -3082,11 +3115,10 @@ document.addEventListener('keydown',function(e){if(e.key==='Escape')closeLostPet
  let userPosition=null, map=null,markers=[],selectedPin=null,smartMode='shelter';
  const esc=s=>String(s??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
  const modeInfo=document.getElementById('smartMapModeInfo');
- function chooseMode(mode){smartMode=['shelter','stray','lost'].includes(mode)?mode:'shelter';document.querySelectorAll('[data-map-mode]').forEach(b=>{b.classList.toggle('btn-primary',b.dataset.mapMode===smartMode);b.classList.toggle('btn-outline',b.dataset.mapMode!==smartMode);});modeInfo.textContent=smartMode==='shelter'?'Showing admin-approved shelters.':smartMode==='stray'?'Click the map to mark where the animal needs rescue.': 'Click the map to mark where your pet was last seen.';if(map)setTimeout(()=>map.invalidateSize(),250);}
+ function chooseMode(mode){smartMode=['shelter','stray','lost'].includes(mode)?mode:'shelter';modeInfo.textContent=smartMode==='shelter'?'Showing admin-approved shelters.':smartMode==='stray'?'Click the map to mark where the animal needs rescue.': 'Click the map to mark where your pet was last seen.';if(map)setTimeout(()=>map.invalidateSize(),250);}
  window.openSmartMap=function(mode){chooseMode(mode);document.getElementById('shelter_finder').scrollIntoView({behavior:'smooth',block:'start'});};
  async function reverseAddress(lat,lng){const url='https://nominatim.openstreetmap.org/reverse?format=jsonv2&addressdetails=1&lat='+encodeURIComponent(lat)+'&lon='+encodeURIComponent(lng);try{const response=await fetch(url,{headers:{'Accept':'application/json'}});if(!response.ok)throw new Error('Address lookup failed');const data=await response.json();return data.display_name||lat.toFixed(6)+', '+lng.toFixed(6);}catch(e){return lat.toFixed(6)+', '+lng.toFixed(6)+' (address unavailable — please edit)';}}
  window.smartMapSetLocation=async function(mode,lat,lng,focus){chooseMode(mode);if(!Number.isFinite(lat)||!Number.isFinite(lng)||Math.abs(lat)>90||Math.abs(lng)>180)throw new Error('Invalid coordinates');if(map){if(selectedPin)map.removeLayer(selectedPin);selectedPin=L.marker([lat,lng],{draggable:true}).addTo(map).bindPopup('Selected '+(mode==='lost'?'last-seen':'rescue')+' location').openPopup();selectedPin.on('dragend',e=>{const p=e.target.getLatLng();window.smartMapSetLocation(smartMode,p.lat,p.lng,false);});if(focus)map.setView([lat,lng],16);}const addr=await reverseAddress(lat,lng);if(mode==='stray'){document.getElementById('lat').value=lat;document.getElementById('lon').value=lng;document.getElementById('detected-address').value=addr;}else if(mode==='lost'){document.getElementById('lost-lat').value=lat;document.getElementById('lost-lon').value=lng;document.getElementById('lost-last-seen').value=addr;}modeInfo.textContent='Selected: '+addr+' — verify the pin and address before submitting.';return addr;};
- document.querySelectorAll('[data-map-mode]').forEach(b=>b.addEventListener('click',()=>chooseMode(b.dataset.mapMode)));
 
  const valid=s=>s.latitude!==null&&s.longitude!==null&&s.latitude!==''&&s.longitude!==''&&Number.isFinite(Number(s.latitude))&&Number.isFinite(Number(s.longitude))&&Math.abs(Number(s.latitude))<=90&&Math.abs(Number(s.longitude))<=180;
  const rad=n=>n*Math.PI/180;
