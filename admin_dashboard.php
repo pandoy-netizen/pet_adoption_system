@@ -3596,17 +3596,22 @@ if ($hq) {
                         ?>
                     </div>
 
-                    <div style="margin-top: auto; display: flex; justify-content: space-between; align-items: center; padding-top: 15px; border-top: 1px solid var(--border-color);">
-                        
-                        <span style="font-size:0.85rem; font-weight:800; color: var(--text-light);">
-                            #PT-<?php echo sprintf('%04d', $p['id']); ?>
-                        </span>
-                        
-                        <span style="background:var(--bg-main); padding:4px 10px; border-radius:var(--radius-md); font-size:0.8rem; font-weight:800; color:var(--text-muted); border:1px solid var(--border-color);">
-                            <i class="fas fa-birthday-cake" style="color:var(--primary);"></i> 
+                    <div style="margin-top:auto; display:flex; justify-content:space-between; align-items:center; gap:10px; padding-top:15px; border-top:1px solid var(--border-color); flex-wrap:wrap;">
+                        <span style="background:var(--bg-main); padding:6px 11px; border-radius:var(--radius-md); font-size:0.82rem; font-weight:800; color:var(--text-muted); border:1px solid var(--border-color);">
+                            <i class="fas fa-birthday-cake" style="color:var(--primary);"></i>
                             <?php echo (int)($p['age'] ?? 0); ?> <?php echo (($p['age_unit'] ?? 'Years') === 'Months') ? 'mos' : 'yrs'; ?>
                         </span>
-
+                        <div style="display:flex; gap:8px; align-items:center;">
+                            <button type="button" class="btn" title="Edit pet" aria-label="Edit <?php echo htmlspecialchars($p['name'] ?? 'pet', ENT_QUOTES); ?>" onclick="event.stopPropagation(); openPetModal(this.closest('.pet-card'));" style="padding:9px 13px; border-radius:10px; background:var(--primary-light); color:var(--primary-hover); font-size:0.85rem;">
+                                <i class="fas fa-pen"></i> Edit
+                            </button>
+                            <form method="POST" style="margin:0;" onclick="event.stopPropagation();" onsubmit="event.stopPropagation(); return confirm('Permanently delete this pet and its adoption applications and history?');">
+                                <input type="hidden" name="pet_id" value="<?php echo (int)$p['id']; ?>">
+                                <button type="submit" name="delete_pet" class="btn" title="Delete pet" aria-label="Delete <?php echo htmlspecialchars($p['name'] ?? 'pet', ENT_QUOTES); ?>" style="padding:9px 13px; border-radius:10px; background:var(--danger-light); color:var(--danger); font-size:0.85rem;">
+                                    <i class="fas fa-trash-alt"></i> Delete
+                                </button>
+                            </form>
+                        </div>
                     </div>
 
                 </div>
