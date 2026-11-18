@@ -391,6 +391,15 @@ if ($check_status && mysqli_num_rows($check_status) == 0) {
     );
 }
 
+try {
+    $ageUnitColumn = $conn->query("SHOW COLUMNS FROM pets LIKE 'age_unit'");
+    if ($ageUnitColumn && $ageUnitColumn->num_rows === 0) {
+        $conn->query("ALTER TABLE pets ADD COLUMN age_unit VARCHAR(10) NOT NULL DEFAULT 'Years'");
+    }
+} catch (Throwable $e) {
+    error_log('Pet age unit migration: ' . $e->getMessage());
+}
+
 /* =========================
    USERS NAME FIELD CHECK
 ========================= */
@@ -863,7 +872,13 @@ if (isset($_POST['add_pet'])) {
     $name = mysqli_real_escape_string($conn, $_POST['pet_name']);
     $species = mysqli_real_escape_string($conn, $_POST['species']);
     $breed = mysqli_real_escape_string($conn, $_POST['breed']);
-    $age = intval($_POST['age']);
+    $age = filter_var($_POST['age'] ?? null, FILTER_VALIDATE_INT);
+    $ageUnit = (string)($_POST['age_unit'] ?? 'Years');
+    if ($age === false || $age < 0 || $age > 100 || !in_array($ageUnit, ['Months', 'Years'], true) || ($ageUnit === 'Months' && $age > 11)) {
+        http_response_code(400);
+        exit('Invalid pet age. Use 0-11 months or 0-100 years.');
+    }
+    $ageUnitSql = mysqli_real_escape_string($conn, $ageUnit);
     $gender = mysqli_real_escape_string($conn, $_POST['gender']);
     $size = mysqli_real_escape_string($conn, $_POST['size']);
     $activity = mysqli_real_escape_string($conn, $_POST['activity_level']);
@@ -896,6 +911,7 @@ if (isset($_POST['add_pet'])) {
             species,
             breed,
             age,
+            age_unit,
             gender,
             size,
             activity_level,
@@ -911,6 +927,7 @@ if (isset($_POST['add_pet'])) {
             '$species',
             '$breed',
             '$age',
+            '$ageUnitSql',
             '$gender',
             '$size',
             '$activity',
@@ -953,7 +970,13 @@ if (isset($_POST['edit_pet'])) {
     $name = mysqli_real_escape_string($conn, $_POST['pet_name']);
     $species = mysqli_real_escape_string($conn, $_POST['species']);
     $breed = mysqli_real_escape_string($conn, $_POST['breed']);
-    $age = intval($_POST['age']);
+    $age = filter_var($_POST['age'] ?? null, FILTER_VALIDATE_INT);
+    $ageUnit = (string)($_POST['age_unit'] ?? 'Years');
+    if ($age === false || $age < 0 || $age > 100 || !in_array($ageUnit, ['Months', 'Years'], true) || ($ageUnit === 'Months' && $age > 11)) {
+        http_response_code(400);
+        exit('Invalid pet age. Use 0-11 months or 0-100 years.');
+    }
+    $ageUnitSql = mysqli_real_escape_string($conn, $ageUnit);
     $gender = mysqli_real_escape_string($conn, $_POST['gender']);
     $size = mysqli_real_escape_string($conn, $_POST['size']);
     $activity = mysqli_real_escape_string($conn, $_POST['activity_level']);
@@ -976,6 +999,7 @@ if (isset($_POST['edit_pet'])) {
             species='$species',
             breed='$breed',
             age='$age',
+            age_unit='$ageUnitSql',
             gender='$gender',
             size='$size',
             activity_level='$activity',
@@ -3517,6 +3541,7 @@ if ($hq) {
                 data-species="<?php echo htmlspecialchars($p['species'] ?? 'Dog', ENT_QUOTES); ?>"
                 data-breed="<?php echo htmlspecialchars($p['breed'] ?? '', ENT_QUOTES); ?>"
                 data-age="<?php echo $p['age'] ?? 0; ?>"
+                data-age-unit="<?php echo htmlspecialchars($p['age_unit'] ?? 'Years', ENT_QUOTES); ?>"
                 data-gender="<?php echo htmlspecialchars($p['gender'] ?? '', ENT_QUOTES); ?>"
                 data-size="<?php echo htmlspecialchars($p['size'] ?? '', ENT_QUOTES); ?>"
                 data-activity="<?php echo htmlspecialchars($p['activity_level'] ?? '', ENT_QUOTES); ?>"
@@ -3579,7 +3604,7 @@ if ($hq) {
                         
                         <span style="background:var(--bg-main); padding:4px 10px; border-radius:var(--radius-md); font-size:0.8rem; font-weight:800; color:var(--text-muted); border:1px solid var(--border-color);">
                             <i class="fas fa-birthday-cake" style="color:var(--primary);"></i> 
-                            <?php echo $p['age'] ?? 0; ?> yrs
+                            <?php echo (int)($p['age'] ?? 0); ?> <?php echo (($p['age_unit'] ?? 'Years') === 'Months') ? 'mos' : 'yrs'; ?>
                         </span>
 
                     </div>
@@ -4048,8 +4073,14 @@ if ($hq) {
                             <input type="text" name="pet_name" id="modal-name" required>
                         </div>
                         <div class="form-group">
-                            <label>Age (Years)</label>
-                            <input type="number" name="age" id="modal-age" required>
+                            <label>Age</label>
+                            <div style="display:flex; gap:10px;">
+                                <input type="number" name="age" id="modal-age" min="0" max="100" step="1" required style="flex:1; min-width:0;">
+                                <select name="age_unit" id="modal-age-unit" required style="flex:1; min-width:0;" onchange="updatePetAgeLimit()">
+                                    <option value="Months">Months</option>
+                                    <option value="Years">Years</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
 
@@ -4580,8 +4611,11 @@ function openPetModal(element) {
         document.getElementById('modal-breed').value = 
             element.getAttribute('data-breed');
             
-        document.getElementById('modal-age').value = 
+        document.getElementById('modal-age').value =
             element.getAttribute('data-age');
+        document.getElementById('modal-age-unit').value =
+            element.getAttribute('data-age-unit') || 'Years';
+        updatePetAgeLimit();
             
         document.getElementById('modal-gender').value = 
             element.getAttribute('data-gender');
@@ -4630,6 +4664,8 @@ function openPetModal(element) {
         document.getElementById('modal-species').value = "Dog";
         document.getElementById('modal-breed').value = "";
         document.getElementById('modal-age').value = "";
+        document.getElementById('modal-age-unit').value = 'Months';
+        updatePetAgeLimit();
         document.getElementById('modal-gender').value = "Male";
         document.getElementById('modal-size').value = "Small";
         document.getElementById('modal-activity').value = "Low";
@@ -4790,6 +4826,15 @@ function resolveAdminShelterPlace(lat,lng){const label=document.getElementById('
 function selectAdminShelterPoint(lat,lng){const f=document.getElementById('shelter-admin-form');f.elements.latitude.value=lat.toFixed(7);f.elements.longitude.value=lng.toFixed(7);if(window.adminShelterMap&&typeof L!=='undefined'){if(window.adminShelterSelection)window.adminShelterSelection.remove();window.adminShelterSelection=L.marker([lat,lng],{draggable:true}).addTo(window.adminShelterMap).bindPopup('Selected location · Drag to adjust').openPopup();window.adminShelterSelection.on('dragend',e=>selectAdminShelterPoint(e.target.getLatLng().lat,e.target.getLatLng().lng));}document.getElementById('adminShelterMapMessage').textContent='GPS: '+lat.toFixed(5)+', '+lng.toFixed(5);resolveAdminShelterPlace(lat,lng);}
 function initAdminShelterMap(){updateShelterHours();setInterval(updateShelterHours,60000);const el=document.getElementById('adminShelterMap');if(!el)return;if(typeof L==='undefined'){el.textContent='Map unavailable. You can still enter coordinates manually.';return;}const map=L.map(el).setView([12.8797,121.774],6);window.adminShelterMap=map;L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'&copy; OpenStreetMap contributors',maxZoom:19}).addTo(map);map.on('click',e=>selectAdminShelterPoint(e.latlng.lat,e.latlng.lng));const bounds=[];adminShelterRecords.forEach(s=>{const lat=Number(s.latitude),lng=Number(s.longitude);if(s.latitude===null||s.longitude===null||!Number.isFinite(lat)||!Number.isFinite(lng)||Math.abs(lat)>90||Math.abs(lng)>180)return;const h=shelterClock(s.opening_hours);const marker=L.marker([lat,lng]).addTo(map);const popup=document.createElement('div');const title=document.createElement('strong');title.textContent=s.shelter_name;popup.append(title,document.createElement('br'),document.createTextNode(s.city+', '+s.province),document.createElement('br'),document.createTextNode('Verification: '+s.verification_status),document.createElement('br'),document.createTextNode(h.label+' · '+h.next));const btn=document.createElement('button');btn.type='button';btn.textContent='Edit shelter';btn.style.marginTop='8px';btn.onclick=()=>{map.closePopup();editShelterAdmin(s);};popup.append(document.createElement('br'),btn);marker.bindPopup(popup);bounds.push([lat,lng]);});if(bounds.length)map.fitBounds(bounds,{padding:[25,25],maxZoom:12});document.getElementById('adminShelterLocate').addEventListener('click',()=>{if(!navigator.geolocation){document.getElementById('adminShelterMapMessage').textContent='Location not supported.';return;}navigator.geolocation.getCurrentPosition(p=>{map.setView([p.coords.latitude,p.coords.longitude],14);selectAdminShelterPoint(p.coords.latitude,p.coords.longitude);},()=>document.getElementById('adminShelterMapMessage').textContent='Location unavailable. Click on the map instead.',{timeout:12000});});const f=document.getElementById('shelter-admin-form');for(const name of ['latitude','longitude'])f.elements[name].addEventListener('change',()=>{const lat=Number(f.elements.latitude.value),lng=Number(f.elements.longitude.value);if(f.elements.latitude.value&&f.elements.longitude.value&&Math.abs(lat)<=90&&Math.abs(lng)<=180){selectAdminShelterPoint(lat,lng);map.setView([lat,lng],13);}});document.querySelectorAll('.nav-link[href="?tab=shelters"]').forEach(n=>n.addEventListener('click',()=>setTimeout(()=>map.invalidateSize(),150)));if(new URLSearchParams(location.search).get('tab')==='shelters')setTimeout(()=>map.invalidateSize(),200);}
 document.addEventListener('DOMContentLoaded',initAdminShelterMap);
+</script>
+<script>
+function updatePetAgeLimit() {
+    const age = document.getElementById('modal-age');
+    const unit = document.getElementById('modal-age-unit');
+    if (!age || !unit) return;
+    age.max = unit.value === 'Months' ? '11' : '100';
+    if (age.value !== '' && Number(age.value) > Number(age.max)) age.value = '';
+}
 </script>
 </body>
 </html>
