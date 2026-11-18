@@ -3560,9 +3560,14 @@ if ($hq) {
                     >
                         <?php echo htmlspecialchars($p['status'] ?? ''); ?>
                     </span>
-                    <img 
-                        src="<?php echo htmlspecialchars($img); ?>" 
-                        class="pet-card-img" 
+                    <img
+                        src="<?php echo htmlspecialchars($img, ENT_QUOTES); ?>"
+                        class="pet-card-img pet-photo-clickable"
+                        alt="<?php echo htmlspecialchars($p['name'] ?? 'Pet', ENT_QUOTES); ?> photo"
+                        title="Click to view full photo"
+                        role="button" tabindex="0"
+                        onclick="event.stopPropagation(); openPetPhoto(this.src, this.alt);"
+                        onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();event.stopPropagation();openPetPhoto(this.src,this.alt);}"
                         onerror="this.onerror=null; this.src='uploads/default.jpg';"
                     >
                 </div>
@@ -4161,8 +4166,8 @@ if ($hq) {
                     </div>
 
                     <div class="form-group" style="margin-top:10px;">
-                        <label>Detailed Description</label>
-                        <textarea name="description" id="modal-description" rows="3" required></textarea>
+                        <label>Detailed Description (Optional)</label>
+                        <textarea name="description" id="modal-description" rows="3" placeholder="Optional: Add details about the pet"></textarea>
                     </div>
 
                     <div style="display:flex; gap:15px; margin-top:25px; border-top: 1px dashed var(--border-color); padding-top: 25px;">
@@ -4841,5 +4846,61 @@ function updatePetAgeLimit() {
     if (age.value !== '' && Number(age.value) > Number(age.max)) age.value = '';
 }
 </script>
+
+<style>
+.pet-photo-clickable{cursor:zoom-in;transition:transform .25s ease,filter .25s ease}
+.pet-photo-clickable:hover{filter:brightness(.88);transform:scale(1.035)}
+#petPhotoLightbox{position:fixed;inset:0;z-index:999999;background:rgba(3,8,20,.94);display:none;align-items:center;justify-content:center;flex-direction:column;padding:65px 18px 65px;box-sizing:border-box}
+#petPhotoLightbox.is-open{display:flex}
+#petPhotoLightbox img{max-width:95vw;max-height:calc(100vh - 175px);object-fit:contain;transform:scale(var(--photo-zoom,1));transition:transform .15s ease;box-shadow:0 16px 55px #0008;border-radius:10px}
+#petPhotoLightbox .photo-close{position:absolute;top:18px;right:22px}
+#petPhotoLightbox .photo-tools{position:absolute;bottom:16px;display:flex;align-items:center;gap:10px}
+#petPhotoLightbox button{background:#1e293b;color:white;border:1px solid #475569;border-radius:12px;padding:10px 16px;cursor:pointer;font:inherit}
+#petPhotoLightbox button:hover{background:#334155}
+#petPhotoLightbox .photo-title{position:absolute;top:22px;left:24px;right:85px;color:white;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+</style>
+<div id="petPhotoLightbox" role="dialog" aria-modal="true" aria-label="Pet photo viewer" onclick="if(event.target===this)closePetPhoto()">
+ <div class="photo-title" id="petPhotoTitle"></div>
+ <button type="button" class="photo-close" onclick="closePetPhoto()" aria-label="Close photo"><i class="fas fa-times"></i></button>
+ <img id="petPhotoFull" alt="Full pet photo">
+ <div class="photo-tools">
+  <button type="button" onclick="zoomPetPhoto(-0.25)" aria-label="Zoom out"><i class="fas fa-search-minus"></i></button>
+  <button type="button" onclick="resetPetPhotoZoom()" id="petPhotoZoomLabel">100%</button>
+  <button type="button" onclick="zoomPetPhoto(0.25)" aria-label="Zoom in"><i class="fas fa-search-plus"></i></button>
+ </div>
+</div>
+<script>
+let petPhotoZoom=1;
+let petPhotoPreviousFocus=null;
+function openPetPhoto(src,title){
+ const viewer=document.getElementById('petPhotoLightbox');
+ petPhotoPreviousFocus=document.activeElement;
+ document.getElementById('petPhotoFull').src=src;
+ document.getElementById('petPhotoFull').alt=title||'Pet photo';
+ document.getElementById('petPhotoTitle').textContent=title||'Pet photo';
+ viewer.classList.add('is-open');
+ document.body.style.overflow='hidden';
+ resetPetPhotoZoom();
+ viewer.querySelector('.photo-close').focus();
+}
+function closePetPhoto(){
+ document.getElementById('petPhotoLightbox').classList.remove('is-open');
+ document.body.style.overflow='';
+ if(petPhotoPreviousFocus && petPhotoPreviousFocus.focus)petPhotoPreviousFocus.focus();
+}
+function zoomPetPhoto(delta){
+ petPhotoZoom=Math.max(.5,Math.min(3,Math.round((petPhotoZoom+delta)*100)/100));
+ document.getElementById('petPhotoFull').style.setProperty('--photo-zoom',petPhotoZoom);
+ document.getElementById('petPhotoZoomLabel').textContent=Math.round(petPhotoZoom*100)+'%';
+}
+function resetPetPhotoZoom(){petPhotoZoom=1;zoomPetPhoto(0)}
+document.addEventListener('keydown',function(e){
+ if(!document.getElementById('petPhotoLightbox').classList.contains('is-open'))return;
+ if(e.key==='Escape')closePetPhoto();
+ if(e.key==='+'||e.key==='=')zoomPetPhoto(.25);
+ if(e.key==='-')zoomPetPhoto(-.25);
+});
+</script>
+
 </body>
 </html>
