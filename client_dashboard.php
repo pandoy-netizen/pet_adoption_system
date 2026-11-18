@@ -486,7 +486,7 @@ $pets_json_data = json_encode($all_pets_for_ai);
 
 
 
-$sql_pets = "SELECT * FROM pets WHERE (status='Available' OR status='available') ORDER BY id DESC";
+$sql_pets = "SELECT * FROM pets ORDER BY id DESC";
 
 $check_approval = mysqli_query($conn, "SELECT a.*, p.name as pet_name, p.image, p.breed FROM adoption_applications a JOIN pets p ON a.pet_id = p.id WHERE a.user_id='$user_id' AND (a.status='Approved' OR a.status='Adopted')");
 $has_approved_application = ($check_approval && mysqli_num_rows($check_approval) > 0); 
@@ -1435,8 +1435,8 @@ html { scroll-padding-top: 100px; }
 
     <section id="pets" class="bg-white">
         <div class="container">
-            <h2 class="section-title text-center">Available Pets</h2>
-            <p class="section-subtitle text-center">Every pet here is healthy, vaccinated, and waiting for you.</p>
+            <h2 class="section-title text-center">Our Pets</h2>
+            <p class="section-subtitle text-center">Explore all registered pets and check their current adoption status.</p>
 
             <?php if($app_success) echo "<div class='alert alert-success'><i class='fas fa-check-circle'></i> $app_success</div>"; ?>
 
@@ -1475,9 +1475,14 @@ html { scroll-padding-top: 100px; }
                     </div>
                     <div class="pet-card-content">
                         <h3 class="pet-card-title"><?php echo htmlspecialchars($row['name']); ?></h3>
+                        <?php
+                            $petStatus = trim((string)($row['status'] ?? 'Unknown'));
+                            $petAvailable = strcasecmp($petStatus, 'Available') === 0;
+                        ?>
+                        <div style="margin:-5px 0 14px;"><span class="badge <?php echo $petAvailable ? 'badge-success' : 'badge-pending'; ?>"><?php echo htmlspecialchars($petStatus, ENT_QUOTES, 'UTF-8'); ?></span></div>
                         <div class="pet-tags">
                             <span class="pet-tag"><i class="fas fa-paw"></i> <?php echo htmlspecialchars($row['breed']); ?></span>
-                            <span class="pet-tag"><i class="fas fa-birthday-cake"></i> <?php echo $row['age']; ?> yrs</span>
+                            <span class="pet-tag"><i class="fas fa-birthday-cake"></i> <?php echo htmlspecialchars((string)$row['age'], ENT_QUOTES, 'UTF-8'); ?> <?php echo in_array(strtolower((string)($row['age_unit'] ?? 'Years')), ['month', 'months', 'mos'], true) ? 'mos' : 'yrs'; ?></span>
                             <span class="pet-tag"><i class="fas fa-ruler"></i> <?php echo htmlspecialchars($row['size'] ?? 'Medium'); ?></span>
                             <span class="pet-tag"><i class="fas fa-smile"></i> <?php echo htmlspecialchars($row['temperament'] ?? 'Friendly'); ?></span>
                         </div>
