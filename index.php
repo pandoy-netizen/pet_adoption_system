@@ -324,7 +324,7 @@ $startUrl = $loggedIn ? $dashboardUrl : 'login.php';
                     rgba(0,0,0,0.5),
                     rgba(0,0,0,0.7)
                 ),
-                url("ui.png")
+                url("uploads/459011939_509864278458955_2207770161432675761_n.png")
                 center/cover no-repeat;
             z-index: -1;
             animation:
