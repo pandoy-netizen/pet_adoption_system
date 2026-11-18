@@ -1649,22 +1649,10 @@ html { scroll-padding-top: 100px; }
   <?php if ($shelterClientNotice !== ''): ?><div class="shelter-client-notice"><?php echo htmlspecialchars($shelterClientNotice,ENT_QUOTES,'UTF-8'); ?></div><?php endif; ?>
   <div class="shelter-finder-controls"><input type="search" id="shelterSearch" placeholder="Search shelter, city, province or animal type..." aria-label="Search shelters"><select id="shelterFilter" aria-label="Shelter filter"><option value="all">All verified shelters</option><option value="rescue">Rescue available</option><option value="slots">With available slots</option><option value="open">Open now</option></select><button type="button" class="btn btn-primary" id="locateShelterBtn"><i class="fas fa-location-crosshairs"></i> Find Near Me</button></div>
   <p id="shelterLocationStatus" class="shelter-hint">Allow location access to rank shelters by distance. Shelters without GPS coordinates will still appear in the list.</p>
-  <div class="smart-map-toolbar" style="margin:12px 0"><span id="smartMapModeInfo" class="shelter-hint" role="status" aria-live="polite">Showing admin-approved shelters. Choose a location from a report form when needed.</span></div><div class="shelter-finder-layout"><div id="shelterFinderMap" role="region" aria-label="Verified shelter map"></div><div class="shelter-finder-list" id="shelterFinderList" aria-live="polite"></div></div>
+  <p class="shelter-hint">Select a shelter below to view it on the shared map beside the Rescue Report.</p><div class="shelter-finder-list" id="shelterFinderList" aria-live="polite"></div>
   <div class="shelter-review-panel" id="shelterReviewPanel" hidden><h3 id="shelterReviewTitle">Rate Shelter</h3><form method="post" action="client_dashboard.php#shelter_finder"><input type="hidden" name="submit_shelter_rating" value="1"><input type="hidden" name="shelter_csrf" value="<?php echo htmlspecialchars($_SESSION['shelter_client_csrf'],ENT_QUOTES,'UTF-8'); ?>"><input type="hidden" name="shelter_id" id="reviewShelterId"><label>Rating <select name="rating" required><option value="5">★★★★★ — 5</option><option value="4">★★★★ — 4</option><option value="3">★★★ — 3</option><option value="2">★★ — 2</option><option value="1">★ — 1</option></select></label><label>Review (optional)<textarea name="review" maxlength="1500" rows="3" placeholder="Share your experience with this shelter"></textarea></label><div style="display:flex;gap:12px"><button type="submit" class="btn btn-primary">Save Rating</button><button type="button" class="btn" onclick="document.getElementById('shelterReviewPanel').hidden=true">Cancel</button></div></form></div>
  </div>
 </section>
-<div id="rescueMapDialog" class="rescue-map-dialog" role="dialog" aria-modal="true" aria-label="Select animal location and rescue route" hidden>
- <div class="rescue-map-window">
-  <div class="rescue-map-head"><div><h3 id="rescueMapTitle">Choose the rescue location</h3><p id="rescueMapHelp">Tap the map to pin the animal's location, then confirm the address.</p></div><button type="button" class="rescue-map-close" onclick="closeRescueMap()" aria-label="Close map">&times;</button></div>
-  <div class="rescue-map-location-summary" style="padding:14px 20px;border-bottom:1px solid var(--border-color);background:var(--bg-surface)">
-    <strong style="display:block;margin-bottom:5px"><i class="fas fa-location-dot" style="color:var(--primary)"></i> Rescue Location &amp; Route Information</strong>
-    <p style="margin:0 0 7px;color:var(--text-muted);font-size:.9rem">Pin the animal's location below. The address and coordinates will be saved with your report after you confirm them.</p>
-    <div id="rescueRouteStatus" role="status" aria-live="polite" style="font-size:.9rem">Choose a shelter to view a road route to the pinned location.</div>
-  </div>
-  <div id="rescueMapModalSlot"></div>
-  <div class="rescue-map-actions"><button type="button" class="btn btn-primary" onclick="closeRescueMap()">Done — Back to Report</button></div>
- </div>
-</div>
 
     <section id="ai_match" class="ai-section">
         <div class="container" style="position: relative; z-index: 2;">
@@ -2116,13 +2104,17 @@ html { scroll-padding-top: 100px; }
     #report_stray .rescue-guide-item span{display:block;color:var(--text-muted);font-size:.85rem;line-height:1.5}
     #report_stray .rescue-assist-footer{margin-top:auto;padding:15px;border-radius:14px;background:var(--primary-light);color:var(--text-dark);font-size:.86rem;line-height:1.55}
     #report_stray .rescue-assist-card .btn{width:100%;box-sizing:border-box}
+    #report_stray #shelterFinderMap{width:100%;height:520px;min-height:380px;border-radius:16px;border:1px solid var(--border-color);z-index:1}
+    #report_stray .rescue-assist-card{align-self:start;position:sticky;top:95px}
+    #shelter_finder .shelter-finder-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:16px;max-height:none}
+    @media(max-width:850px){#report_stray .rescue-assist-card{position:static}#report_stray #shelterFinderMap{height:420px}}
     #report_stray .rescue-photo-input{padding:14px;background:var(--bg-main);border:2px dashed var(--border-color);margin-top:8px}
     @media(max-width:850px){#report_stray .rescue-workspace{grid-template-columns:1fr}#report_stray .rescue-assist-card{gap:16px}}
     </style>
     <section id="report_stray" class="bg-white">
         <div class="container">
             <h2 class="section-title text-center"><i class="fas fa-camera" style="color:var(--primary);"></i> Report an Emergency Stray</h2>
-            <p class="section-subtitle text-center">Help us rescue animals in immediate danger. Enter the animal details first, then open the map to confirm the rescue location. Verified shelters can preview the road route to the pinned location.</p>
+            <p class="section-subtitle text-center">Help us rescue animals in immediate danger. Fill in the rescue report on the left and pin the animal’s location on the map beside it. Verified shelters can preview a road route to the selected location.</p>
             
             <?php if($stray_success) echo "<div class='alert alert-success'><i class='fas fa-check-circle'></i> $stray_success</div>"; ?>
             
@@ -2156,15 +2148,13 @@ html { scroll-padding-top: 100px; }
                 <aside class="rescue-assist-card" aria-label="Rescue report assistance">
                     <div class="rescue-assist-heading">
                         <div class="rescue-assist-icon"><i class="fas fa-map-marked-alt"></i></div>
-                        <div><h3>Location &amp; Rescue Guide</h3><p>Report details first, then location guidance and map</p></div>
+                        <div><h3>Location &amp; Rescue Guide</h3><p>Pin the rescue location on the map beside your report</p></div>
                     </div>
-                    <div class="rescue-guide">
-                        <div class="rescue-guide-item"><i class="fas fa-location-dot"></i><div><strong>Mark the actual location</strong><span>Use the shared Smart Map to place or adjust the rescue pin. The address is filled in when available.</span></div></div>
-                        <div class="rescue-guide-item"><i class="fas fa-shield-heart"></i><div><strong>Nearby verified shelters</strong><span>See admin-approved shelters and their available rescue details in the same map.</span></div></div>
-                        <div class="rescue-guide-item"><i class="fas fa-camera"></i><div><strong>Make your report useful</strong><span>Upload a clear photo and describe the animal's condition and nearby landmarks.</span></div></div>
-                    </div>
-                    <button type="button" class="btn btn-primary" onclick="openSmartMap('stray')"><i class="fas fa-map-pin"></i> Open Rescue Map &amp; Route Guide</button>
-                    <div class="rescue-assist-footer"><i class="fas fa-circle-info" style="margin-right:7px"></i> Please review the location before submitting. A report is a request for review, not confirmation that a rescue team has been dispatched.</div>
+                    <p class="rescue-help" style="margin:0">Click the map to mark where the animal was found, or use your current location. Choose a verified shelter in the directory to preview a road route.</p>
+                    <div id="smartMapModeInfo" class="shelter-hint" role="status" aria-live="polite">Click the map to mark the animal's rescue location.</div>
+                    <div id="shelterFinderMap" role="region" aria-label="Rescue location and verified shelter map"></div>
+                    <div id="rescueRouteStatus" role="status" aria-live="polite" class="shelter-hint">Choose a verified shelter to preview the route to the rescue pin.</div>
+                    <div class="rescue-assist-footer"><i class="fas fa-circle-info" style="margin-right:7px"></i>Confirm the address in the form before submitting. The map shows estimated routes, not live traffic.</div>
                 </aside>
             </div>
         </div>
@@ -2600,7 +2590,7 @@ html { scroll-padding-top: 100px; }
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Detecting location...';
         navigator.geolocation.getCurrentPosition(async pos => {
             try {
-                await window.smartMapSetLocation('stray', pos.coords.latitude, pos.coords.longitude, true);window.openSmartMap('stray');
+                await window.smartMapSetLocation('stray', pos.coords.latitude, pos.coords.longitude, true);
                 btn.innerHTML = '<i class="fas fa-check"></i> Location detected — review on map';
             } catch (e) { btn.innerHTML = old; alert('Could not resolve the address. Select a pin on the Smart Map.'); }
             btn.disabled = false;
@@ -3138,10 +3128,8 @@ document.addEventListener('keydown',function(e){if(e.key==='Escape')closeLostPet
  const esc=s=>String(s??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
  const modeInfo=document.getElementById('smartMapModeInfo');
  function chooseMode(mode){smartMode=['shelter','stray','lost'].includes(mode)?mode:'shelter';modeInfo.textContent=smartMode==='shelter'?'Showing admin-approved shelters.':smartMode==='stray'?'Click the map to mark where the animal needs rescue.': 'Click the map to mark where your pet was last seen.';if(map)setTimeout(()=>map.invalidateSize(),250);}
- const mapLayout=document.querySelector('#shelter_finder .shelter-finder-layout');const mapHome=mapLayout?.parentElement;const mapNext=mapLayout?.nextSibling;
- window.closeRescueMap=function(){const dialog=document.getElementById('rescueMapDialog');dialog.hidden=true;document.body.style.overflow='';if(mapHome&&mapLayout)mapHome.insertBefore(mapLayout,mapNext);if(map)setTimeout(()=>map.invalidateSize(),150);};
- window.openSmartMap=function(mode){chooseMode(mode);if(mode==='shelter'){window.closeRescueMap();document.getElementById('shelter_finder').scrollIntoView({behavior:'smooth',block:'start'});return;}const dialog=document.getElementById('rescueMapDialog');document.getElementById('rescueMapTitle').textContent=mode==='lost'?'Mark the last-seen location':'Mark the rescue location';document.getElementById('rescueMapHelp').textContent=mode==='lost'?'Tap the map to mark where your pet was last seen. Drag the pin if needed.':'Tap the map to mark the animal location. Select a verified shelter below to preview a road route.';document.getElementById('rescueMapModalSlot').appendChild(mapLayout);dialog.hidden=false;document.body.style.overflow='hidden';setTimeout(()=>map&&map.invalidateSize(),180);};
- document.getElementById('rescueMapDialog')?.addEventListener('click',e=>{if(e.target.id==='rescueMapDialog')window.closeRescueMap();});document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!document.getElementById('rescueMapDialog').hidden)window.closeRescueMap();});
+ window.closeRescueMap=function(){};
+ window.openSmartMap=function(mode){chooseMode(mode);document.getElementById('report_stray').scrollIntoView({behavior:'smooth',block:'start'});if(map)setTimeout(()=>map.invalidateSize(),350);};
  async function reverseAddress(lat,lng){const url='https://nominatim.openstreetmap.org/reverse?format=jsonv2&addressdetails=1&lat='+encodeURIComponent(lat)+'&lon='+encodeURIComponent(lng);try{const response=await fetch(url,{headers:{'Accept':'application/json'}});if(!response.ok)throw new Error('Address lookup failed');const data=await response.json();return data.display_name||lat.toFixed(6)+', '+lng.toFixed(6);}catch(e){return lat.toFixed(6)+', '+lng.toFixed(6)+' (address unavailable — please edit)';}}
  window.smartMapSetLocation=async function(mode,lat,lng,focus){chooseMode(mode);if(!Number.isFinite(lat)||!Number.isFinite(lng)||Math.abs(lat)>90||Math.abs(lng)>180)throw new Error('Invalid coordinates');if(map){if(routeControl){map.removeControl(routeControl);routeControl=null;}if(selectedPin)map.removeLayer(selectedPin);selectedPin=L.marker([lat,lng],{draggable:true}).addTo(map).bindPopup('Selected '+(mode==='lost'?'last-seen':'rescue')+' location').openPopup();selectedPin.on('dragend',e=>{const p=e.target.getLatLng();window.smartMapSetLocation(smartMode,p.lat,p.lng,false);});if(focus)map.setView([lat,lng],16);}const addr=await reverseAddress(lat,lng);if(mode==='stray'){document.getElementById('lat').value=lat;document.getElementById('lon').value=lng;document.getElementById('detected-address').value=addr;}else if(mode==='lost'){document.getElementById('lost-lat').value=lat;document.getElementById('lost-lon').value=lng;document.getElementById('lost-last-seen').value=addr;}modeInfo.textContent='Selected: '+addr+' — verify the pin and address before submitting.';return addr;};
 
