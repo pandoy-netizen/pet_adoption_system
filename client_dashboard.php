@@ -2148,12 +2148,12 @@ html { scroll-padding-top: 100px; }
                 <aside class="rescue-assist-card" aria-label="Rescue report assistance">
                     <div class="rescue-assist-heading">
                         <div class="rescue-assist-icon"><i class="fas fa-map-marked-alt"></i></div>
-                        <div><h3>Location &amp; Rescue Guide</h3><p>Pin the rescue location on the map beside your report</p></div>
+                        <div><h3>Location &amp; Rescue Guide</h3></div>
                     </div>
-                    <p class="rescue-help" style="margin:0">Click the map to mark where the animal was found, or use your current location. Choose a verified shelter in the directory to preview a road route.</p>
-                    <div id="smartMapModeInfo" class="shelter-hint" role="status" aria-live="polite">Click the map to mark the animal's rescue location.</div>
                     <div id="shelterFinderMap" role="region" aria-label="Rescue location and verified shelter map"></div>
-                    <div id="rescueRouteStatus" role="status" aria-live="polite" class="shelter-hint">Choose a verified shelter to preview the route to the rescue pin.</div>
+                    <div id="smartMapModeInfo" class="shelter-hint" role="status" aria-live="polite">Click the map to pin the rescue location. Tap the pin to see the route.</div>
+                    <div id="rescueRouteStatus" role="status" aria-live="polite" class="shelter-hint">After selecting a location, the nearest verified rescue-ready shelter route will appear here.</div>
+                    <div id="rescuePinNavigation" class="rescue-pin-navigation" hidden style="margin-top:10px"></div>
                     <div class="rescue-assist-footer"><i class="fas fa-circle-info" style="margin-right:7px"></i>Confirm the address in the form before submitting. The map shows estimated routes, not live traffic.</div>
                 </aside>
             </div>
@@ -3124,16 +3124,38 @@ document.addEventListener('keydown',function(e){if(e.key==='Escape')closeLostPet
  const shelters=<?php echo $shelterClientJson ?: '[]'; ?>;
  const list=document.getElementById('shelterFinderList');if(!list)return;
  const search=document.getElementById('shelterSearch'),filter=document.getElementById('shelterFilter'),status=document.getElementById('shelterLocationStatus');
- let userPosition=null, map=null,markers=[],selectedPin=null,smartMode='shelter';
+ let userPosition=null, map=null,markers=[],selectedPin=null,smartMode='stray';
  const esc=s=>String(s??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
  const modeInfo=document.getElementById('smartMapModeInfo');
+ const pinNavigation=document.getElementById('rescuePinNavigation');
  function chooseMode(mode){smartMode=['shelter','stray','lost'].includes(mode)?mode:'shelter';modeInfo.textContent=smartMode==='shelter'?'Showing admin-approved shelters.':smartMode==='stray'?'Click the map to mark where the animal needs rescue.': 'Click the map to mark where your pet was last seen.';if(map)setTimeout(()=>map.invalidateSize(),250);}
  window.closeRescueMap=function(){};
  window.openSmartMap=function(mode){chooseMode(mode);document.getElementById('report_stray').scrollIntoView({behavior:'smooth',block:'start'});if(map)setTimeout(()=>map.invalidateSize(),350);};
  async function reverseAddress(lat,lng){const url='https://nominatim.openstreetmap.org/reverse?format=jsonv2&addressdetails=1&lat='+encodeURIComponent(lat)+'&lon='+encodeURIComponent(lng);try{const response=await fetch(url,{headers:{'Accept':'application/json'}});if(!response.ok)throw new Error('Address lookup failed');const data=await response.json();return data.display_name||lat.toFixed(6)+', '+lng.toFixed(6);}catch(e){return lat.toFixed(6)+', '+lng.toFixed(6)+' (address unavailable — please edit)';}}
- window.smartMapSetLocation=async function(mode,lat,lng,focus){chooseMode(mode);if(!Number.isFinite(lat)||!Number.isFinite(lng)||Math.abs(lat)>90||Math.abs(lng)>180)throw new Error('Invalid coordinates');if(map){if(routeControl){map.removeControl(routeControl);routeControl=null;}if(selectedPin)map.removeLayer(selectedPin);selectedPin=L.marker([lat,lng],{draggable:true}).addTo(map).bindPopup('Selected '+(mode==='lost'?'last-seen':'rescue')+' location').openPopup();selectedPin.on('dragend',e=>{const p=e.target.getLatLng();window.smartMapSetLocation(smartMode,p.lat,p.lng,false);});if(focus)map.setView([lat,lng],16);}const addr=await reverseAddress(lat,lng);if(mode==='stray'){document.getElementById('lat').value=lat;document.getElementById('lon').value=lng;document.getElementById('detected-address').value=addr;}else if(mode==='lost'){document.getElementById('lost-lat').value=lat;document.getElementById('lost-lon').value=lng;document.getElementById('lost-last-seen').value=addr;}modeInfo.textContent='Selected: '+addr+' — verify the pin and address before submitting.';return addr;};
+ window.smartMapSetLocation=async function(mode,lat,lng,focus){chooseMode(mode);if(!Number.isFinite(lat)||!Number.isFinite(lng)||Math.abs(lat)>90||Math.abs(lng)>180)throw new Error('Invalid coordinates');if(map){if(routeControl){map.removeControl(routeControl);routeControl=null;}if(selectedPin)map.removeLayer(selectedPin);selectedPin=L.marker([lat,lng],{draggable:true}).addTo(map).bindPopup('Rescue location — tap for directions').openPopup();selectedPin.on('click',()=>showRescueDirections());selectedPin.on('dragend',e=>{const p=e.target.getLatLng();window.smartMapSetLocation(smartMode,p.lat,p.lng,false);});if(focus)map.setView([lat,lng],16);}const addr=await reverseAddress(lat,lng);if(mode==='stray'){document.getElementById('lat').value=lat;document.getElementById('lon').value=lng;document.getElementById('detected-address').value=addr;}else if(mode==='lost'){document.getElementById('lost-lat').value=lat;document.getElementById('lost-lon').value=lng;document.getElementById('lost-last-seen').value=addr;}modeInfo.textContent='Rescue location: '+addr; if(mode==='stray')showRescueDirections();return addr;};
 
  let routeControl=null;
+ function showRescueDirections(){
+   if(!selectedPin||!pinNavigation)return;
+   const pos=selectedPin.getLatLng();
+   const eligible=shelters.filter(s=>valid(s)&&Number(s.rescue_available)===1);
+   const rad2=n=>n*Math.PI/180;
+   const distance=s=>{const a=rad2(Number(s.latitude)-pos.lat),b=rad2(Number(s.longitude)-pos.lng),q=Math.sin(a/2)**2+Math.cos(rad2(pos.lat))*Math.cos(rad2(Number(s.latitude)))*Math.sin(b/2)**2;return 6371*2*Math.atan2(Math.sqrt(q),Math.sqrt(1-q));};
+   eligible.sort((a,b)=>distance(a)-distance(b));
+   const destination=pos.lat.toFixed(7)+','+pos.lng.toFixed(7);
+   pinNavigation.hidden=false;
+   pinNavigation.replaceChildren();
+   const title=document.createElement('strong');title.textContent='Directions to rescue location';pinNavigation.appendChild(title);
+   if(!eligible.length){const note=document.createElement('p');note.textContent='No verified rescue-ready shelter with coordinates is available. You can still open the rescue location in Google Maps.';pinNavigation.appendChild(note);}
+   else{
+     const shelter=eligible[0];const note=document.createElement('p');note.textContent='Closest verified rescue-ready shelter: '+shelter.shelter_name+' ('+distance(shelter).toFixed(1)+' km straight-line distance). Road distance may differ.';pinNavigation.appendChild(note);
+     const route=document.createElement('button');route.type='button';route.className='btn btn-primary';route.textContent='Show road route on map';route.addEventListener('click',()=>routeToShelter(shelter));pinNavigation.appendChild(route);
+     routeToShelter(shelter);
+   }
+   const link=document.createElement('a');link.className='btn btn-outline';link.style.marginLeft='8px';link.style.marginTop='6px';link.target='_blank';link.rel='noopener noreferrer';
+   link.href='https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(destination)+(eligible.length?'&origin='+encodeURIComponent(eligible[0].latitude+','+eligible[0].longitude):'');
+   link.textContent='Open turn-by-turn directions';pinNavigation.appendChild(link);
+ }
  function routeToShelter(s){const output=document.getElementById('rescueRouteStatus');if(!selectedPin){output.textContent='First pin the animal location on the map.';return;}if(!map||typeof L.Routing==='undefined'){output.textContent='Routing service unavailable. Use Directions to open external navigation.';return;}if(!valid(s)){output.textContent='This shelter has no verified map coordinates.';return;}if(routeControl){map.removeControl(routeControl);routeControl=null;}output.textContent='Calculating a road route from '+s.shelter_name+' to the animal...';try{routeControl=L.Routing.control({waypoints:[L.latLng(Number(s.latitude),Number(s.longitude)),selectedPin.getLatLng()],routeWhileDragging:false,addWaypoints:false,draggableWaypoints:false,showAlternatives:false,fitSelectedRoutes:true,createMarker:()=>null,lineOptions:{styles:[{color:'#f59e0b',opacity:.9,weight:6}]}}).addTo(map);routeControl.on('routesfound',e=>{const r=e.routes?.[0];output.textContent=r?'Road route: '+(r.summary.totalDistance/1000).toFixed(1)+' km, estimated '+Math.round(r.summary.totalTime/60)+' min (traffic not included). Verify road conditions.':'No road route returned.';});routeControl.on('routingerror',()=>{output.textContent='Could not calculate a route. Use the shelter Directions link as an alternative.';});}catch(e){output.textContent='Routing unavailable. Use Directions instead.';}}
  const valid=s=>s.latitude!==null&&s.longitude!==null&&s.latitude!==''&&s.longitude!==''&&Number.isFinite(Number(s.latitude))&&Number.isFinite(Number(s.longitude))&&Math.abs(Number(s.latitude))<=90&&Math.abs(Number(s.longitude))<=180;
  const rad=n=>n*Math.PI/180;
@@ -3142,8 +3164,11 @@ document.addEventListener('keydown',function(e){if(e.key==='Escape')closeLostPet
  function score(s){const d=km(s);return (d===null?0:Math.max(0,100-d*2))+(Number(s.rescue_available)?20:0)+(Number(s.available_slots)>0?10:0)+Number(s.average_rating||0)*5;}
  if(typeof L!=='undefined'){
   map=L.map('shelterFinderMap').setView([12.8797,121.774],6);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'&copy; OpenStreetMap contributors',maxZoom:19}).addTo(map);
-  map.on('click',e=>{if(smartMode!=='shelter')window.smartMapSetLocation(smartMode,e.latlng.lat,e.latlng.lng,false);});
+  const terrainLayer=L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',{attribution:'Map data &copy; OpenStreetMap contributors | Map style &copy; OpenTopoMap (CC-BY-SA)',subdomains:'abc',maxNativeZoom:17,maxZoom:19});
+  const streetLayer=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'&copy; OpenStreetMap contributors',maxZoom:19});
+  terrainLayer.addTo(map);
+  L.control.layers({'Terrain':terrainLayer,'Street':streetLayer},null,{position:'topright',collapsed:true}).addTo(map);
+  map.on('click',e=>{window.smartMapSetLocation(smartMode==='lost'?'lost':'stray',e.latlng.lat,e.latlng.lng,false);});
  }else{document.getElementById('shelterFinderMap').textContent='Map could not load. The shelter directory is still available.';}
  function render(){const q=search.value.toLowerCase().trim(),f=filter.value;const rows=shelters.filter(s=>(!q||[s.shelter_name,s.address,s.city,s.province,s.animal_types].join(' ').toLowerCase().includes(q))&&(f!=='rescue'||Number(s.rescue_available)===1)&&(f!=='slots'||Number(s.available_slots)>0)&&(f!=='open'||hoursStatus(s).open)).sort((a,b)=>userPosition?score(b)-score(a):a.shelter_name.localeCompare(b.shelter_name));
   if(map){markers.forEach(m=>map.removeLayer(m));markers=[];}
