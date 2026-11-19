@@ -319,7 +319,7 @@ if (!isset($_POST['mark_notifications_read'])) {
 
 if (isset($_POST['mark_notifications_read'])) {
     mysqli_query($conn, "UPDATE client_notifications SET is_read=1 WHERE user_id='$user_id'");
-    header("Location: ".$_SERVER['PHP_SELF']."#notifications");
+    header("Location: client_dashboard.php");
     exit();
 }
 
@@ -1082,6 +1082,35 @@ html { scroll-padding-top: 100px; }
   .compact-nav.active .nav-more-logout { color: var(--danger); }
 }
 .shelter-client-hours{display:inline-block;font-weight:800;border-radius:999px;padding:5px 10px}.shelter-client-hours.is-open{background:var(--badge-success-bg);color:var(--badge-success-text)}.shelter-client-hours.is-closed{background:var(--badge-danger-bg);color:var(--badge-danger-text)}.shelter-week-details{margin:8px 0;color:var(--text-muted);font-size:.87rem}.shelter-week-details summary{cursor:pointer;font-weight:800;color:var(--secondary)}.shelter-week-details>div{padding:8px 12px;background:var(--bg-main);border-radius:10px;margin-top:6px}
+
+/* Compact, Facebook-style navbar notification dropdown. */
+.notification-menu{position:relative;display:flex;align-items:center}
+.notification-trigger{position:relative}
+.notification-count{top:-6px;right:-6px;pointer-events:none}
+.notification-panel{position:absolute;top:calc(100% + 15px);right:-70px;width:min(390px,calc(100vw - 28px));max-height:min(570px,calc(100dvh - 105px));overflow:hidden;background:var(--bg-surface);border:1px solid var(--border-color);border-radius:20px;box-shadow:0 20px 60px rgba(15,23,42,.20);z-index:1800;color:var(--text-dark)}
+.notification-panel[hidden]{display:none!important}
+.notification-panel-header{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:20px 18px 14px;border-bottom:1px solid var(--border-color)}
+.notification-panel-header h3{margin:0;font-size:1.25rem;font-weight:900}
+.notification-panel-header p{margin:3px 0 0;font-size:.78rem;color:var(--text-muted)}
+.notification-read-form{margin:0;flex-shrink:0}
+.notification-read-form button{border:0;background:var(--bg-main);color:var(--secondary);font:800 .72rem 'Nunito',sans-serif;border-radius:999px;padding:9px 10px;cursor:pointer}
+.notification-read-form button:hover{background:var(--primary-light)}
+.notification-panel-list{max-height:min(480px,calc(100dvh - 185px));overflow-y:auto;overscroll-behavior:contain}
+.notification-entry{display:flex;align-items:flex-start;gap:12px;padding:15px 16px;border-bottom:1px solid var(--border-color)}
+.notification-entry:last-child{border-bottom:0}
+.notification-entry.unread{background:color-mix(in srgb,var(--primary-light) 35%,var(--bg-surface))}
+.notification-entry-icon{flex:0 0 38px;width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--primary);background:var(--primary-light)}
+.notification-entry-body{min-width:0;flex:1}
+.notification-entry-body strong{display:block;font-size:.87rem;line-height:1.35;font-weight:900;overflow-wrap:anywhere}
+.notification-entry-body p{margin:4px 0 6px;font-size:.83rem;line-height:1.45;color:var(--text-muted);overflow-wrap:anywhere}
+.notification-entry-body time{font-size:.72rem;color:var(--text-light);font-weight:700}
+.notification-unread-dot{width:8px;height:8px;flex:0 0 8px;margin-top:12px;background:var(--secondary);border-radius:50%}
+.notification-panel-empty{text-align:center;padding:38px 20px;color:var(--text-muted)}
+.notification-panel-empty i{display:block;font-size:32px;color:var(--primary);margin-bottom:12px}
+.notification-panel-empty strong{display:block;color:var(--text-dark)}
+.notification-panel-empty p{margin:6px 0 0;font-size:.85rem}
+@media(max-width:992px){.compact-nav.active .nav-more-menu{overflow:visible}.notification-panel{right:0}}
+@media(max-width:480px){.notification-panel{position:fixed;top:75px;right:12px;left:12px;width:auto;max-height:calc(100dvh - 90px)}}
 </style>
 <style>
 .shelter-finder-controls{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px}.shelter-finder-controls input,.shelter-finder-controls select,.shelter-review-panel select,.shelter-review-panel textarea{padding:13px 15px;border-radius:12px;border:1px solid var(--border-color);background:var(--bg-surface);color:var(--text-dark);font:inherit}.shelter-finder-controls input{flex:2;min-width:200px}.shelter-finder-controls select{flex:1;min-width:175px}.shelter-hint{color:var(--text-muted);font-size:.9rem}.shelter-finder-layout{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(310px,1fr);gap:20px}.shelter-finder-layout #shelterFinderMap{height:550px;border-radius:20px;border:1px solid var(--border-color);z-index:1}.shelter-finder-list{max-height:550px;overflow-y:auto;display:flex;flex-direction:column;gap:12px}.shelter-finder-card,.shelter-review-panel{background:var(--bg-surface);border:1px solid var(--border-color);padding:18px;border-radius:16px;box-shadow:var(--shadow-sm)}.shelter-finder-card h3{margin:0 0 6px;font-size:1.08rem}.shelter-finder-card p{margin:5px 0;color:var(--text-muted);font-size:.88rem}.shelter-card-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.shelter-card-actions button,.shelter-card-actions a{font:700 .8rem Nunito,sans-serif;padding:9px 12px;border-radius:9px;background:var(--primary-light);color:var(--text-dark);border:0;cursor:pointer}.shelter-client-notice{padding:14px;border-radius:12px;background:var(--primary-light);margin:14px 0}.shelter-review-panel{margin-top:22px}.shelter-review-panel[hidden]{display:none}.shelter-review-panel form{display:grid;gap:12px}.shelter-review-panel label{display:grid;gap:7px;font-weight:700}@media(max-width:850px){.shelter-finder-layout{grid-template-columns:1fr}.shelter-finder-layout #shelterFinderMap{height:370px}.shelter-finder-list{max-height:none}}
@@ -1118,7 +1147,7 @@ html { scroll-padding-top: 100px; }
             <div class="nav-more-menu" id="navMoreMenu">
                 <a href="#lost_found" onclick="closeDashboardMenu()"><i class="fas fa-magnifying-glass"></i> Lost &amp; Found</a>
                 <?php if($has_approved_application): ?><a href="#smart_monitor" onclick="closeDashboardMenu()"><i class="fas fa-heart-pulse"></i> My Pets</a><?php endif; ?>
-                <a href="#notifications" onclick="closeDashboardMenu()"><i class="fas fa-bell"></i> Alerts</a>
+                <button type="button" onclick="closeDashboardMenu();openNotificationPanel()"><i class="fas fa-bell"></i> Alerts</button>
                 <a href="#appointments" onclick="closeDashboardMenu()"><i class="fas fa-calendar-check"></i> Visits</a>
                 <a href="#pet_care" onclick="closeDashboardMenu()"><i class="fas fa-hand-holding-heart"></i> Pet Care</a>
                 <a href="#report_stray" onclick="closeDashboardMenu()"><i class="fas fa-paw"></i> Report Stray</a>
@@ -1140,12 +1169,46 @@ html { scroll-padding-top: 100px; }
             <i class="fas fa-moon"></i>
         </button>
         
+        <div class="notification-menu" id="notificationMenu">
+            <button type="button" class="icon-btn notification-trigger" id="notificationTrigger" onclick="toggleNotificationPanel(event)" aria-label="Notifications" title="Notifications" aria-haspopup="true" aria-expanded="false" aria-controls="notificationPanel">
+                <i class="fas fa-bell"></i>
+                <?php if ($unread_notifications > 0): ?>
+                    <span class="nav-badge notification-count"><?php echo $unread_notifications > 9 ? '9+' : $unread_notifications; ?></span>
+                <?php endif; ?>
+            </button>
+            <div class="notification-panel" id="notificationPanel" role="region" aria-label="Recent notifications" hidden>
+                <div class="notification-panel-header">
+                    <div><h3>Notifications</h3><p>Your latest updates</p></div>
+                    <?php if ($unread_notifications > 0): ?>
+                    <form method="POST" class="notification-read-form">
+                        <button type="submit" name="mark_notifications_read" value="1" title="Mark all as read"><i class="fas fa-check-double"></i> Mark all read</button>
+                    </form>
+                    <?php endif; ?>
+                </div>
+                <div class="notification-panel-list">
+                    <?php if (count($notif_rows) > 0): ?>
+                        <?php foreach ($notif_rows as $notice): ?>
+                        <div class="notification-entry <?php echo ((int)$notice['is_read'] === 0) ? 'unread' : ''; ?>">
+                            <div class="notification-entry-icon"><i class="fas fa-<?php echo ($notice['type'] === 'appointment') ? 'calendar-check' : 'bell'; ?>"></i></div>
+                            <div class="notification-entry-body">
+                                <strong><?php echo htmlspecialchars($notice['title'], ENT_QUOTES, 'UTF-8'); ?></strong>
+                                <p><?php echo htmlspecialchars($notice['message'], ENT_QUOTES, 'UTF-8'); ?></p>
+                                <time><?php echo date('M d, Y · g:i A', strtotime($notice['created_at'])); ?></time>
+                            </div>
+                            <?php if ((int)$notice['is_read'] === 0): ?><span class="notification-unread-dot" aria-label="Unread"></span><?php endif; ?>
+                        </div>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <div class="notification-panel-empty"><i class="far fa-bell"></i><strong>You're all caught up!</strong><p>No notifications yet.</p></div>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
+
         <a href="#profile" class="user-profile-btn" id="tour-profile-btn" title="My Profile">
             <div class="avatar-small"><?php echo $initials; ?></div>
             <span>Profile</span>
-            <?php if($unread_notifications > 0): ?>
-                <span class="nav-badge" style="top: -6px; right: -6px;"><?php echo $unread_notifications; ?></span>
-            <?php endif; ?>
+
         </a>
         
         <a href="?logout=true" class="icon-btn logout-btn" title="Logout">
@@ -1753,54 +1816,6 @@ html { scroll-padding-top: 100px; }
     </section>
 
     
-    <section id="notifications" class="bg-white">
-        <div class="container">
-            <div style="display:flex; justify-content:space-between; align-items:center; gap:20px; flex-wrap:wrap; margin-bottom:35px;">
-                <div>
-                    <h2 class="section-title" style="margin-bottom: 5px;"><i class="fas fa-bell" style="color:var(--primary);"></i> Notification Center</h2>
-                    <p style="color:var(--text-muted); margin:0;">Stay updated about your applications, appointments, and rescue reports.</p>
-                </div>
-                <form method="POST">
-                    <button type="submit" name="mark_notifications_read" class="btn btn-outline" style="background: var(--bg-main);">
-                        <i class="fas fa-check-double"></i> Mark All as Read
-                    </button>
-                </form>
-            </div>
-
-            <?php if($client_feature_msg): ?>
-                <div class="alert alert-success">
-                    <i class="fas fa-check-circle"></i> <?php echo htmlspecialchars($client_feature_msg); ?>
-                </div>
-            <?php endif; ?>
-
-            <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap: 20px;">
-                <?php if(count($notif_rows)>0): ?>
-                    <?php foreach($notif_rows as $notice): ?>
-                        <div class="form-container" style="padding:20px; border-left:5px solid <?php echo ((int)$notice['is_read']===0)?'var(--primary)':'var(--border-color)'; ?>;">
-                            <div style="display:flex; gap:15px; align-items:flex-start;">
-                                <div style="width:45px; height:45px; border-radius:50%; background:rgba(245, 158, 11, 0.1); color:var(--primary); display:flex; align-items:center; justify-content:center; font-size: 1.2rem; flex-shrink: 0;">
-                                    <i class="fas fa-<?php echo $notice['type']==='appointment'?'calendar-check':'bell'; ?>"></i>
-                                </div>
-                                <div style="flex:1;">
-                                    <h3 style="margin:0 0 6px; font-size:1.1rem; color:var(--text-dark); font-weight: 800; border:none; padding:0;"><?php echo htmlspecialchars($notice['title']); ?></h3>
-                                    <p style="margin:0 0 10px 0; color:var(--text-muted); font-size:0.95rem; line-height:1.5;"><?php echo htmlspecialchars($notice['message']); ?></p>
-                                    <small style="color:var(--text-light); font-weight: 700;"><i class="far fa-clock"></i> <?php echo date('M d, Y g:i A',strtotime($notice['created_at'])); ?></small>
-                                </div>
-                            </div>
-                        </div>
-                    <?php endforeach; ?>
-                <?php else: ?>
-                    <div class="form-container text-center" style="grid-column:1/-1; padding:60px; border: 1px dashed var(--border-color);">
-                        <i class="far fa-bell" style="font-size:50px; color:var(--border-color); margin-bottom: 15px;"></i>
-                        <h3 style="border:none; padding:0; margin:0 0 5px 0; justify-content:center; font-size: 1.4rem;">No notifications yet</h3>
-                        <p style="color:var(--text-muted); margin:0;">Updates from your adoption journey will appear here.</p>
-                    </div>
-                <?php endif; ?>
-            </div>
-        </div>
-    </section>
-
-    
     <section id="appointments" class="bg-light">
         <div class="container">
             <div class="text-center">
@@ -2398,7 +2413,7 @@ html { scroll-padding-top: 100px; }
             {element: '#community_feed', title: '💬 Community Feed', intro: 'Share updates, photos, or community posts. You can also see posts from other members.'},
             {element: '#lost_found', title: '🔎 Lost & Found', intro: 'Report a missing pet and read community alerts. Include a clear photo, description, and last known location when possible.'},
             {element: '#appointments', title: '📅 Schedule a Visit', intro: 'Request a shelter visit or meet-and-greet for a pet. Your appointment remains pending until the shelter confirms it.'},
-            {element: '#notifications', title: '🔔 Notifications', intro: 'Check this section for updates on your applications and appointment requests.'},
+            {element: '#notificationTrigger', title: '🔔 Notifications', intro: 'Tap the bell to view your latest adoption, appointment, and rescue updates.'},
             {element: '#profile', title: '👤 Your Profile', intro: 'Add your profile photo and contact information, then review your application history and account details.'},
             {element: '#donation-section', title: '🤝 Donations & Support', intro: 'Learn how to support shelter animals and explore the donation or sponsorship options available.'},
             {element: '#report_stray', title: '🚑 Report a Stray', intro: 'Submit the animal’s location, description, and a photo so the shelter can review your report. If location sharing is allowed, you can use the map or GPS tools.'},
@@ -3192,6 +3207,39 @@ document.addEventListener('keydown',function(e){if(e.key==='Escape')closeLostPet
  document.getElementById('lost-last-seen')?.addEventListener('input',()=>{document.getElementById('lost-lat').value='';document.getElementById('lost-lon').value='';});
  render();setInterval(render,60000);setTimeout(()=>map&&map.invalidateSize(),300);
 })();
+</script>
+<script>
+function closeNotificationPanel(){
+    const menu=document.getElementById('notificationMenu');
+    const panel=document.getElementById('notificationPanel');
+    const trigger=document.getElementById('notificationTrigger');
+    if(!menu||!panel||!trigger)return;
+    panel.hidden=true;
+    menu.classList.remove('open');
+    trigger.setAttribute('aria-expanded','false');
+}
+function toggleNotificationPanel(event){
+    if(event)event.stopPropagation();
+    const panel=document.getElementById('notificationPanel');
+    const trigger=document.getElementById('notificationTrigger');
+    if(!panel||!trigger)return;
+    const opening=panel.hidden;
+    panel.hidden=!opening;
+    trigger.setAttribute('aria-expanded',opening?'true':'false');
+}
+function openNotificationPanel(){
+    const panel=document.getElementById('notificationPanel');
+    const trigger=document.getElementById('notificationTrigger');
+    if(!panel||!trigger)return;
+    panel.hidden=false;
+    trigger.setAttribute('aria-expanded','true');
+    trigger.focus();
+}
+document.addEventListener('click',function(event){
+    const menu=document.getElementById('notificationMenu');
+    if(menu&&!menu.contains(event.target))closeNotificationPanel();
+});
+document.addEventListener('keydown',function(event){if(event.key==='Escape')closeNotificationPanel();});
 </script>
 </body> 
 </html>
