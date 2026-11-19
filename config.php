@@ -1,3 +1,4 @@
+
 <?php
 $host = getenv('MYSQLHOST') ?: getenv('MYSQL_HOST');
 $user = getenv('MYSQLUSER') ?: getenv('MYSQL_USER');
@@ -18,13 +19,13 @@ if (
 ) {
     error_log("Railway MySQL environment variables are missing.");
     http_response_code(500);
-    die("Database configuration error. Please check Railway Variables.");
+    exit("Database configuration error. Please check Railway Variables.");
 }
 
 try {
     mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
-    $conn = mysqli_connect(
+    $conn = new mysqli(
         $host,
         $user,
         $password,
@@ -32,11 +33,10 @@ try {
         (int)$port
     );
 
-    mysqli_set_charset($conn, "utf8mb4");
+    $conn->set_charset("utf8mb4");
 
 } catch (mysqli_sql_exception $e) {
     error_log("MySQL Connection Error: " . $e->getMessage());
     http_response_code(500);
-    die("Database connection failed. Please check Railway MySQL settings.");
+    exit("Database connection failed. Please check Railway MySQL settings.");
 }
-?>
