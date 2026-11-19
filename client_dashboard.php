@@ -1643,16 +1643,6 @@ html { scroll-padding-top: 100px; }
 #rescueMapModalSlot .leaflet-routing-container{max-height:240px;overflow:auto;max-width:310px;font-size:12px}
 @media(max-width:850px){#rescueMapModalSlot .shelter-finder-layout{grid-template-columns:1fr}#rescueMapModalSlot #shelterFinderMap{height:48vh}#rescueMapModalSlot .shelter-finder-list{max-height:200px}}
 </style>
-<section id="shelter_finder" class="bg-light shelter-finder-section">
- <div class="container">
-  <div class="text-center"><h2 class="section-title"><i class="fas fa-map-location-dot" style="color:var(--primary)"></i> Verified Shelter Finder</h2><p class="section-subtitle">Find admin-approved animal shelters across the Philippines. Nearby recommendations are ranked by distance, rescue availability and community ratings.</p></div>
-  <?php if ($shelterClientNotice !== ''): ?><div class="shelter-client-notice"><?php echo htmlspecialchars($shelterClientNotice,ENT_QUOTES,'UTF-8'); ?></div><?php endif; ?>
-  <div class="shelter-finder-controls"><input type="search" id="shelterSearch" placeholder="Search shelter, city, province or animal type..." aria-label="Search shelters"><select id="shelterFilter" aria-label="Shelter filter"><option value="all">All verified shelters</option><option value="rescue">Rescue available</option><option value="slots">With available slots</option><option value="open">Open now</option></select><button type="button" class="btn btn-primary" id="locateShelterBtn"><i class="fas fa-location-crosshairs"></i> Find Near Me</button></div>
-  <p id="shelterLocationStatus" class="shelter-hint">Allow location access to rank shelters by distance. Shelters without GPS coordinates will still appear in the list.</p>
-  <p class="shelter-hint">Select a shelter below to view it on the shared map beside the Rescue Report.</p><div class="shelter-finder-list" id="shelterFinderList" aria-live="polite"></div>
-  <div class="shelter-review-panel" id="shelterReviewPanel" hidden><h3 id="shelterReviewTitle">Rate Shelter</h3><form method="post" action="client_dashboard.php#shelter_finder"><input type="hidden" name="submit_shelter_rating" value="1"><input type="hidden" name="shelter_csrf" value="<?php echo htmlspecialchars($_SESSION['shelter_client_csrf'],ENT_QUOTES,'UTF-8'); ?>"><input type="hidden" name="shelter_id" id="reviewShelterId"><label>Rating <select name="rating" required><option value="5">★★★★★ — 5</option><option value="4">★★★★ — 4</option><option value="3">★★★ — 3</option><option value="2">★★ — 2</option><option value="1">★ — 1</option></select></label><label>Review (optional)<textarea name="review" maxlength="1500" rows="3" placeholder="Share your experience with this shelter"></textarea></label><div style="display:flex;gap:12px"><button type="submit" class="btn btn-primary">Save Rating</button><button type="button" class="btn" onclick="document.getElementById('shelterReviewPanel').hidden=true">Cancel</button></div></form></div>
- </div>
-</section>
 
     <section id="ai_match" class="ai-section">
         <div class="container" style="position: relative; z-index: 2;">
@@ -2108,6 +2098,15 @@ html { scroll-padding-top: 100px; }
     #report_stray .rescue-assist-card{align-self:start;position:sticky;top:95px}
     #shelter_finder .shelter-finder-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:16px;max-height:none}
     @media(max-width:850px){#report_stray .rescue-assist-card{position:static}#report_stray #shelterFinderMap{height:420px}}
+    #report_stray .shelter-integrated-panel{border-top:1px solid var(--border-color);padding-top:18px;min-width:0}
+    #report_stray .shelter-integrated-panel>h3{font-size:1.1rem;margin:0 0 8px}
+    #report_stray .shelter-finder-controls{display:flex;flex-wrap:wrap;gap:9px;margin:14px 0}
+    #report_stray .shelter-finder-controls input,#report_stray .shelter-finder-controls select{flex:1 1 180px;min-width:0;width:auto;margin:0}
+    #report_stray .shelter-finder-controls button{flex:1 1 150px}
+    #report_stray .shelter-finder-list{display:grid;grid-template-columns:1fr;gap:12px;max-height:390px;overflow-y:auto;padding:2px}
+    #report_stray .shelter-finder-card{min-width:0;overflow-wrap:anywhere}
+    #report_stray .shelter-review-panel{margin-top:14px}
+    #report_stray #shelter_finder{scroll-margin-top:105px}
     #report_stray .rescue-photo-input{padding:14px;background:var(--bg-main);border:2px dashed var(--border-color);margin-top:8px}
     @media(max-width:850px){#report_stray .rescue-workspace{grid-template-columns:1fr}#report_stray .rescue-assist-card{gap:16px}}
     </style>
@@ -2145,7 +2144,7 @@ html { scroll-padding-top: 100px; }
                         <button type="submit" name="submit_stray" class="btn btn-primary" style="width:100%">Submit Rescue Request <i class="fas fa-paper-plane"></i></button>
                     </form>
                 </div>
-                <aside class="rescue-assist-card" aria-label="Rescue report assistance">
+                <aside id="shelter_finder" class="rescue-assist-card" aria-label="Rescue report assistance and verified shelters">
                     <div class="rescue-assist-heading">
                         <div class="rescue-assist-icon"><i class="fas fa-map-marked-alt"></i></div>
                         <div><h3>Location &amp; Rescue Guide</h3></div>
@@ -2154,6 +2153,12 @@ html { scroll-padding-top: 100px; }
                     <div id="smartMapModeInfo" class="shelter-hint" role="status" aria-live="polite">Click the map to pin the rescue location. Tap the pin to see the route.</div>
                     <div id="rescueRouteStatus" role="status" aria-live="polite" class="shelter-hint">After selecting a location, the nearest verified rescue-ready shelter route will appear here.</div>
                     <div id="rescuePinNavigation" class="rescue-pin-navigation" hidden style="margin-top:10px"></div>
+                    <div class="shelter-integrated-panel"><h3><i class="fas fa-shield-heart" style="color:var(--primary)"></i> Verified Shelter Finder</h3><p class="shelter-hint">Search verified shelters, view their map pins, request directions or leave a review.</p><?php if ($shelterClientNotice !== ''): ?><div class="shelter-client-notice"><?php echo htmlspecialchars($shelterClientNotice,ENT_QUOTES,'UTF-8'); ?></div><?php endif; ?>
+  <div class="shelter-finder-controls"><input type="search" id="shelterSearch" placeholder="Search shelter, city, province or animal type..." aria-label="Search shelters"><select id="shelterFilter" aria-label="Shelter filter"><option value="all">All verified shelters</option><option value="rescue">Rescue available</option><option value="slots">With available slots</option><option value="open">Open now</option></select><button type="button" class="btn btn-primary" id="locateShelterBtn"><i class="fas fa-location-crosshairs"></i> Find Near Me</button></div>
+  <p id="shelterLocationStatus" class="shelter-hint">Allow location access to rank shelters by distance. Shelters without GPS coordinates will still appear in the list.</p>
+  <p class="shelter-hint">Select a shelter below to view it on the shared map beside the Rescue Report.</p><div class="shelter-finder-list" id="shelterFinderList" aria-live="polite"></div>
+  <div class="shelter-review-panel" id="shelterReviewPanel" hidden><h3 id="shelterReviewTitle">Rate Shelter</h3><form method="post" action="client_dashboard.php#shelter_finder"><input type="hidden" name="submit_shelter_rating" value="1"><input type="hidden" name="shelter_csrf" value="<?php echo htmlspecialchars($_SESSION['shelter_client_csrf'],ENT_QUOTES,'UTF-8'); ?>"><input type="hidden" name="shelter_id" id="reviewShelterId"><label>Rating <select name="rating" required><option value="5">★★★★★ — 5</option><option value="4">★★★★ — 4</option><option value="3">★★★ — 3</option><option value="2">★★ — 2</option><option value="1">★ — 1</option></select></label><label>Review (optional)<textarea name="review" maxlength="1500" rows="3" placeholder="Share your experience with this shelter"></textarea></label><div style="display:flex;gap:12px"><button type="submit" class="btn btn-primary">Save Rating</button><button type="button" class="btn" onclick="document.getElementById('shelterReviewPanel').hidden=true">Cancel</button></div></form></div>
+</div>
                     <div class="rescue-assist-footer"><i class="fas fa-circle-info" style="margin-right:7px"></i>Confirm the address in the form before submitting. The map shows estimated routes, not live traffic.</div>
                 </aside>
             </div>
