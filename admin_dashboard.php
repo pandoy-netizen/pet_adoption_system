@@ -2,9 +2,9 @@
 session_start();
 ob_start();
 
-/* =========================
-   LOGOUT HANDLER
-========================= */
+
+
+
 if (
     isset($_GET['action']) && 
     $_GET['action'] === 'logout'
@@ -26,22 +26,22 @@ if (
     exit;
 }
 
-/* =========================
-   TAB SYSTEM
-========================= */
+
+
+
 $activeTab = isset($_GET['tab']) 
     ? $_GET['tab'] 
     : 'dashboard';
 
-/* =========================
-   DATABASE CONNECTION & SETUP
-   Uses Railway environment variables via config/db.php
-========================= */
+
+
+
+
 require_once __DIR__ . '/config/db.php';
 
-/* =========================
-   CREATE TABLES IF NEEDED
-========================= */
+
+
+
 
 mysqli_query(
     $conn, 
@@ -141,15 +141,15 @@ mysqli_query(
     )"
 );
 
-/* =========================================================
-   NEW SHELTER MANAGEMENT FEATURES
-   - Pet medical / vaccination records
-   - Rescue priority and assignment
-   - Adoption appointments
-   - Foster care management
-   - User notifications
-   - Pet favorites foundation
-========================================================= */
+
+
+
+
+
+
+
+
+
 
 mysqli_query($conn, "CREATE TABLE IF NOT EXISTS pet_medical_records (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -207,7 +207,7 @@ mysqli_query($conn, "CREATE TABLE IF NOT EXISTS pet_favorites (
     UNIQUE KEY unique_favorite (user_id, pet_id)
 )");
 
-/* Add rescue priority / assignment columns only when they do not exist. */
+
 $check_priority = mysqli_query($conn, "SHOW COLUMNS FROM rescue_reports LIKE 'priority'");
 if ($check_priority && mysqli_num_rows($check_priority) == 0) {
     mysqli_query($conn, "ALTER TABLE rescue_reports ADD COLUMN priority VARCHAR(20) DEFAULT 'Medium'");
@@ -218,11 +218,11 @@ if ($check_assigned && mysqli_num_rows($check_assigned) == 0) {
     mysqli_query($conn, "ALTER TABLE rescue_reports ADD COLUMN assigned_to VARCHAR(100) DEFAULT ''");
 }
 
-/* =========================================================
-   END NEW SHELTER MANAGEMENT FEATURES
-========================================================= */
 
-/* Ensure every table's id column is AUTO_INCREMENT */
+
+
+
+
 $tables_to_fix = [
     'users', 'pets', 'adoption_applications', 'rescue_reports',
     'pet_history', 'community_posts', 'staff_attendance',
@@ -245,13 +245,13 @@ foreach ($tables_to_fix as $tbl) {
     }
 }
 
-/* =========================================================
-   IMPORTANT DATABASE FIX
-   Existing pets table may not have activity_level/vaccinated.
-   We check each column separately before adding it.
-========================================================= */
 
-/* Check activity_level */
+
+
+
+
+
+
 $check_activity = mysqli_query(
     $conn, 
     "SHOW COLUMNS FROM pets LIKE 'activity_level'"
@@ -265,7 +265,7 @@ if ($check_activity && mysqli_num_rows($check_activity) == 0) {
     );
 }
 
-/* Check vaccinated */
+
 $check_vaccine = mysqli_query(
     $conn, 
     "SHOW COLUMNS FROM pets LIKE 'vaccinated'"
@@ -279,7 +279,7 @@ if ($check_vaccine && mysqli_num_rows($check_vaccine) == 0) {
     );
 }
 
-/* Check temperament */
+
 $check_temperament = mysqli_query(
     $conn, 
     "SHOW COLUMNS FROM pets LIKE 'temperament'"
@@ -293,7 +293,7 @@ if ($check_temperament && mysqli_num_rows($check_temperament) == 0) {
     );
 }
 
-/* Check size */
+
 $check_size = mysqli_query(
     $conn, 
     "SHOW COLUMNS FROM pets LIKE 'size'"
@@ -307,7 +307,7 @@ if ($check_size && mysqli_num_rows($check_size) == 0) {
     );
 }
 
-/* Check species */
+
 $check_species = mysqli_query(
     $conn, 
     "SHOW COLUMNS FROM pets LIKE 'species'"
@@ -321,7 +321,7 @@ if ($check_species && mysqli_num_rows($check_species) == 0) {
     );
 }
 
-/* Check breed */
+
 $check_breed = mysqli_query(
     $conn, 
     "SHOW COLUMNS FROM pets LIKE 'breed'"
@@ -335,7 +335,7 @@ if ($check_breed && mysqli_num_rows($check_breed) == 0) {
     );
 }
 
-/* Check gender */
+
 $check_gender = mysqli_query(
     $conn, 
     "SHOW COLUMNS FROM pets LIKE 'gender'"
@@ -349,7 +349,7 @@ if ($check_gender && mysqli_num_rows($check_gender) == 0) {
     );
 }
 
-/* Check description */
+
 $check_description = mysqli_query(
     $conn, 
     "SHOW COLUMNS FROM pets LIKE 'description'"
@@ -363,7 +363,7 @@ if ($check_description && mysqli_num_rows($check_description) == 0) {
     );
 }
 
-/* Check image */
+
 $check_image = mysqli_query(
     $conn, 
     "SHOW COLUMNS FROM pets LIKE 'image'"
@@ -377,7 +377,7 @@ if ($check_image && mysqli_num_rows($check_image) == 0) {
     );
 }
 
-/* Check status */
+
 $check_status = mysqli_query(
     $conn, 
     "SHOW COLUMNS FROM pets LIKE 'status'"
@@ -400,9 +400,9 @@ try {
     error_log('Pet age unit migration: ' . $e->getMessage());
 }
 
-/* =========================
-   USERS NAME FIELD CHECK
-========================= */
+
+
+
 $user_col_check = mysqli_query(
     $conn, 
     "SHOW COLUMNS FROM users LIKE 'name'"
@@ -423,9 +423,9 @@ if ($user_col_check && mysqli_num_rows($user_col_check) > 0) {
     }
 }
 
-/* =========================
-   STAFF DEFAULT DATA
-========================= */
+
+
+
 $check_staff = mysqli_query(
     $conn, 
     "SELECT COUNT(*) as count FROM staff_attendance"
@@ -446,9 +446,9 @@ if ($check_staff) {
     }
 }
 
-/* =========================
-   HANDLE POST ACTIONS
-========================= */
+
+
+
 
 
 foreach (['profile_photo' => 'VARCHAR(255) DEFAULT NULL', 'phone' => 'VARCHAR(30) DEFAULT NULL', 'address' => 'VARCHAR(255) DEFAULT NULL', 'bio' => 'TEXT NULL'] as $column => $definition) {
@@ -557,7 +557,7 @@ $adminPhoto = trim((string)($adminProfile['profile_photo'] ?? ''));
 if ($adminPhoto && !preg_match('~^uploads/[a-zA-Z0-9_./-]+$~', $adminPhoto)) $adminPhoto = '';
 $adminEscape = static function ($value) { return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8'); };
 
-// Additive migration: existing shelter records and tables are preserved.
+
 try {
     $hoursColumn = $conn->query("SHOW COLUMNS FROM shelters LIKE 'opening_hours'");
     if ($hoursColumn && $hoursColumn->num_rows === 0) {
@@ -600,7 +600,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['shelter_action'])) {
                 if (!is_array($submittedServices)) throw new RuntimeException('Invalid shelter services.');
                 $submittedServices = array_values(array_unique(array_map('strval', $submittedServices)));
                 if (!$submittedServices || count($submittedServices) > count($descriptionOptions) || array_diff($submittedServices, $descriptionOptions)) throw new RuntimeException('Please select at least one valid shelter service.');
-                // Keep the existing description column and previously saved records compatible.
+                
                 $description = implode(', ', $submittedServices);
                 $days = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
                 $openingHours = [];
@@ -642,7 +642,7 @@ try {
 } catch (Throwable $e) { error_log('Shelter admin list: '.$e->getMessage()); $shelterAdminNotice = 'Shelter tables could not be loaded.'; }
 
 
-/* USER ACTIONS (ADD, EDIT, DELETE) */
+
 
 if (isset($_POST['add_user'])) {
     
@@ -742,7 +742,7 @@ if (isset($_POST['delete_user'])) {
     exit;
 }
 
-/* POST ACTIONS */
+
 
 if (isset($_POST['delete_post'])) {
 
@@ -778,9 +778,9 @@ if (isset($_POST['update_staff'])) {
     exit;
 }
 
-/* =========================
-   RESCUE REPORT ACTIONS
-========================= */
+
+
+
 
 if (isset($_POST['update_report'])) {
 
@@ -868,9 +868,9 @@ if (isset($_POST['delete_report'])) {
     exit;
 }
 
-/* =========================
-   ADD PET
-========================= */
+
+
+
 if (isset($_POST['add_pet'])) {
 
     $name = mysqli_real_escape_string($conn, $_POST['pet_name']);
@@ -964,9 +964,9 @@ if (isset($_POST['add_pet'])) {
     exit;
 }
 
-/* =========================
-   EDIT PET
-========================= */
+
+
+
 if (isset($_POST['edit_pet'])) {
 
     $id = intval($_POST['edit_pet_id']);
@@ -1060,28 +1060,28 @@ if (isset($_POST['edit_pet'])) {
     exit;
 }
 
-/* =========================
-   DELETE PET
-========================= */
+
+
+
 if (isset($_POST['delete_pet'])) {
 
     $pet_id = intval($_POST['pet_id']);
 
-    /* Delete adoption applications first */
+    
     mysqli_query(
         $conn, 
         "DELETE FROM adoption_applications
          WHERE pet_id = $pet_id"
     );
 
-    /* Delete pet history */
+    
     mysqli_query(
         $conn, 
         "DELETE FROM pet_history
          WHERE pet_id = $pet_id"
     );
 
-    /* Delete pet */
+    
     mysqli_query(
         $conn, 
         "DELETE FROM pets
@@ -1092,9 +1092,9 @@ if (isset($_POST['delete_pet'])) {
     exit;
 }
 
-/* =========================
-   ADOPTION ACTION
-========================= */
+
+
+
 if (isset($_POST['action_adoption'])) {
 
     $adopt_id = intval($_POST['adoption_id']);
@@ -1112,7 +1112,7 @@ if (isset($_POST['action_adoption'])) {
          WHERE id=$adopt_id"
     );
 
-    /* Notify the applicant about the decision. */
+    
     $applicant_query = mysqli_query(
         $conn,
         "SELECT user_id FROM adoption_applications WHERE id=$adopt_id LIMIT 1"
@@ -1158,9 +1158,9 @@ if (isset($_POST['action_adoption'])) {
     exit;
 }
 
-/* =========================================================
-   NEW FEATURE POST ACTIONS
-========================================================= */
+
+
+
 
 function createAdminNotification($conn, $user_id, $title, $message, $type = 'System') {
     $user_id = intval($user_id);
@@ -1177,7 +1177,7 @@ function createAdminNotification($conn, $user_id, $title, $message, $type = 'Sys
     }
 }
 
-/* Rescue priority / assignment */
+
 if (isset($_POST['update_rescue_priority'])) {
     $report_id = intval($_POST['priority_report_id']);
     $priority = mysqli_real_escape_string($conn, $_POST['rescue_priority']);
@@ -1207,7 +1207,7 @@ if (isset($_POST['update_rescue_priority'])) {
     exit;
 }
 
-/* Pet medical record */
+
 if (isset($_POST['add_medical_record'])) {
     $pet_id = intval($_POST['medical_pet_id']);
     $record_type = mysqli_real_escape_string($conn, $_POST['record_type']);
@@ -1247,7 +1247,7 @@ if (isset($_POST['delete_medical_record'])) {
     exit;
 }
 
-/* Adoption appointment status update (from clients) */
+
 if (isset($_POST['update_appointment'])) {
     $appointment_id = intval($_POST['appointment_id']);
     $appointment_status = mysqli_real_escape_string($conn, $_POST['appointment_status']);
@@ -1274,7 +1274,7 @@ if (isset($_POST['update_appointment'])) {
     exit;
 }
 
-/* Foster care status update */
+
 if (isset($_POST['update_foster'])) {
     $foster_id = intval($_POST['foster_id']);
     $foster_status = mysqli_real_escape_string($conn, $_POST['foster_status']);
@@ -1301,13 +1301,13 @@ if (isset($_POST['update_foster'])) {
     exit;
 }
 
-/* =========================================================
-   END NEW FEATURE POST ACTIONS
-========================================================= */
 
-/* =========================
-   FETCH STATS
-========================= */
+
+
+
+
+
+
 function getStatCount($conn, $query) {
 
     $res = mysqli_query($conn, $query);
@@ -1360,17 +1360,17 @@ $medical_records_count = getStatCount(
     "SELECT COUNT(*) as count FROM pet_medical_records"
 );
 
-/* =========================
-   RECENT USERS
-========================= */
+
+
+
 $recent_users_q = mysqli_query(
     $conn,
     "SELECT * FROM users ORDER BY id DESC LIMIT 4"
 );
 
-/* =========================
-   PET HISTORY
-========================= */
+
+
+
 $histories = [];
 
 $hq = mysqli_query(
@@ -1401,7 +1401,7 @@ if ($hq) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard - San Pedro Animal Shelter</title>
 
-    <!-- External Resources (Client Theme) -->
+    
     <link 
         href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&display=swap" 
         rel="stylesheet"
@@ -1411,14 +1411,14 @@ if ($hq) {
         href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     >
 
-    <!-- PRE-LOAD THEME SCRIPT TO PREVENT FLASH -->
+    
     <script>
         const storedTheme = localStorage.getItem('theme') || 'light';
         document.documentElement.setAttribute('data-theme', storedTheme);
     </script>
 
 <style>
-    /* ================= GLOBAL LIGHT/DARK THEME VARIABLES ================= */
+    
     :root {
         --primary: #F59E0B;
         --primary-hover: #D97706; 
@@ -1562,7 +1562,7 @@ if ($hq) {
         line-height: 1.6; 
     }
 
-    /* ================= UTILITY CLASSES ================= */
+    
     .bg-white { 
         background-color: var(--bg-surface); 
     }
@@ -1607,7 +1607,7 @@ if ($hq) {
         color: var(--badge-blue-text); 
     }
 
-    /* ================= BUTTONS ================= */
+    
     .btn { 
         display: inline-flex; 
         align-items: center; 
@@ -1681,7 +1681,7 @@ if ($hq) {
         background: var(--primary-light); 
     }
 
-    /* ================= FORMS & INPUTS ================= */
+    
     input, 
     select, 
     textarea { 
@@ -1727,7 +1727,7 @@ if ($hq) {
         gap: 15px; 
     }
 
-    /* ================= NAVIGATION & HEADER ================= */
+    
     .topbar { 
         background: #0F172A; 
         color: #F8FAFC; 
@@ -1895,7 +1895,7 @@ if ($hq) {
         font-size: 0.8rem; 
     }
 
-    /* Mobile Menu Setup */
+    
     .mobile-toggle { 
         display: none; 
         background: none; 
@@ -1965,7 +1965,7 @@ if ($hq) {
         to { opacity: 1; transform: translateY(0); } 
     }
 
-    /* ================= MAIN CONTAINER SYSTEM ================= */
+    
     .main-container { 
         display: none; 
     }
@@ -1980,7 +1980,7 @@ if ($hq) {
         to { opacity: 1; transform: translateY(0); } 
     }
 
-    /* ================= DASHBOARD & STATS ================= */
+    
     .stat-cards { 
         display: grid; 
         grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); 
@@ -2050,7 +2050,7 @@ if ($hq) {
         } 
     }
 
-    /* ================= PET CARDS / GENERAL CARDS ================= */
+    
     .grid { 
         display: grid; 
         grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); 
@@ -2145,7 +2145,7 @@ if ($hq) {
         box-shadow: var(--shadow-sm);
     }
 
-    /* ================= TABLES ================= */
+    
     .history-table { 
         width: 100%; 
         border-collapse: separate; 
@@ -2184,7 +2184,7 @@ if ($hq) {
         border-bottom: none; 
     }
 
-    /* ================= TABS ================= */
+    
     .profile-tabs { 
         display: flex; 
         gap: 10px; 
@@ -2212,7 +2212,7 @@ if ($hq) {
         box-shadow: var(--shadow-sm); 
     }
 
-    /* ================= TIMELINE ================= */
+    
     .timeline { 
         border-left: 2px dashed var(--border-color); 
         padding-left: 20px; 
@@ -2251,7 +2251,7 @@ if ($hq) {
         color: var(--text-dark); 
     }
 
-    /* ================= MODAL STYLES (Client Theme) ================= */
+    
     .sf-modal-overlay { 
         display: none; 
         position: fixed; 
@@ -2380,7 +2380,7 @@ if ($hq) {
 </style>
 
 <style>
-/* Shelter registration form: compact, aligned like the AI matching questionnaire */
+
 #admin-shelters .shelter-admin-panel{max-width:1260px;margin-left:auto;margin-right:auto;padding:clamp(18px,3vw,34px);border-radius:22px}
 #admin-shelters .shelter-form-grid{grid-template-columns:repeat(4,minmax(0,1fr));column-gap:18px;row-gap:23px;align-items:end}
 #admin-shelters .shelter-form-grid label{min-width:0;gap:9px;font-size:13px;font-weight:800;letter-spacing:.025em;text-transform:uppercase;color:var(--text-muted)}
@@ -2399,7 +2399,7 @@ if ($hq) {
 @media(max-width:520px){#admin-shelters .shelter-form-grid{grid-template-columns:1fr}#admin-shelters .shelter-admin-panel{padding:16px}}
 </style>
 <style>
-/* Shelter map: responsive workspace, readable pins, and compact controls */
+
 #admin-shelters .shelter-map-redesign{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(270px,.75fr);gap:16px;align-items:start;margin:24px 0}
 #admin-shelters .shelter-map-main,#admin-shelters .shelter-map-help{min-width:0;background:var(--bg-surface);border:1px solid var(--border-color);border-radius:18px;padding:14px;box-sizing:border-box}
 #admin-shelters .shelter-map-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}
@@ -2436,7 +2436,7 @@ body.shelter-map-expanded{overflow:hidden}
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
 <style>
-/* Compact accessible multi-select: same visual weight as verification status */
+
 .shelter-services-fieldset{border:0;padding:0;margin:10px 0 16px;min-width:0;background:transparent}
 .shelter-services-fieldset legend{font-size:.88rem;font-weight:800;color:var(--text-muted);padding:0;margin-bottom:9px;text-transform:uppercase;letter-spacing:.03em}
 .shelter-services-dropdown{position:relative;width:100%;min-width:0}
@@ -2543,6 +2543,146 @@ const obs=new MutationObserver(refresh);obs.observe(f,{attributes:true,subtree:t
 .member-profile-avatar img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%;display:block}
 @media(max-width:600px){.member-profile-avatar{width:34px!important;height:34px!important;min-width:34px}}
 </style>
+
+<style id="admin-compact-responsive-2026">
+
+*, *::before, *::after { box-sizing: border-box; }
+html { max-width: 100%; scroll-padding-top: 85px; }
+body { min-width: 0; max-width: 100%; }
+img, video, iframe, canvas { max-width: 100%; }
+.container, .main-container, .grid-layout, .admin-panel, .form-container,
+.shelter-admin-panel, .pet-card, .pet-card-content { min-width: 0; }
+input, select, textarea, button { font-family: inherit; max-width: 100%; }
+input, select, textarea { min-width: 0; }
+.pet-card-title, .pet-card-subtitle, .shelter-record-name,
+.shelter-record-muted, .admin-panel, .form-container { overflow-wrap: anywhere; }
+.shelter-admin-map, #adminShelterMap { max-width: 100%; }
+.table-responsive, .table-container { max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+@media (max-width: 850px) {
+  section { padding: 20px 0 30px; min-height: 0; }
+  .container { width: calc(100% - 28px); max-width: 100%; }
+  .header { padding: 10px 15px; min-height: 66px; gap: 12px; }
+  .logo { font-size: clamp(1.05rem, 4.5vw, 1.35rem); gap: 9px; min-width: 0; }
+  .logo .logo-icon { width: 36px; height: 36px; flex: 0 0 36px; font-size: 16px; }
+  .mobile-toggle { padding: 8px; min-width: 42px; min-height: 42px; flex-shrink: 0; }
+  .section-title { font-size: 1.4rem; margin-bottom: 5px; }
+  .section-subtitle { font-size: .85rem; line-height: 1.45; margin-bottom: 14px; }
+  .stat-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-bottom: 18px; }
+  .stat-card { padding: 14px 12px; min-height: 94px; border-radius: 14px; justify-content: space-between; }
+  .stat-card:hover, .pet-card:hover { transform: none; }
+  .stat-card div { font-size: .68rem; line-height: 1.3; letter-spacing: .01em; }
+  .stat-card h2 { font-size: clamp(1.5rem, 6vw, 2rem); margin-top: 8px; line-height: 1.05; }
+  .stat-card::after { width: 64px; height: 64px; right: -19px; top: -19px; }
+  .admin-insights, .grid-layout { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .admin-panel, .form-container { padding: 15px; border-radius: 14px; margin-bottom: 15px; }
+  .admin-panel h3, .form-container h3 { font-size: 1rem; margin-bottom: 12px; }
+  .admin-quicklinks { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .admin-quicklinks a { padding: 10px; font-size: .78rem; min-width: 0; }
+  .admin-tools { padding: 10px; gap: 8px; margin-bottom: 12px; }
+  .admin-tools input { width: 100%; max-width: 100%; }
+  .grid, .pet-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 12px; }
+  .pet-card { border-radius: 14px; }
+  .pet-card-img-wrap { height: 140px; }
+  .pet-card-content { padding: 12px; }
+  .pet-card-title { font-size: 1.05rem; }
+  .pet-card-subtitle { font-size: .78rem; margin-bottom: 9px; }
+  .pet-tags { gap: 5px; margin-bottom: 10px; }
+  .pet-tag { padding: 4px 7px; font-size: .68rem; }
+  .pet-card-status { top: 8px; right: 8px; }
+  .pet-card .btn { padding: 8px 10px !important; font-size: .78rem !important; }
+  .badge { font-size: .65rem; padding: 4px 7px; }
+  .history-table th, .history-table td { padding: 10px; font-size: .78rem; }
+  .profile-tabs { max-width: 100%; flex-wrap: wrap; gap: 5px; margin-bottom: 14px; }
+  .ptab { padding: 8px 12px; font-size: .8rem; }
+  .sf-modal-overlay { padding: 12px 0; }
+  .sf-modal-container { width: calc(100% - 20px); max-height: calc(100dvh - 24px); border-radius: 14px; }
+  .modal-header { padding: 15px 50px 15px 16px; }
+  .modal-body { padding: 14px !important; overflow-y: auto; }
+  .sf-modal-close { width: 34px; height: 34px; top: 12px; right: 12px; font-size: 18px; }
+  #admin-shelters .shelter-admin-panel { padding: 13px; border-radius: 14px; margin-bottom: 14px; }
+  #admin-shelters .shelter-registry-heading { gap: 10px; }
+  #admin-shelters .shelter-registry-heading h2 { font-size: 1.15rem; }
+  #admin-shelters .shelter-registry-heading p { font-size: .78rem; }
+  #admin-shelters .shelter-registry-heading > .btn { padding: 9px 12px; font-size: .8rem; }
+  #admin-shelters .shelter-map-layout, #admin-shelters .shelter-map-redesign { gap: 10px; margin: 12px 0; }
+  #admin-shelters .shelter-map-main, #admin-shelters .shelter-map-help { min-width: 0; padding: 12px; }
+  #admin-shelters #adminShelterMap { height: 280px; }
+  #admin-shelters .shelter-form-grid { row-gap: 12px; column-gap: 10px; }
+  #admin-shelters .shelter-form-grid label { font-size: .73rem; gap: 5px; }
+  #admin-shelters .shelter-form-grid input:not([type=checkbox]),
+  #admin-shelters .shelter-form-grid select { min-height: 42px; padding: 9px 11px; font-size: .85rem; }
+  #admin-shelters .shelter-schedule { margin-top: 12px; }
+  #admin-shelters .shelter-schedule-toggle { padding: 10px 12px; }
+  #admin-shelters .shelter-table-scroll { max-width: 100%; }
+  #admin-shelters .shelter-admin-table tbody tr.shelter-record { margin-bottom: 9px; }
+  #admin-shelters .shelter-admin-table tbody tr.shelter-record td,
+  #admin-shelters .shelter-admin-table tbody tr.shelter-record td:first-child,
+  #admin-shelters .shelter-admin-table tbody tr.shelter-record td:last-child { padding: 6px 11px; }
+  #admin-shelters .shelter-admin-table tbody tr.shelter-record td:first-child { padding-top: 12px; }
+  #admin-shelters .shelter-admin-table tbody tr.shelter-record td:last-child { padding-bottom: 12px; }
+  #admin-shelters .shelter-record-icon { width: 34px; height: 34px; border-radius: 10px; }
+  #admin-shelters .shelter-record-identity { min-width: 0; gap: 8px; }
+  #admin-shelters .shelter-admin-actions { min-width: 0; }
+  #admin-shelters .shelter-admin-actions .btn { min-height: 36px; padding: 7px 9px; }
+  #admin-shelters .shelter-admin-actions form { min-width: 0; }
+  #admin-shelters .shelter-admin-actions form select { min-width: 0; }
+  .appointment-pet-photo { width: 56px; height: 56px; flex-basis: 56px; }
+  .appointment-pet-profile { min-width: 0; }
+}
+@media (max-width: 600px) {
+  .nav-links.active-menu {
+    position: fixed; top: 66px; left: 0; right: 0; bottom: 0;
+    width: 100%; max-height: calc(100dvh - 66px);
+    overflow-y: auto; overscroll-behavior: contain;
+    padding: 12px 14px 24px; align-content: start;
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px; border-radius: 0;
+  }
+  .nav-links.active-menu > .nav-link {
+    display: flex; align-items: center; justify-content: flex-start;
+    width: 100%; min-width: 0; margin: 0; padding: 11px 10px;
+    min-height: 42px; font-size: .82rem; line-height: 1.25;
+    border-radius: 11px; overflow-wrap: anywhere;
+  }
+  .nav-links.active-menu .mobile-only-links {
+    grid-column: 1 / -1; width: 100%; min-width: 0;
+    margin-top: 5px; padding-top: 10px; gap: 7px;
+  }
+  .nav-links.active-menu .mobile-only-links .nav-link {
+    width: 100% !important; min-height: 40px;
+    padding: 9px 12px !important; margin: 0 !important;
+    font-size: .82rem; border-radius: 10px;
+  }
+  .grid, .pet-grid { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .pet-card-img-wrap { height: 160px; }
+  .pet-card-content { padding: 13px; }
+  .pet-card .btn { min-height: 36px; }
+  #admin-shelters .shelter-form-grid { grid-template-columns: minmax(0, 1fr); }
+  #admin-shelters .shelter-day { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #admin-shelters .shelter-day label { grid-column: 1 / -1; }
+  #admin-shelters .shelter-day input[type=time] { min-width: 0; width: 100%; }
+  #admin-shelters .shelter-admin-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #admin-shelters .shelter-admin-actions form { flex-wrap: wrap; }
+  #admin-shelters .shelter-admin-actions form select { flex: 1 1 120px; }
+  #admin-shelters .shelter-map-toolbar { flex-wrap: wrap; }
+  #admin-shelters .shelter-map-toolbar .btn { min-height: 36px; }
+  .history-table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .history-table th, .history-table td { white-space: nowrap; }
+}
+@media (max-width: 380px) {
+  .container { width: calc(100% - 20px); }
+  .header { padding: 9px 10px; }
+  .logo { font-size: 1rem; }
+  .stat-cards { gap: 7px; }
+  .stat-card { padding: 11px 9px; min-height: 88px; }
+  .stat-card div { font-size: .62rem; }
+  .stat-card h2 { font-size: 1.55rem; }
+  .nav-links.active-menu { padding: 9px; gap: 6px; }
+  .nav-links.active-menu > .nav-link { font-size: .76rem; padding: 9px 7px; }
+}
+</style>
+
 </head>
 
 <body>
@@ -2649,7 +2789,7 @@ const obs=new MutationObserver(refresh);obs.observe(f,{attributes:true,subtree:t
             Users
         </a>
 
-        <!-- Mobile Only Links -->
+        
         <div class="mobile-only-links">
             <button type="button" class="nav-link" style="border:none;cursor:pointer;text-align:left" onclick="openAdminProfile()"><i class="fas fa-user-circle"></i> My Admin Profile</button>
             <button 
@@ -2806,9 +2946,7 @@ const obs=new MutationObserver(refresh);obs.observe(f,{attributes:true,subtree:t
  </div>
 </section>
 
-<!-- =========================
-     DASHBOARD
-========================= -->
+
 <section class="main-container <?php echo $activeTab == 'dashboard' ? 'active' : ''; ?>">
     
     <div class="container">
@@ -2962,9 +3100,7 @@ const obs=new MutationObserver(refresh);obs.observe(f,{attributes:true,subtree:t
 </section>
 
 
-<!-- =========================
-     RESCUE REPORTS
-========================= -->
+
 <section class="main-container <?php echo $activeTab == 'rescue-reports' ? 'active' : ''; ?>">
     
     <div class="container">
@@ -3326,9 +3462,7 @@ const obs=new MutationObserver(refresh);obs.observe(f,{attributes:true,subtree:t
 </section>
 
 
-<!-- =========================
-     MEDICAL RECORDS
-========================= -->
+
 <section class="main-container <?php echo $activeTab == 'medical-records' ? 'active' : ''; ?>">
     <div class="container">
         <h1 class="section-title">
@@ -3476,9 +3610,7 @@ const obs=new MutationObserver(refresh);obs.observe(f,{attributes:true,subtree:t
 </section>
 
 
-<!-- =========================
-     ADOPTION APPOINTMENTS
-========================= -->
+
 <section class="main-container <?php echo $activeTab == 'appointments' ? 'active' : ''; ?>">
     <div class="container">
         
@@ -3594,9 +3726,7 @@ const obs=new MutationObserver(refresh);obs.observe(f,{attributes:true,subtree:t
 </section>
 
 
-<!-- =========================
-     FOSTER CARE
-========================= -->
+
 <section class="main-container <?php echo $activeTab == 'foster-care' ? 'active' : ''; ?>">
     <div class="container">
         <h1 class="section-title">
@@ -3701,9 +3831,7 @@ const obs=new MutationObserver(refresh);obs.observe(f,{attributes:true,subtree:t
 </section>
 
 
-<!-- =========================
-     MANAGE PETS
-========================= -->
+
 <section class="main-container <?php echo $activeTab == 'manage-pets' ? 'active' : ''; ?>">
     
     <div class="container">
@@ -3740,7 +3868,7 @@ const obs=new MutationObserver(refresh);obs.observe(f,{attributes:true,subtree:t
                     $stat_class = "badge-gray";
                     if(strtolower($p['status'] ?? '') == 'available') $stat_class = "badge-success";
                     if(strtolower($p['status'] ?? '') == 'intake') $stat_class = "badge-pending";
-                    if(strtolower($p['status'] ?? '') == 'adopted') $stat_class = "badge-primary"; // using primary for blue
+                    if(strtolower($p['status'] ?? '') == 'adopted') $stat_class = "badge-primary"; 
             ?>
             
             <div 
@@ -3830,7 +3958,7 @@ const obs=new MutationObserver(refresh);obs.observe(f,{attributes:true,subtree:t
 
                 </div>
 
-                <!-- Hidden data for modal injection -->
+                
                 <div class="hidden-history-data" style="display:none;">
                     <?php
                     if(isset($histories[$p['id']])) {
@@ -3859,9 +3987,7 @@ const obs=new MutationObserver(refresh);obs.observe(f,{attributes:true,subtree:t
 </section>
 
 
-<!-- =========================
-     APPLICATIONS
-========================= -->
+
 <section class="main-container <?php echo $activeTab == 'review-applications' ? 'active' : ''; ?>">
     
     <div class="container">
@@ -4032,9 +4158,7 @@ const obs=new MutationObserver(refresh);obs.observe(f,{attributes:true,subtree:t
 </section>
 
 
-<!-- =========================
-     COMMUNITY FEED
-========================= -->
+
 <section class="main-container <?php echo $activeTab == 'community-feed' ? 'active' : ''; ?>">
     
     <div class="container">
@@ -4114,9 +4238,7 @@ const obs=new MutationObserver(refresh);obs.observe(f,{attributes:true,subtree:t
 </section>
 
 
-<!-- =========================
-     COMMUNITY USERS
-========================= -->
+
 <section class="main-container <?php echo $activeTab == 'manage-users' ? 'active' : ''; ?>">
     
     <div class="container">
@@ -4249,9 +4371,7 @@ const obs=new MutationObserver(refresh);obs.observe(f,{attributes:true,subtree:t
 </section>
 
 
-<!-- =========================
-     PET PROFILE MODAL
-========================= -->
+
 <div id="petModal" class="sf-modal-overlay">
     
     <div class="sf-modal-container">
@@ -4440,9 +4560,7 @@ const obs=new MutationObserver(refresh);obs.observe(f,{attributes:true,subtree:t
 </div>
 
 
-<!-- =========================
-     STAFF MODAL
-========================= -->
+
 <div id="staffModal" class="sf-modal-overlay">
     
     <div class="sf-modal-container" style="max-width:700px;">
@@ -4522,9 +4640,7 @@ const obs=new MutationObserver(refresh);obs.observe(f,{attributes:true,subtree:t
 
 </div>
 
-<!-- =========================
-     USER MODAL
-========================= -->
+
 <div id="userModal" class="sf-modal-overlay">
     
     <div class="sf-modal-container" style="max-width:550px;">
@@ -4604,9 +4720,7 @@ const obs=new MutationObserver(refresh);obs.observe(f,{attributes:true,subtree:t
 
 </div>
 
-<!-- =========================
-     RESCUE EDIT MODAL
-========================= -->
+
 <div id="rescueModal" class="sf-modal-overlay">
     
     <div class="sf-modal-container" style="max-width:550px;">
