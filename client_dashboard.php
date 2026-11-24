@@ -1258,6 +1258,123 @@ input, textarea, select { max-width:100%; min-width:0; }
   .process-grid { grid-template-columns:minmax(0,1fr); }
 }
 </style>
+
+<style>
+/* Mobile refinement: compact, readable, edge-to-edge social feed. */
+@media (max-width: 599px) {
+  .container { width: calc(100% - 20px); }
+  section { padding-block: 25px; }
+  .hero { padding: 27px 8px 30px; }
+  .hero h1 { font-size: clamp(1.65rem, 6.3vw, 2.15rem); }
+  .hero p { font-size: .91rem; line-height: 1.45; }
+  .hero-btn-group .btn { padding: 9px 11px; font-size: .8rem; }
+  .dashboard-quick { gap: 8px; }
+  .dashboard-quick a { padding: 9px 8px; font-size: .84rem; }
+  .section-subtitle { margin-bottom: 15px; }
+
+  /* Community board becomes a full-width social feed, not a squeezed column. */
+  #community_feed { padding-top: 24px; }
+  #community_feed > .container { width: 100%; max-width: 100%; }
+  #community_feed .section-title,
+  #community_feed .section-subtitle { padding-inline: 14px; }
+  #community_feed .responsive-split {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 24px !important;
+    width: 100%;
+    min-width: 0;
+  }
+  #community_feed .responsive-split > div { min-width: 0; width: 100%; }
+  #community_feed .responsive-split > div > h3 {
+    margin: 0 12px 10px !important;
+    font-size: 1.15rem;
+    gap: 8px !important;
+  }
+  #community_feed .feed-container { max-width: 100%; }
+  #community_feed .feed-input-card,
+  #community_feed .post-card {
+    width: 100%;
+    max-width: 100%;
+    margin: 0 0 9px !important;
+    padding: 13px 12px !important;
+    border-radius: 0;
+    box-shadow: none;
+    overflow-wrap: anywhere;
+  }
+  #community_feed .feed-input-top {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 9px;
+    padding-bottom: 12px;
+    min-width: 0;
+  }
+  #community_feed .user-avatar-circle {
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
+    font-size: .95rem;
+  }
+  #community_feed .fake-input-bar {
+    flex: 1 1 0;
+    width: 0;
+    min-width: 0;
+    margin: 0;
+    padding: 10px 13px;
+    font-size: .87rem;
+    line-height: 1.25;
+  }
+  #community_feed .feed-action-row {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 4px;
+    padding-top: 9px;
+  }
+  #community_feed .feed-action-row .action-btn {
+    display: flex;
+    justify-content: center;
+    gap: 5px;
+    min-width: 0;
+    padding: 9px 3px;
+    font-size: clamp(.68rem, 2.7vw, .82rem);
+    white-space: nowrap;
+    border-radius: 8px;
+  }
+  #community_feed .feed-action-row .action-btn i { font-size: 1rem; }
+  #community_feed .post-card > div:first-child {
+    gap: 9px !important;
+    margin-bottom: 10px !important;
+    min-width: 0;
+  }
+  #community_feed .post-author { font-size: .95rem; }
+  #community_feed .post-meta { font-size: .73rem; }
+  #community_feed .post-card > div:nth-child(2) {
+    font-size: .94rem !important;
+    line-height: 1.45 !important;
+    margin-bottom: 10px !important;
+    overflow-wrap: anywhere;
+  }
+  #community_feed .post-card > img {
+    display: block;
+    max-height: 320px !important;
+    object-fit: contain !important;
+    border-radius: 8px !important;
+    margin-top: 6px;
+  }
+  #community_feed #attachment-notif,
+  #community_feed #location-notif { padding-left: 45px !important; }
+  /* Keep the lost-pet report comfortably inset while feed remains edge-to-edge. */
+  #community_feed .responsive-split > div:nth-child(2) { padding-inline: 12px; }
+  #community_feed .responsive-split > div:nth-child(2) > h3 { margin-inline: 0 !important; }
+  #community_feed .responsive-split > div:nth-child(2) .form-container {
+    padding: 15px !important;
+    margin-top: 12px !important;
+  }
+}
+@media (max-width: 365px) {
+  #community_feed .feed-action-row .action-btn { font-size: .65rem; gap: 3px; }
+  #community_feed .feed-action-row .action-btn i { font-size: .88rem; }
+}
+</style>
 </head>
 
 <body>
