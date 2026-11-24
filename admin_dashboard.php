@@ -2,6 +2,9 @@
 session_start();
 ob_start();
 
+
+
+
 if (
     isset($_GET['action']) && 
     $_GET['action'] === 'logout'
@@ -2679,44 +2682,65 @@ input, select, textarea { min-width: 0; }
   .nav-links.active-menu > .nav-link { font-size: .76rem; padding: 9px 7px; }
 }
 @media (max-width: 1200px) {
-  #navLinks.active-menu { display: flex !important; visibility: visible !important; }
-}
-@media (max-width: 600px) {
-  #navLinks.active-menu { display: grid !important; }
-}
-
-@media (max-width: 1200px) {
-  body .header { position: sticky !important; top: 0 !important; z-index: 2147483000 !important; isolation: isolate; }
-  body .header .mobile-toggle { position: relative; z-index: 3; }
-  body .header #navLinks.active-menu {
+  body.admin-menu-open { overflow: hidden !important; }
+  body > #navLinks.admin-nav-portal {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
     position: fixed !important;
-    top: var(--admin-menu-top, 70px) !important;
-    left: 0 !important;
-    right: 0 !important;
-    bottom: 0 !important;
-    width: 100vw !important;
-    max-width: 100vw !important;
-    height: auto !important;
-    max-height: calc(100dvh - var(--admin-menu-top, 70px)) !important;
+    inset: var(--admin-menu-top, 70px) 0 0 0 !important;
+    width: 100% !important;
+    height: calc(100dvh - var(--admin-menu-top, 70px)) !important;
+    max-height: none !important;
     overflow-y: auto !important;
     overflow-x: hidden !important;
-    z-index: 2147483001 !important;
+    overscroll-behavior: contain;
+    padding: 16px !important;
+    margin: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
     background: var(--bg-surface, #1e293b) !important;
-    box-shadow: 0 20px 40px rgba(0,0,0,.45) !important;
-    padding: 14px !important;
-    box-sizing: border-box !important;
+    box-shadow: 0 18px 38px rgba(0,0,0,.55) !important;
+    z-index: 2147483646 !important;
     opacity: 1 !important;
+    visibility: visible !important;
     pointer-events: auto !important;
     transform: none !important;
+    animation: none !important;
+    box-sizing: border-box !important;
+    gap: 8px !important;
   }
-}
-@media (min-width: 601px) and (max-width: 1200px) {
-  body .header #navLinks.active-menu { display: flex !important; flex-direction: column !important; align-items: stretch !important; }
-}
-@media (max-width: 600px) {
-  body .header #navLinks.active-menu { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)) !important; align-content: start !important; gap: 9px !important; }
-  body .header #navLinks.active-menu > .nav-link { width: 100% !important; margin: 0 !important; }
-  body .header #navLinks.active-menu .mobile-only-links { grid-column: 1 / -1 !important; }
+  body > #navLinks.admin-nav-portal > .nav-link {
+    display: flex !important;
+    align-items: center !important;
+    min-height: 46px;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 11px 15px !important;
+    border-radius: 12px !important;
+    background: var(--bg-main) !important;
+    box-sizing: border-box;
+  }
+  body > #navLinks.admin-nav-portal .mobile-only-links {
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    gap: 8px;
+    margin: 0 !important;
+    padding: 10px 0 0 !important;
+  }
+  body > #navLinks.admin-nav-portal .mobile-only-links .nav-link {
+    display: flex !important;
+    align-items: center;
+    width: 100% !important;
+    min-height: 46px;
+    margin: 0 !important;
+    padding: 11px 15px !important;
+    border-radius: 12px !important;
+    background: var(--bg-main) !important;
+  }
+  body .header { z-index: 2147483645 !important; }
+  body .header .mobile-toggle { position: relative; z-index: 2; }
 }
 </style>
 
@@ -2732,34 +2756,62 @@ input, select, textarea { min-width: 0; }
 </div>
 
 <script>
-function toggleMenu() {
-    const nav = document.getElementById('navLinks');
-    const button = document.getElementById('adminMobileMenuButton');
-    if (!nav) return;
-    const header = document.querySelector('.header');
-    if (header) {
-        const bounds = header.getBoundingClientRect();
-        document.documentElement.style.setProperty('--admin-menu-top', Math.max(0, Math.round(bounds.bottom)) + 'px');
+(function () {
+    let navPlaceholder = null;
+    function mobileMenu() {
+        return document.getElementById('navLinks');
     }
-    const opened = nav.classList.toggle('active-menu');
-    document.body.classList.toggle('admin-menu-open', opened);
-    if (button) {
-        button.setAttribute('aria-expanded', String(opened));
-        button.setAttribute('aria-label', opened ? 'Close admin navigation' : 'Open admin navigation');
+    function setMenu(open) {
+        const nav = mobileMenu();
+        const button = document.getElementById('adminMobileMenuButton');
+        const header = document.querySelector('.header');
+        if (!nav || !button || !header) return;
+        if (open && window.innerWidth > 1200) return;
+        if (open) {
+            const rect = header.getBoundingClientRect();
+            document.documentElement.style.setProperty('--admin-menu-top', Math.max(0, Math.round(rect.bottom)) + 'px');
+            if (!navPlaceholder) {
+                navPlaceholder = document.createComment('admin navigation position');
+                nav.parentNode.insertBefore(navPlaceholder, nav);
+            }
+            document.body.appendChild(nav);
+            nav.classList.add('admin-nav-portal', 'active-menu');
+            document.body.classList.add('admin-menu-open');
+        } else {
+            nav.classList.remove('admin-nav-portal', 'active-menu');
+            if (navPlaceholder && navPlaceholder.parentNode) {
+                navPlaceholder.parentNode.insertBefore(nav, navPlaceholder);
+                navPlaceholder.remove();
+                navPlaceholder = null;
+            }
+            document.body.classList.remove('admin-menu-open');
+        }
+        button.setAttribute('aria-expanded', String(open));
+        button.setAttribute('aria-label', open ? 'Close admin navigation' : 'Open admin navigation');
         const icon = button.querySelector('i');
-        if (icon) icon.className = opened ? 'fas fa-times' : 'fas fa-bars';
+        if (icon) icon.className = open ? 'fas fa-times' : 'fas fa-bars';
     }
-}
-document.addEventListener('click', function(event) {
-    const nav = document.getElementById('navLinks');
-    const button = document.getElementById('adminMobileMenuButton');
-    if (!nav || !button || !nav.classList.contains('active-menu')) return;
-    if (!nav.contains(event.target) && !button.contains(event.target)) toggleMenu();
-});
-document.addEventListener('keydown', function(event) {
-    const nav = document.getElementById('navLinks');
-    if (event.key === 'Escape' && nav && nav.classList.contains('active-menu')) toggleMenu();
-});
+    window.toggleMenu = function () {
+        const nav = mobileMenu();
+        setMenu(!nav || !nav.classList.contains('admin-nav-portal'));
+    };
+    document.addEventListener('click', function (event) {
+        const nav = mobileMenu();
+        const button = document.getElementById('adminMobileMenuButton');
+        if (!nav || !nav.classList.contains('admin-nav-portal')) return;
+        if (!nav.contains(event.target) && button && !button.contains(event.target)) setMenu(false);
+    });
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape') setMenu(false);
+    });
+    window.addEventListener('resize', function () {
+        if (window.innerWidth > 1200) setMenu(false);
+        else if (mobileMenu() && mobileMenu().classList.contains('admin-nav-portal')) {
+            const header = document.querySelector('.header');
+            if (header) document.documentElement.style.setProperty('--admin-menu-top', Math.max(0, Math.round(header.getBoundingClientRect().bottom)) + 'px');
+        }
+    });
+})();
 </script>
 <header class="header">
 
