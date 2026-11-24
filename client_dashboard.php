@@ -1780,7 +1780,7 @@ input, textarea, select { max-width:100%; min-width:0; }
 <div class="topbar"><span><i class="fas fa-heart"></i></span> Make a difference today. Help us save abandoned paws and find them a home.</div>
 <header class="header" id="navbar">
     
-    <a href="#home" class="logo">
+    <a href="client_dashboard.php#home" class="logo">
         <div class="logo-icon"><i class="fas fa-paw"></i></div> PetRescue
     </a>
 
@@ -1791,12 +1791,12 @@ input, textarea, select { max-width:100%; min-width:0; }
 
     
     <nav class="nav-links compact-nav" id="navLinks" aria-label="Dashboard sections">
-        <a href="#home" class="nav-link" onclick="closeDashboardMenu()">Home</a>
-        <a href="#community_feed" class="nav-link" onclick="closeDashboardMenu()">Community</a>
-        <a href="#donation-section" class="nav-link" onclick="closeDashboardMenu()">Donate</a>
-        <a href="#pets" class="nav-link" onclick="closeDashboardMenu()">Adopt</a>
-        <a href="#ai_match" class="nav-link" onclick="closeDashboardMenu()">AI Match</a>
-        <a href="#shelter_finder" class="nav-link" onclick="closeDashboardMenu()">Shelters</a>
+        <a href="client_dashboard.php#home" class="nav-link" onclick="closeDashboardMenu()">Home</a>
+        <a href="client_dashboard.php#community_feed" class="nav-link" onclick="closeDashboardMenu()">Community</a>
+        <a href="client_dashboard.php#donation-section" class="nav-link" onclick="closeDashboardMenu()">Donate</a>
+        <a href="client_dashboard.php#pets" class="nav-link" onclick="closeDashboardMenu()">Adopt</a>
+        <a href="client_dashboard.php#ai_match" class="nav-link" onclick="closeDashboardMenu()">AI Match</a>
+        <a href="client_dashboard.php#shelter_finder" class="nav-link" onclick="closeDashboardMenu()">Shelters</a>
         
         <div class="nav-more" id="navMore">
             <button type="button" class="nav-link nav-more-trigger" id="navMoreTrigger" aria-haspopup="true" aria-expanded="false" aria-controls="navMoreMenu" onclick="toggleServicesMenu(event)">
@@ -1804,14 +1804,14 @@ input, textarea, select { max-width:100%; min-width:0; }
             </button>
             <div class="nav-more-menu" id="navMoreMenu">
 
-                <?php if($has_approved_application): ?><a href="#smart_monitor" onclick="closeDashboardMenu()"><i class="fas fa-heart-pulse"></i> My Pets</a><?php endif; ?>
+                <?php if($has_approved_application): ?><a href="client_dashboard.php#smart_monitor" onclick="closeDashboardMenu()"><i class="fas fa-heart-pulse"></i> My Pets</a><?php endif; ?>
                 <button type="button" onclick="closeDashboardMenu();openNotificationPanel()"><i class="fas fa-bell"></i> Alerts</button>
-                <a href="#appointments" onclick="closeDashboardMenu()"><i class="fas fa-calendar-check"></i> Visits</a>
-                <a href="#pet_care" onclick="closeDashboardMenu()"><i class="fas fa-hand-holding-heart"></i> Pet Care</a>
-                <a href="#report_stray" onclick="closeDashboardMenu()"><i class="fas fa-paw"></i> Report Stray</a>
-                <a href="#donations" onclick="closeDashboardMenu()"><i class="fas fa-receipt"></i> Donation History</a>
+                <a href="client_dashboard.php#appointments" onclick="closeDashboardMenu()"><i class="fas fa-calendar-check"></i> Visits</a>
+                <a href="client_dashboard.php#pet_care" onclick="closeDashboardMenu()"><i class="fas fa-hand-holding-heart"></i> Pet Care</a>
+                <a href="client_dashboard.php#report_stray" onclick="closeDashboardMenu()"><i class="fas fa-paw"></i> Report Stray</a>
+                <a href="client_dashboard.php?view=account#donations" onclick="closeDashboardMenu()"><i class="fas fa-receipt"></i> Donation History</a>
                 <div class="nav-more-mobile-tools">
-                    <a href="#profile" onclick="closeDashboardMenu()"><i class="fas fa-user"></i> My Profile</a>
+                    <a href="client_dashboard.php?view=account#profile" onclick="closeDashboardMenu()"><i class="fas fa-user"></i> My Profile</a>
                     <button type="button" onclick="startTutorial();closeDashboardMenu()"><i class="fas fa-circle-question"></i> Help / Tour</button>
                     <button type="button" id="theme-toggle-mobile"><i class="fas fa-moon"></i> Toggle Dark Mode</button>
                     <a href="?logout=true" class="nav-more-logout"><i class="fas fa-right-from-bracket"></i> Logout</a>
@@ -1863,9 +1863,9 @@ input, textarea, select { max-width:100%; min-width:0; }
             </div>
         </div>
 
-        <a href="#lost_found" class="icon-btn header-lost-pets" title="Lost Pet Alerts" aria-label="Lost Pet Alerts"><i class="fas fa-paw"></i><span class="header-lost-pets-dot" aria-hidden="true"></span></a>
+        <a href="client_dashboard.php?view=lost#lost_found" class="icon-btn header-lost-pets" title="Lost Pet Alerts" aria-label="Lost Pet Alerts"><i class="fas fa-paw"></i><span class="header-lost-pets-dot" aria-hidden="true"></span></a>
 
-        <a href="#profile" class="user-profile-btn" id="tour-profile-btn" title="My Account, History & Donations">
+        <a href="client_dashboard.php?view=account#profile" class="user-profile-btn" id="tour-profile-btn" title="My Account, History & Donations">
             <i class="fas fa-user-circle" aria-hidden="true"></i>
             <span>My Account</span>
 
@@ -1877,6 +1877,26 @@ input, textarea, select { max-width:100%; min-width:0; }
     </div>
 </header>
 
+<?php
+$dashboard_view = $_GET['view'] ?? 'home';
+if (!in_array($dashboard_view, ['home', 'account', 'lost'], true)) $dashboard_view = 'home';
+?>
+<style id="petrescue-dedicated-views">
+/* Each URL presents a dedicated page, rather than stacking account and lost alerts in the feed. */
+body[data-dashboard-view="home"] #profile,
+body[data-dashboard-view="home"] #lost_found { display:none !important; }
+body[data-dashboard-view="account"] main > section:not(#profile),
+body[data-dashboard-view="lost"] main > section:not(#lost_found) { display:none !important; }
+body[data-dashboard-view="account"] main > style,
+body[data-dashboard-view="lost"] main > style { display:none; }
+body[data-dashboard-view="account"] #profile,
+body[data-dashboard-view="lost"] #lost_found { display:block !important; min-height:calc(100vh - 110px); padding-top:34px; }
+body[data-dashboard-view="account"] .topbar,
+body[data-dashboard-view="lost"] .topbar { display:none; }
+.petrescue-page-back {display:inline-flex;align-items:center;gap:8px;margin:0 0 18px;color:var(--secondary);font-weight:700;text-decoration:none}
+.petrescue-page-back:hover{text-decoration:underline}
+</style>
+<script>document.body.dataset.dashboardView = <?php echo json_encode($dashboard_view); ?>;</script>
 <main>
     
     <section class="hero" id="home">
@@ -1885,15 +1905,15 @@ input, textarea, select { max-width:100%; min-width:0; }
             <p>Welcome to Pet Rescue! We are dedicated to rescuing abandoned pets and finding them loving homes. Browse through our current residents and start your adoption journey.</p>
             
             <div class="hero-btn-group">
-                <a href="#ai_match" class="btn btn-primary"><i class="fas fa-magic"></i> AI Pet Matcher</a>
-                <a href="#pets" class="btn btn-secondary"><i class="fas fa-search"></i> Browse All Pets</a>
-                <a href="#favorites" class="btn btn-outline"><i class="fas fa-heart"></i> My Favorites (<?php echo $favorite_count; ?>)</a>
+                <a href="client_dashboard.php#ai_match" class="btn btn-primary"><i class="fas fa-magic"></i> AI Pet Matcher</a>
+                <a href="client_dashboard.php#pets" class="btn btn-secondary"><i class="fas fa-search"></i> Browse All Pets</a>
+                <a href="client_dashboard.php#favorites" class="btn btn-outline"><i class="fas fa-heart"></i> My Favorites (<?php echo $favorite_count; ?>)</a>
             </div>
             <div class="dashboard-quick" aria-label="Quick dashboard navigation">
-                <a href="#pets"><i class="fas fa-paw"></i> Find a pet</a>
-                <a href="#ai_match"><i class="fas fa-brain"></i> AI matching</a>
-                <a href="#appointments"><i class="fas fa-calendar-check"></i> My visits</a>
-                <a href="#lost_found"><i class="fas fa-search-location"></i> Missing pets</a>
+                <a href="client_dashboard.php#pets"><i class="fas fa-paw"></i> Find a pet</a>
+                <a href="client_dashboard.php#ai_match"><i class="fas fa-brain"></i> AI matching</a>
+                <a href="client_dashboard.php#appointments"><i class="fas fa-calendar-check"></i> My visits</a>
+                <a href="client_dashboard.php?view=lost#lost_found"><i class="fas fa-search-location"></i> Missing pets</a>
             </div>
         </div>
     </section>
@@ -1979,9 +1999,10 @@ input, textarea, select { max-width:100%; min-width:0; }
     
     <section id="lost_found" class="bg-light lost-pets-dedicated-section">
       <div class="container">
+        <a href="client_dashboard.php#community_feed" class="petrescue-page-back"><i class="fas fa-arrow-left"></i> Back to Dashboard</a>
         <div class="lost-section-header">
           <div><span class="lost-section-eyebrow"><i class="fas fa-shield-alt"></i> COMMUNITY SAFETY</span><h2><i class="fas fa-search-location"></i> Lost Pet Alerts</h2><p>Report a missing pet or help reunite one with its family.</p></div>
-          <a class="lost-back-feed" href="#community_feed"><i class="fas fa-arrow-left"></i> Community Feed</a>
+          
         </div>
         <div class="lost-alerts-content">
                 <div>
@@ -2360,7 +2381,7 @@ input, textarea, select { max-width:100%; min-width:0; }
                         <i class="far fa-heart"></i>
                         <h3 style="font-size: 1.5rem; color: var(--text-dark); margin-bottom: 10px;">You don't have any favorite pets yet.</h3>
                         <p style="margin-bottom: 25px;">Click the heart <i class="far fa-heart" style="color:var(--danger);"></i> on any available pet to save it here.</p>
-                        <a href="#pets" class="btn btn-primary"><i class="fas fa-search"></i> Browse Available Pets</a>
+                        <a href="client_dashboard.php#pets" class="btn btn-primary"><i class="fas fa-search"></i> Browse Available Pets</a>
                     </div>
                 <?php endif; ?>
             </div>
@@ -2619,8 +2640,9 @@ input, textarea, select { max-width:100%; min-width:0; }
     
     <section id="profile" class="bg-light">
         <div class="container">
-            <h2 class="section-title text-center"><i class="fas fa-user-circle"></i> My Account & History</h2>
-            <p class="section-subtitle text-center">Your profile, adoption history, rescue reports, sponsorships and donations — all in one place.</p>
+            <a href="client_dashboard.php#community_feed" class="petrescue-page-back"><i class="fas fa-arrow-left"></i> Back to Dashboard</a>
+            <h2 class="section-title text-center"><i class="fas fa-user-circle"></i> My Account</h2>
+            <p class="section-subtitle text-center">Profile details, adoption history, rescue reports, sponsorships and donations.</p>
 
             <?php if($profile_msg) echo "<div class='alert alert-success'><i class='fas fa-check'></i> $profile_msg</div>"; ?>
             <?php if($sponsor_success) echo "<div class='alert alert-success'><i class='fas fa-heart' style='color:var(--danger);'></i> $sponsor_success</div>"; ?>
@@ -2671,7 +2693,7 @@ input, textarea, select { max-width:100%; min-width:0; }
                                         <td data-label="Status"><span class="badge <?php echo $badge_class; ?>"><?php echo htmlspecialchars($app['status']); ?></span></td>
                                         <td data-label="Action">
                                             <?php if($status == 'approved' || $status == 'adopted'): ?>
-                                                <a href="#smart_monitor" style="color:var(--success); font-weight:800; font-size: 0.85rem;"><i class="fas fa-heartbeat"></i> Vitals</a>
+                                                <a href="client_dashboard.php#smart_monitor" style="color:var(--success); font-weight:800; font-size: 0.85rem;"><i class="fas fa-heartbeat"></i> Vitals</a>
                                             <?php elseif($status == 'pending'): ?>
                                                 <a href="#" style="color:var(--danger); font-size:0.85rem; font-weight: 700;"><i class="fas fa-times"></i> Withdraw</a>
                                             <?php else: ?>
@@ -2867,11 +2889,11 @@ input, textarea, select { max-width:100%; min-width:0; }
         </div>
         <div>
             <h4 style="color:white; margin-top:0; margin-bottom:20px; font-size:1.2rem; font-weight: 800;">Quick Links</h4>
-            <a style="display:block; color:#94A3B8; margin-bottom:12px; font-size: 0.95rem;" href="#home">Home Dashboard</a>
-            <a style="display:block; color:#94A3B8; margin-bottom:12px; font-size: 0.95rem;" href="#pets">Available Pets</a>
-            <a style="display:block; color:#94A3B8; margin-bottom:12px; font-size: 0.95rem;" href="#ai_match">AI Pet Matcher</a>
-            <a style="display:block; color:#94A3B8; margin-bottom:12px; font-size: 0.95rem;" href="#report_stray">Emergency Stray Report</a>
-            <a style="display:block; color:#94A3B8; margin-bottom:12px; font-size: 0.95rem;" href="#appointments">Schedule a Visit</a>
+            <a style="display:block; color:#94A3B8; margin-bottom:12px; font-size: 0.95rem;" href="client_dashboard.php#home">Home Dashboard</a>
+            <a style="display:block; color:#94A3B8; margin-bottom:12px; font-size: 0.95rem;" href="client_dashboard.php#pets">Available Pets</a>
+            <a style="display:block; color:#94A3B8; margin-bottom:12px; font-size: 0.95rem;" href="client_dashboard.php#ai_match">AI Pet Matcher</a>
+            <a style="display:block; color:#94A3B8; margin-bottom:12px; font-size: 0.95rem;" href="client_dashboard.php#report_stray">Emergency Stray Report</a>
+            <a style="display:block; color:#94A3B8; margin-bottom:12px; font-size: 0.95rem;" href="client_dashboard.php#appointments">Schedule a Visit</a>
         </div>
         <div>
             <h4 style="color:white; margin-top:0; margin-bottom:20px; font-size:1.2rem; font-weight: 800;">Contact</h4>
