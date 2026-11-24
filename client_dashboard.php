@@ -1538,6 +1538,38 @@ input, textarea, select { max-width:100%; min-width:0; }
  .leaflet-routing-container{max-width:min(270px,75vw);max-height:180px;overflow:auto;font-size:.75rem}
 }
 </style>
+
+<style id="mobile-overflow-repair-v6">
+@media (max-width:767px) {
+  html, body { width:100%; max-width:100%; overflow-x:clip!important; }
+  .container, .form-grid, .form-container, .mobile-history-panel, .mobile-rescue-panel,
+  .mobile-donation-history { box-sizing:border-box!important; min-width:0!important; max-width:100%!important; }
+  .form-grid { display:grid!important; grid-template-columns:minmax(0,1fr)!important; gap:14px!important; }
+  .mobile-history-panel, .mobile-rescue-panel, .mobile-donation-history { width:100%!important; padding:14px 12px!important; overflow:hidden!important; }
+  .mobile-history-panel h3, .mobile-rescue-panel h3, .mobile-donation-history h3 {font-size:clamp(1rem,4.5vw,1.22rem)!important;line-height:1.3;}
+  .mobile-history-panel table.history-table, .mobile-rescue-panel table.history-table,
+  .mobile-donation-history table.history-table { display:block!important; width:100%!important; min-width:0!important; max-width:100%!important; border:0!important; overflow:visible!important; table-layout:fixed!important; }
+  .mobile-history-panel .history-table tbody, .mobile-rescue-panel .history-table tbody,
+  .mobile-donation-history .history-table tbody {display:grid!important;grid-template-columns:minmax(0,1fr)!important;width:100%!important;min-width:0!important;gap:9px!important;}
+  .mobile-history-panel .history-table tr, .mobile-rescue-panel .history-table tr,
+  .mobile-donation-history .history-table tr {display:block!important;width:100%!important;max-width:100%!important;min-width:0!important;box-sizing:border-box!important;padding:8px 10px!important;margin:0!important;}
+  .mobile-history-panel .history-table td, .mobile-rescue-panel .history-table td,
+  .mobile-donation-history .history-table td {display:grid!important;grid-template-columns:minmax(0,38%) minmax(0,1fr)!important;gap:8px!important;align-items:start!important;text-align:left!important;width:100%!important;min-width:0!important;max-width:100%!important;box-sizing:border-box!important;padding:9px 0!important;overflow-wrap:anywhere!important;word-break:break-word!important;white-space:normal!important;overflow:visible!important;line-height:1.4!important;}
+  .mobile-history-panel .history-table td::before, .mobile-rescue-panel .history-table td::before,
+  .mobile-donation-history .history-table td::before {flex:none!important;width:auto!important;max-width:100%!important;min-width:0!important;overflow-wrap:anywhere!important;line-height:1.4!important;}
+  .mobile-history-panel .history-table td > *, .mobile-rescue-panel .history-table td > *,
+  .mobile-donation-history .history-table td > * {max-width:100%!important;min-width:0!important;white-space:normal!important;overflow-wrap:anywhere!important;}
+  .mobile-history-panel .history-table td[colspan], .mobile-rescue-panel .history-table td[colspan],
+  .mobile-donation-history .history-table td[colspan] {display:block!important;max-width:100%!important;text-align:center!important;}
+  .mobile-history-panel .history-table td .badge, .mobile-rescue-panel .history-table td .badge,
+  .mobile-donation-history .history-table td .badge {display:inline-block;max-width:100%;white-space:normal!important;}
+  /* The Leaflet itinerary overlay is not readable on a narrow map: use route line and status below. */
+  .leaflet-routing-container {display:none!important;}
+  #strayMapLive, #shelterFinderMap {max-width:100%!important;min-width:0!important;overflow:hidden!important;}
+  .rescue-assist-card, .rescue-form-card {max-width:100%!important;min-width:0!important;}
+  .leaflet-container .leaflet-control-container {font-size:12px;}
+}
+</style>
 </head>
 
 <body>
