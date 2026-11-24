@@ -1749,6 +1749,30 @@ input, textarea, select { max-width:100%; min-width:0; }
 .shelter-card-identity[role="button"]:hover h3{text-decoration:underline;text-decoration-color:#f59e0b}
 #shelterFinderMap .leaflet-popup-content-wrapper{border-radius:12px}
 </style>
+
+<style id="client-clean-header-navigation">
+/* Compact account and lost-pet shortcuts in the dashboard toolbar. */
+.header-lost-pets{position:relative;display:inline-flex;align-items:center;justify-content:center;color:var(--danger)!important;text-decoration:none;flex-shrink:0}
+.header-lost-pets:hover,.header-lost-pets:focus-visible{background:rgba(239,68,68,.12)}
+.header-lost-pets-dot{position:absolute;right:6px;top:5px;width:6px;height:6px;border-radius:50%;background:var(--danger)}
+.user-profile-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap}
+.user-profile-btn>i{font-size:1.45rem;color:var(--primary)}
+.community-only-layout{grid-template-columns:minmax(0,1fr)!important;max-width:900px;margin-inline:auto}
+.community-only-layout>div{min-width:0}
+.lost-pets-dedicated-section{scroll-margin-top:90px}
+.lost-section-header{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:20px}
+.lost-section-header h2{font-size:clamp(1.4rem,3vw,2rem);color:var(--text-dark);margin:5px 0}
+.lost-section-header h2 i{color:var(--danger)}
+.lost-section-header p{color:var(--text-muted);margin:0}
+.lost-section-eyebrow{font-size:.7rem;font-weight:800;letter-spacing:.09em;color:var(--danger)}
+.lost-back-feed{color:var(--secondary);font-size:.85rem;font-weight:700;text-decoration:none}
+.lost-alerts-content{max-width:1000px;margin-inline:auto;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:start}
+.lost-alerts-content>.form-container{grid-column:1/-1;max-width:720px;width:100%;margin-inline:auto}
+.lost-alerts-content>.alert{grid-column:1/-1}
+.lost-alerts-content>.lost-alert-card{margin:0;min-width:0}
+@media(max-width:760px){.lost-alerts-content{grid-template-columns:minmax(0,1fr)}.header-lost-pets{min-width:38px}.user-profile-btn{gap:4px}.user-profile-btn>i{font-size:1.25rem}.user-profile-btn span{font-size:.78rem}}
+@media(max-width:400px){.user-profile-btn span{display:none}.header-lost-pets{min-width:34px}}
+</style>
 </head>
 
 <body>
@@ -1779,7 +1803,7 @@ input, textarea, select { max-width:100%; min-width:0; }
                 Services <i class="fas fa-chevron-down" aria-hidden="true"></i>
             </button>
             <div class="nav-more-menu" id="navMoreMenu">
-                <a href="#lost_found" onclick="closeDashboardMenu()"><i class="fas fa-magnifying-glass"></i> Lost &amp; Found</a>
+
                 <?php if($has_approved_application): ?><a href="#smart_monitor" onclick="closeDashboardMenu()"><i class="fas fa-heart-pulse"></i> My Pets</a><?php endif; ?>
                 <button type="button" onclick="closeDashboardMenu();openNotificationPanel()"><i class="fas fa-bell"></i> Alerts</button>
                 <a href="#appointments" onclick="closeDashboardMenu()"><i class="fas fa-calendar-check"></i> Visits</a>
@@ -1839,9 +1863,11 @@ input, textarea, select { max-width:100%; min-width:0; }
             </div>
         </div>
 
-        <a href="#profile" class="user-profile-btn" id="tour-profile-btn" title="My Profile">
-            <div class="avatar-small"><?php echo $initials; ?></div>
-            <span>Profile</span>
+        <a href="#lost_found" class="icon-btn header-lost-pets" title="Lost Pet Alerts" aria-label="Lost Pet Alerts"><i class="fas fa-paw"></i><span class="header-lost-pets-dot" aria-hidden="true"></span></a>
+
+        <a href="#profile" class="user-profile-btn" id="tour-profile-btn" title="My Account, History & Donations">
+            <i class="fas fa-user-circle" aria-hidden="true"></i>
+            <span>My Account</span>
 
         </a>
         
@@ -1877,7 +1903,7 @@ input, textarea, select { max-width:100%; min-width:0; }
             <h2 class="section-title text-center">Community Board</h2>
             <p class="section-subtitle text-center">Share your adoption journey, report missing pets, and connect with other pet lovers.</p>
             
-            <div class="grid responsive-split" style="gap: 40px;" id="lost_found">
+            <div class="grid community-only-layout" style="gap: 20px;">
                 
                 
                 <div>
@@ -1944,8 +1970,22 @@ input, textarea, select { max-width:100%; min-width:0; }
                 </div>
 
                 
+
+
+            </div>
+        </div>
+    </section>
+
+    
+    <section id="lost_found" class="bg-light lost-pets-dedicated-section">
+      <div class="container">
+        <div class="lost-section-header">
+          <div><span class="lost-section-eyebrow"><i class="fas fa-shield-alt"></i> COMMUNITY SAFETY</span><h2><i class="fas fa-search-location"></i> Lost Pet Alerts</h2><p>Report a missing pet or help reunite one with its family.</p></div>
+          <a class="lost-back-feed" href="#community_feed"><i class="fas fa-arrow-left"></i> Community Feed</a>
+        </div>
+        <div class="lost-alerts-content">
                 <div>
-                    <h3 style="margin-top:0; color:var(--text-dark); display:flex; align-items:center; gap:10px;"><i class="fas fa-search-location" style="color:var(--danger);"></i> Lost Pets Alerts</h3>
+                    
                     
                     <?php if($lost_success) echo "<div class='alert alert-success' style='font-size:0.85rem;'><i class='fas fa-check-circle'></i> $lost_success</div>"; ?>
                     <?php if(!empty($lost_error)) echo '<div class="alert alert-danger">' . htmlspecialchars($lost_error, ENT_QUOTES, 'UTF-8') . '</div>'; ?>
@@ -1999,12 +2039,10 @@ input, textarea, select { max-width:100%; min-width:0; }
                     </article>
                     <?php } } else { echo "<div class='text-center' style='padding:20px; font-size:0.9rem; color:var(--text-muted); border:1px dashed var(--border-color); border-radius:var(--radius-md);'>No lost pets reported locally.</div>"; } ?>
                 </div>
-
-            </div>
         </div>
+      </div>
     </section>
 
-    
 <section id="donation-section" class="donation-theme-section" style="
     background:var(--bg-surface);
     padding:28px;
@@ -2582,7 +2620,7 @@ input, textarea, select { max-width:100%; min-width:0; }
     <section id="profile" class="bg-light">
         <div class="container">
             <h2 class="section-title text-center"><i class="fas fa-user-circle"></i> My Account & History</h2>
-            <p class="section-subtitle text-center">Manage your details, applications, reports, and donations.</p>
+            <p class="section-subtitle text-center">Your profile, adoption history, rescue reports, sponsorships and donations — all in one place.</p>
 
             <?php if($profile_msg) echo "<div class='alert alert-success'><i class='fas fa-check'></i> $profile_msg</div>"; ?>
             <?php if($sponsor_success) echo "<div class='alert alert-success'><i class='fas fa-heart' style='color:var(--danger);'></i> $sponsor_success</div>"; ?>
