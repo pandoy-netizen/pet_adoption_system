@@ -1,9 +1,8 @@
 <?php
-// Railway MySQL Database Connection
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
 $host = getenv('MYSQLHOST') ?: getenv('MYSQL_HOST') ?: 'localhost';
-$port = (int)(getenv('MYSQLPORT') ?: getenv('MYSQL_PORT') ?: 3306);
+$port = (int) (getenv('MYSQLPORT') ?: getenv('MYSQL_PORT') ?: 3306);
 $user = getenv('MYSQLUSER') ?: getenv('MYSQL_USER') ?: 'root';
 $password = getenv('MYSQLPASSWORD') ?: getenv('MYSQL_PASSWORD') ?: '';
 $database = getenv('MYSQLDATABASE') ?: getenv('MYSQL_DATABASE') ?: 'pet_adoption_rescue';
