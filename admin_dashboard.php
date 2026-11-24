@@ -2537,6 +2537,12 @@ const obs=new MutationObserver(refresh);obs.observe(f,{attributes:true,subtree:t
  .appointment-pet-profile {min-width:0;}
 }
 </style>
+
+<style id="member-profile-photo-style">
+.member-profile-avatar{width:38px!important;height:38px!important;min-width:38px;border-radius:50%;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:.8rem!important;flex-shrink:0}
+.member-profile-avatar img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%;display:block}
+@media(max-width:600px){.member-profile-avatar{width:34px!important;height:34px!important;min-width:34px}}
+</style>
 </head>
 
 <body>
@@ -4155,12 +4161,25 @@ const obs=new MutationObserver(refresh);obs.observe(f,{attributes:true,subtree:t
                         
                         $uName = $u[$u_name_field] ?? 'Unknown';
                         $u_date2 = isset($u['created_at']) ? date('M j, Y', strtotime($u['created_at'])) : 'Recent';
+                        $memberPhoto = trim((string)($u['profile_photo'] ?? ''));
+                        $memberPhotoUrl = '';
+                        if ($memberPhoto !== '') {
+                            $memberPhoto = str_replace('\\', '/', $memberPhoto);
+                            if (preg_match('~^https?://~i', $memberPhoto)) {
+                                $memberPhotoUrl = $memberPhoto;
+                            } elseif (!preg_match('~^[a-z][a-z0-9+.-]*:|^//|(?:^|/)\.\.(?:/|$)~i', $memberPhoto)) {
+                                $memberPhotoUrl = '/' . ltrim($memberPhoto, '/');
+                            }
+                        }
                 ?>
                     <tr>
                         <td>
                             <div style="display:flex; align-items:center; gap:10px;">
-                                <div class="avatar-small" style="width:28px; height:28px; font-size:0.7rem;">
-                                    <?php echo strtoupper(substr($uName,0,1)); ?>
+                                <div class="avatar-small member-profile-avatar" aria-label="Member profile photo">
+                                    <span><?php echo htmlspecialchars(strtoupper(substr((string)$uName, 0, 1)), ENT_QUOTES, 'UTF-8'); ?></span>
+                                    <?php if ($memberPhotoUrl !== ''): ?>
+                                        <img src="<?php echo htmlspecialchars($memberPhotoUrl, ENT_QUOTES, 'UTF-8'); ?>" alt="<?php echo htmlspecialchars($uName, ENT_QUOTES, 'UTF-8'); ?> profile photo" loading="lazy" onerror="this.remove()">
+                                    <?php endif; ?>
                                 </div>
                                 <span><?php echo htmlspecialchars($uName); ?></span>
                             </div>
