@@ -1510,6 +1510,34 @@ input, textarea, select { max-width:100%; min-width:0; }
   #dashboardPetGrid { grid-template-columns: repeat(4, minmax(0,1fr)) !important; }
 }
 </style>
+
+<style id="responsive-history-and-shelter-v5">
+.shelter-journey-status {background:var(--bg-main);color:var(--text-dark);border:1px solid var(--border-color);padding:12px;border-radius:12px;font-size:.88rem;line-height:1.5;overflow-wrap:anywhere}
+.shelter-journey-status .btn {margin-top:8px;max-width:100%;white-space:normal;text-align:center}
+@media(max-width:767px){
+ .mobile-history-panel,.mobile-rescue-panel,.mobile-donation-history{overflow:visible!important;min-width:0;padding:14px!important}
+ .mobile-history-panel h3,.mobile-rescue-panel h3,.mobile-donation-history h3{font-size:1.12rem;flex-wrap:wrap}
+ .mobile-history-panel .history-table,.mobile-rescue-panel .history-table,.mobile-donation-history .history-table{display:block;width:100%;border:0;background:transparent;overflow:visible}
+ .mobile-history-panel .history-table thead,.mobile-rescue-panel .history-table thead,.mobile-donation-history .history-table thead{display:none}
+ .mobile-history-panel .history-table tbody,.mobile-rescue-panel .history-table tbody,.mobile-donation-history .history-table tbody{display:grid;grid-template-columns:minmax(0,1fr);gap:10px;width:100%}
+ .mobile-history-panel .history-table tr,.mobile-rescue-panel .history-table tr,.mobile-donation-history .history-table tr{display:grid;grid-template-columns:minmax(0,1fr);gap:0;padding:8px 12px;border:1px solid var(--border-color);border-radius:12px;background:var(--bg-main);min-width:0}
+ .mobile-history-panel .history-table td,.mobile-rescue-panel .history-table td,.mobile-donation-history .history-table td{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;width:100%;max-width:none!important;min-width:0;padding:9px 0!important;border-bottom:1px solid var(--border-color);background:transparent!important;white-space:normal!important;text-overflow:clip!important;overflow:visible!important;overflow-wrap:anywhere;font-size:.86rem!important;text-align:right}
+ .mobile-history-panel .history-table td:last-child,.mobile-rescue-panel .history-table td:last-child,.mobile-donation-history .history-table td:last-child{border-bottom:0}
+ .mobile-history-panel .history-table td::before,.mobile-rescue-panel .history-table td::before,.mobile-donation-history .history-table td::before{content:attr(data-label);flex:0 0 39%;text-align:left;font-weight:800;color:var(--text-muted);font-size:.76rem;line-height:1.6}
+ .mobile-history-panel .history-table td[colspan],.mobile-rescue-panel .history-table td[colspan],.mobile-donation-history .history-table td[colspan]{display:block;text-align:center!important}
+ .mobile-history-panel .history-table td[colspan]::before,.mobile-rescue-panel .history-table td[colspan]::before,.mobile-donation-history .history-table td[colspan]::before{display:none}
+ .mobile-history-panel .history-table td .badge,.mobile-rescue-panel .history-table td .badge{white-space:normal;text-align:center}
+ #report_stray .rescue-workspace{grid-template-columns:minmax(0,1fr)!important}
+ #report_stray .rescue-form-card,#report_stray .rescue-assist-card{min-width:0;padding:15px!important;border-radius:14px}
+ #report_stray .rescue-assist-card{position:static!important}
+ #report_stray #shelterFinderMap{height:340px!important;min-height:260px!important}
+ #report_stray .shelter-finder-list{max-height:none!important;overflow:visible!important;grid-template-columns:minmax(0,1fr)!important}
+ #report_stray .shelter-finder-card{padding:12px;border-radius:12px}
+ #report_stray .shelter-card-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+ #report_stray .shelter-card-actions a,#report_stray .shelter-card-actions button{min-width:0;padding:9px 6px;text-align:center;white-space:normal}
+ .leaflet-routing-container{max-width:min(270px,75vw);max-height:180px;overflow:auto;font-size:.75rem}
+}
+</style>
 </head>
 
 <body>
@@ -2372,7 +2400,7 @@ input, textarea, select { max-width:100%; min-width:0; }
                 </div>
 
                 
-                <div class="form-container" style="overflow-x:auto;">
+                <div class="form-container mobile-history-panel">
                     <h3><i class="fas fa-file-alt" style="color:var(--secondary);"></i> Adoption History</h3>
                     <table class="history-table">
                         <thead><tr><th>Pet</th><th>Date Applied</th><th>Status</th><th>Action</th></tr></thead>
@@ -2388,10 +2416,10 @@ input, textarea, select { max-width:100%; min-width:0; }
                                     if($status == 'rejected') $badge_class = "badge-danger";
                                     ?>
                                     <tr>
-                                        <td><strong><?php echo htmlspecialchars($app['pet_name']); ?></strong><br><span style="font-size:0.75rem; color:var(--text-light);"><?php echo htmlspecialchars($app['breed']); ?></span></td>
-                                        <td><?php echo isset($app['application_date']) ? date('M d, Y', strtotime($app['application_date'])) : 'Unknown'; ?></td>
-                                        <td><span class="badge <?php echo $badge_class; ?>"><?php echo htmlspecialchars($app['status']); ?></span></td>
-                                        <td>
+                                        <td data-label="Pet"><strong><?php echo htmlspecialchars($app['pet_name']); ?></strong><br><span style="font-size:0.75rem; color:var(--text-light);"><?php echo htmlspecialchars($app['breed']); ?></span></td>
+                                        <td data-label="Date Applied"><?php echo isset($app['application_date']) ? date('M d, Y', strtotime($app['application_date'])) : 'Unknown'; ?></td>
+                                        <td data-label="Status"><span class="badge <?php echo $badge_class; ?>"><?php echo htmlspecialchars($app['status']); ?></span></td>
+                                        <td data-label="Action">
                                             <?php if($status == 'approved' || $status == 'adopted'): ?>
                                                 <a href="#smart_monitor" style="color:var(--success); font-weight:800; font-size: 0.85rem;"><i class="fas fa-heartbeat"></i> Vitals</a>
                                             <?php elseif($status == 'pending'): ?>
@@ -2412,7 +2440,7 @@ input, textarea, select { max-width:100%; min-width:0; }
                 </div>
 
                 
-                <div class="form-container" style="overflow-x:auto;" id="donations">
+                <div class="form-container mobile-donation-history" id="donations">
                     <h3><i class="fas fa-hand-holding-heart" style="color:var(--danger);"></i> My Sponsorships & Donations</h3>
                     <table class="history-table">
                         <thead><tr><th>Supported Pet</th><th>Amount</th><th>Date</th><th>Status</th></tr></thead>
@@ -2424,10 +2452,10 @@ input, textarea, select { max-width:100%; min-width:0; }
                                 while($don = mysqli_fetch_assoc($don_res)){
                                     ?>
                                     <tr>
-                                        <td><strong><?php echo htmlspecialchars($don['pet_name']); ?></strong></td>
-                                        <td style="color: var(--success); font-weight: 900;">$<?php echo number_format($don['amount'], 2); ?></td>
-                                        <td style="font-size: 0.9rem;"><?php echo date('M d, Y', strtotime($don['created_at'])); ?></td>
-                                        <td><span class="badge badge-success"><?php echo htmlspecialchars($don['status']); ?></span></td>
+                                        <td data-label="Supported Pet"><strong><?php echo htmlspecialchars($don['pet_name']); ?></strong></td>
+                                        <td data-label="Amount" style="color: var(--success); font-weight: 900;">$<?php echo number_format($don['amount'], 2); ?></td>
+                                        <td data-label="Date" style="font-size: 0.9rem;"><?php echo date('M d, Y', strtotime($don['created_at'])); ?></td>
+                                        <td data-label="Status"><span class="badge badge-success"><?php echo htmlspecialchars($don['status']); ?></span></td>
                                     </tr>
                                     <?php
                                 }
@@ -2440,7 +2468,7 @@ input, textarea, select { max-width:100%; min-width:0; }
                 </div>
 
                 
-                <div class="form-container" style="overflow-x:auto;">
+                <div class="form-container mobile-rescue-panel">
                     <h3><i class="fas fa-ambulance" style="color:var(--primary);"></i> My Rescue Reports</h3>
                     <table class="history-table">
                         <thead><tr><th>Location / Address</th><th>Description</th><th>Date Reported</th><th>Status</th></tr></thead>
@@ -2464,10 +2492,10 @@ input, textarea, select { max-width:100%; min-width:0; }
                                     }
                                     ?>
                                     <tr>
-                                        <td><i class="fas fa-map-marker-alt" style="color:var(--secondary); margin-right:5px;"></i> <strong style="line-height: 1.5; font-size: 0.9rem;"><?php echo htmlspecialchars($loc_text); ?></strong></td>
-                                        <td style="max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.9rem;"><?php echo htmlspecialchars($req['description']); ?></td>
-                                        <td style="font-size: 0.9rem;"><?php echo !empty($req['reported_at']) ? date('M d, Y - g:i A', strtotime($req['reported_at'])) : 'Just now'; ?></td>
-                                        <td><span class="badge <?php echo $r_badge; ?>"><?php echo htmlspecialchars($req['status']); ?></span></td>
+                                        <td data-label="Location / Address"><i class="fas fa-map-marker-alt" style="color:var(--secondary); margin-right:5px;"></i> <strong style="line-height: 1.5; font-size: 0.9rem;"><?php echo htmlspecialchars($loc_text); ?></strong></td>
+                                        <td data-label="Description" style="max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.9rem;"><?php echo htmlspecialchars($req['description']); ?></td>
+                                        <td data-label="Date Reported" style="font-size: 0.9rem;"><?php echo !empty($req['reported_at']) ? date('M d, Y - g:i A', strtotime($req['reported_at'])) : 'Just now'; ?></td>
+                                        <td data-label="Status"><span class="badge <?php echo $r_badge; ?>"><?php echo htmlspecialchars($req['status']); ?></span></td>
                                     </tr>
                                     <?php
                                 }
@@ -2565,6 +2593,7 @@ input, textarea, select { max-width:100%; min-width:0; }
                     <div id="rescuePinNavigation" class="rescue-pin-navigation" hidden style="margin-top:10px"></div>
                     <div class="shelter-integrated-panel"><h3><i class="fas fa-shield-heart" style="color:var(--primary)"></i> Verified Shelter Finder</h3><p class="shelter-hint">Search verified shelters, view their map pins, request directions or leave a review.</p><?php if ($shelterClientNotice !== ''): ?><div class="shelter-client-notice"><?php echo htmlspecialchars($shelterClientNotice,ENT_QUOTES,'UTF-8'); ?></div><?php endif; ?>
   <div class="shelter-finder-controls"><input type="search" id="shelterSearch" placeholder="Search shelter, city, province or animal type..." aria-label="Search shelters"><select id="shelterFilter" aria-label="Shelter filter"><option value="all">All verified shelters</option><option value="rescue">Rescue available</option><option value="slots">With available slots</option><option value="open">Open now</option></select><button type="button" class="btn btn-primary" id="locateShelterBtn"><i class="fas fa-location-crosshairs"></i> Find Near Me</button></div>
+  <div id="shelterJourneyStatus" class="shelter-journey-status" role="status" aria-live="polite">Tap <strong>Find Near Me</strong>, then select <strong>Navigate</strong> on a shelter to see the road route, estimated distance and travel time. GPS permission is required.</div>
   <p id="shelterLocationStatus" class="shelter-hint">Allow location access to rank shelters by distance. Shelters without GPS coordinates will still appear in the list.</p>
   <p class="shelter-hint">Select a shelter below to view it on the shared map beside the Rescue Report.</p><div class="shelter-finder-list" id="shelterFinderList" aria-live="polite"></div>
   <div class="shelter-review-panel" id="shelterReviewPanel" hidden><h3 id="shelterReviewTitle">Rate Shelter</h3><form method="post" action="client_dashboard.php#shelter_finder"><input type="hidden" name="submit_shelter_rating" value="1"><input type="hidden" name="shelter_csrf" value="<?php echo htmlspecialchars($_SESSION['shelter_client_csrf'],ENT_QUOTES,'UTF-8'); ?>"><input type="hidden" name="shelter_id" id="reviewShelterId"><label>Rating <select name="rating" required><option value="5">★★★★★ — 5</option><option value="4">★★★★ — 4</option><option value="3">★★★ — 3</option><option value="2">★★ — 2</option><option value="1">★ — 1</option></select></label><label>Review (optional)<textarea name="review" maxlength="1500" rows="3" placeholder="Share your experience with this shelter"></textarea></label><div style="display:flex;gap:12px"><button type="submit" class="btn btn-primary">Save Rating</button><button type="button" class="btn" onclick="document.getElementById('shelterReviewPanel').hidden=true">Cancel</button></div></form></div>
@@ -3581,23 +3610,71 @@ document.addEventListener('keydown',function(e){if(e.key==='Escape')closeLostPet
   map=L.map('shelterFinderMap').setView([12.8797,121.774],6);
   const terrainLayer=L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',{attribution:'Map data &copy; OpenStreetMap contributors | Map style &copy; OpenTopoMap (CC-BY-SA)',subdomains:'abc',maxNativeZoom:17,maxZoom:19});
   const streetLayer=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'&copy; OpenStreetMap contributors',maxZoom:19});
-  terrainLayer.addTo(map);
+  streetLayer.addTo(map);
   L.control.layers({'Terrain':terrainLayer,'Street':streetLayer},null,{position:'topright',collapsed:true}).addTo(map);
   map.on('click',e=>{window.smartMapSetLocation(smartMode==='lost'?'lost':'stray',e.latlng.lat,e.latlng.lng,false);});
  }else{document.getElementById('shelterFinderMap').textContent='Map could not load. The shelter directory is still available.';}
+ let journeyRouteControl=null;
+ let journeyLocationMarker=null;
+ function navigateToShelter(s){
+   const panel=document.getElementById('shelterJourneyStatus');
+   if(!valid(s)){
+     panel.textContent='This shelter has no verified GPS coordinates. Use Open Maps to search its address.';
+     panel.scrollIntoView({behavior:'smooth',block:'center'});
+     return;
+   }
+   if(!userPosition){
+     panel.textContent='Tap Find Near Me and allow location access, then tap Navigate again.';
+     panel.scrollIntoView({behavior:'smooth',block:'center'});
+     return;
+   }
+   if(!map||typeof L.Routing==='undefined'){
+     panel.textContent='In-page routing is unavailable. Use Open Maps for navigation.';
+     return;
+   }
+   if(journeyRouteControl){map.removeControl(journeyRouteControl);journeyRouteControl=null;}
+   if(routeControl){map.removeControl(routeControl);routeControl=null;}
+   const start=L.latLng(userPosition.lat,userPosition.lng);
+   const end=L.latLng(Number(s.latitude),Number(s.longitude));
+   panel.textContent='Calculating the driving route to '+s.shelter_name+'...';
+   try {
+     journeyRouteControl=L.Routing.control({
+       waypoints:[start,end],routeWhileDragging:false,addWaypoints:false,
+       draggableWaypoints:false,showAlternatives:false,fitSelectedRoutes:true,
+       createMarker:()=>null,
+       lineOptions:{styles:[{color:'#2563eb',opacity:.95,weight:6}]}
+     }).addTo(map);
+     journeyRouteControl.on('routesfound',e=>{
+       const r=e.routes&&e.routes[0];if(!r)return;
+       const kmRoad=(r.summary.totalDistance/1000).toFixed(1);
+       const mins=Math.max(1,Math.round(r.summary.totalTime/60));
+       panel.replaceChildren();
+       const info=document.createElement('p');
+       info.textContent='Route to '+s.shelter_name+': '+kmRoad+' km by road · about '+mins+' min estimated driving (no live traffic).';
+       panel.appendChild(info);
+       const link=document.createElement('a');link.className='btn btn-primary';
+       link.href='https://www.google.com/maps/dir/?api=1&origin='+encodeURIComponent(userPosition.lat+','+userPosition.lng)+'&destination='+encodeURIComponent(s.latitude+','+s.longitude)+'&travelmode=driving';
+       link.target='_blank';link.rel='noopener noreferrer';link.textContent='Start turn-by-turn navigation';panel.appendChild(link);
+     });
+     journeyRouteControl.on('routingerror',()=>{panel.textContent='Road routing failed. Use Open Maps to get directions.';});
+     document.getElementById('shelterFinderMap').scrollIntoView({behavior:'smooth',block:'center'});
+     setTimeout(()=>map.invalidateSize(),300);
+   }catch(e){panel.textContent='Unable to display the road route. Use Open Maps instead.';}
+ }
  function render(){const q=search.value.toLowerCase().trim(),f=filter.value;const rows=shelters.filter(s=>(!q||[s.shelter_name,s.address,s.city,s.province,s.animal_types,s.description].join(' ').toLowerCase().includes(q))&&(f!=='rescue'||Number(s.rescue_available)===1)&&(f!=='slots'||Number(s.available_slots)>0)&&(f!=='open'||hoursStatus(s).open)).sort((a,b)=>userPosition?score(b)-score(a):a.shelter_name.localeCompare(b.shelter_name));
   if(map){markers.forEach(m=>map.removeLayer(m));markers=[];}
   list.innerHTML=rows.length?'':'<div class="shelter-finder-card">No verified shelters match your search. Ask the admin to add and approve shelters.</div>';
   rows.forEach((s,i)=>{const d=km(s), rating=s.average_rating===null?'Not rated yet':Number(s.average_rating).toFixed(1)+' / 5 ('+Number(s.rating_count)+' reviews)', location=[s.address,s.city,s.province].filter(Boolean).join(', '),maps=valid(s)?'https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(s.latitude+','+s.longitude):'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(location+', Philippines');
-   const h=hoursStatus(s);const card=document.createElement('article');card.className='shelter-finder-card';card.innerHTML='<h3>'+esc(s.shelter_name)+'</h3><p><i class="fas fa-location-dot"></i> '+esc(location)+'</p><p>⭐ '+esc(rating)+(d!==null?' · <strong>'+d.toFixed(1)+' km away</strong>':'')+'</p><p><strong>'+(Number(s.rescue_available)?'Rescue available':'Rescue unavailable')+'</strong> · '+Number(s.available_slots)+' / '+Number(s.capacity)+' available slots</p><p><span class="shelter-client-hours '+(h.open?'is-open':'is-closed')+'">'+esc(h.label)+'</span> · Today: '+esc(h.today)+'</p><details class="shelter-week-details"><summary>View weekly office hours</summary><div>'+h.week.map(v=>'<p>'+esc(v)+'</p>').join('')+'</div></details><p>'+esc(s.animal_types||'Animal types not specified')+'</p><div class="shelter-service-tags"><strong>Available Services</strong><div>'+String(s.description||'').split(/\s*,\s*/).filter(Boolean).map(service=>'<span class="shelter-service-tag"><i class="fas fa-circle-check"></i> '+esc(service)+'</span>').join('')+'</div></div><p>'+esc(s.contact_number||'')+(s.contact_email?' · '+esc(s.contact_email):'')+'</p><div class="shelter-card-actions"><a href="'+esc(maps)+'" target="_blank" rel="noopener noreferrer">Directions</a><button type="button" data-rate="'+Number(s.id)+'">Rate / Review</button>'+(valid(s)?'<button type="button" data-show="'+Number(s.id)+'">Show on Map</button><button type="button" data-route="'+Number(s.id)+'">Route to Rescue</button>':'')+'</div>';
+   const h=hoursStatus(s);const card=document.createElement('article');card.className='shelter-finder-card';card.innerHTML='<h3>'+esc(s.shelter_name)+'</h3><p><i class="fas fa-location-dot"></i> '+esc(location)+'</p><p>⭐ '+esc(rating)+(d!==null?' · <strong>'+d.toFixed(1)+' km away</strong>':'')+'</p><p><strong>'+(Number(s.rescue_available)?'Rescue available':'Rescue unavailable')+'</strong> · '+Number(s.available_slots)+' / '+Number(s.capacity)+' available slots</p><p><span class="shelter-client-hours '+(h.open?'is-open':'is-closed')+'">'+esc(h.label)+'</span> · Today: '+esc(h.today)+'</p><details class="shelter-week-details"><summary>View weekly office hours</summary><div>'+h.week.map(v=>'<p>'+esc(v)+'</p>').join('')+'</div></details><p>'+esc(s.animal_types||'Animal types not specified')+'</p><div class="shelter-service-tags"><strong>Available Services</strong><div>'+String(s.description||'').split(/\s*,\s*/).filter(Boolean).map(service=>'<span class="shelter-service-tag"><i class="fas fa-circle-check"></i> '+esc(service)+'</span>').join('')+'</div></div><p>'+esc(s.contact_number||'')+(s.contact_email?' · '+esc(s.contact_email):'')+'</p><div class="shelter-card-actions"><a href="'+esc(maps)+'" target="_blank" rel="noopener noreferrer">Open Maps</a><button type="button" data-navigate="'+Number(s.id)+'">Navigate</button><button type="button" data-rate="'+Number(s.id)+'">Rate / Review</button>'+(valid(s)?'<button type="button" data-show="'+Number(s.id)+'">Show on Map</button><button type="button" data-route="'+Number(s.id)+'">Route to Rescue</button>':'')+'</div>';
    list.appendChild(card);
    if(map&&valid(s)){const m=L.marker([Number(s.latitude),Number(s.longitude)]).addTo(map).bindPopup('<strong>'+esc(s.shelter_name)+'</strong><div>'+esc(s.city+', '+s.province)+'</div>');markers.push(m);card.querySelector('[data-show]')?.addEventListener('click',()=>{map.setView(m.getLatLng(),13);m.openPopup();document.getElementById('shelterFinderMap').scrollIntoView({behavior:'smooth',block:'center'});});}
    card.querySelector('[data-route]')?.addEventListener('click',()=>routeToShelter(s));
+   card.querySelector('[data-navigate]')?.addEventListener('click',()=>navigateToShelter(s));
    card.querySelector('[data-rate]').addEventListener('click',()=>{document.getElementById('reviewShelterId').value=s.id;document.getElementById('shelterReviewTitle').textContent='Rate '+s.shelter_name;document.getElementById('shelterReviewPanel').hidden=false;document.getElementById('shelterReviewPanel').scrollIntoView({behavior:'smooth',block:'center'});});
   });
  }
  search.addEventListener('input',render);filter.addEventListener('change',render);
- document.getElementById('locateShelterBtn').addEventListener('click',()=>{if(!navigator.geolocation){status.textContent='Location is not supported by this browser.';return;}status.textContent='Requesting your location...';navigator.geolocation.getCurrentPosition(p=>{userPosition={lat:p.coords.latitude,lng:p.coords.longitude};status.textContent='Nearby shelters are now ranked by location, rescue availability, available slots and ratings.';if(map){L.circleMarker([userPosition.lat,userPosition.lng],{radius:8,color:'#2563eb'}).addTo(map).bindPopup('Your approximate location');map.setView([userPosition.lat,userPosition.lng],10);}render();},()=>{status.textContent='Location access was denied or unavailable. You can still search all verified shelters.';},{enableHighAccuracy:false,timeout:12000,maximumAge:300000});});
+ document.getElementById('locateShelterBtn').addEventListener('click',()=>{if(!navigator.geolocation){status.textContent='Location is not supported by this browser.';return;}status.textContent='Requesting your location...';navigator.geolocation.getCurrentPosition(p=>{userPosition={lat:p.coords.latitude,lng:p.coords.longitude};status.textContent='Nearby shelters are now ranked by location, rescue availability, available slots and ratings.';if(map){if(journeyLocationMarker)map.removeLayer(journeyLocationMarker);journeyLocationMarker=L.circleMarker([userPosition.lat,userPosition.lng],{radius:8,color:'#2563eb',fillColor:'#2563eb',fillOpacity:1}).addTo(map).bindPopup('Your approximate location');map.setView([userPosition.lat,userPosition.lng],10);}render();},()=>{status.textContent='Location access was denied or unavailable. You can still search all verified shelters.';},{enableHighAccuracy:false,timeout:12000,maximumAge:300000});});
  document.getElementById('detected-address')?.addEventListener('input',()=>{document.getElementById('lat').value='';document.getElementById('lon').value='';});
  document.getElementById('lost-last-seen')?.addEventListener('input',()=>{document.getElementById('lost-lat').value='';document.getElementById('lost-lon').value='';});
  render();setInterval(render,60000);setTimeout(()=>map&&map.invalidateSize(),300);
