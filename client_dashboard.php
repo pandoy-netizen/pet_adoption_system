@@ -1118,6 +1118,86 @@ html { scroll-padding-top: 100px; }
 <style>
 .shelter-service-tags{margin:12px 0 10px}.shelter-service-tags>strong{display:block;font-size:.82rem;color:var(--text-dark);margin-bottom:8px}.shelter-service-tags>div{display:flex;gap:7px;flex-wrap:wrap}.shelter-service-tag{display:inline-flex;align-items:center;gap:6px;background:var(--primary-light);border:1px solid var(--border-color);color:var(--text-dark);font-size:.76rem;font-weight:800;border-radius:999px;padding:7px 10px;line-height:1.4}.shelter-service-tag i{color:var(--success)}
 </style>
+<style>
+
+/* Adaptive layout enhancement: viewport, orientation and container-safe sizing */
+*, *::before, *::after { box-sizing: border-box; }
+html { max-width: 100%; }
+body { min-width: 0; max-width: 100%; }
+.container { width: min(92%, 1280px); min-width: 0; }
+.container > *, .grid > *, .monitor-grid > *, .profile-grid > *,
+.responsive-split > *, .shelter-finder-layout > *, .rescue-workspace > * { min-width: 0; }
+img, video, canvas, svg { max-width: 100%; }
+img, video { height: auto; }
+iframe { max-width: 100%; }
+pre, code, p, h1, h2, h3, h4, .post-card, .form-container { overflow-wrap: anywhere; }
+.grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: clamp(12px, 2.5vw, 30px); }
+.responsive-split { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
+.process-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); }
+.profile-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 450px), 1fr)); }
+.monitor-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); }
+.btn, .action-btn { max-width: 100%; white-space: normal; text-align: center; }
+input, select, textarea { min-width: 0; max-width: 100%; }
+input[type="checkbox"], input[type="radio"] { width: auto; }
+.filter-bar input, .filter-bar select { min-width: min(180px, 100%); flex: 1 1 180px; }
+.history-table { width: 100%; }
+.form-container:has(> .history-table), .form-container:has(.history-table) { overflow-x: auto; }
+.sf-modal-container { width: min(92%, 1000px); max-width: calc(100vw - 24px); }
+.sf-modal-overlay { padding: 16px 0; }
+#strayMapLive, #shelterFinderMap { max-width: 100%; }
+.shelter-finder-controls input, .shelter-finder-controls select { min-width: min(175px, 100%); }
+@media (max-width: 1100px) {
+  .header { gap: 10px; }
+  .monitor-grid { gap: 22px; }
+}
+@media (max-width: 992px) {
+  .responsive-split, .monitor-grid { grid-template-columns: minmax(0, 1fr); }
+  .header { padding: 12px 16px; }
+  .nav-links.active { max-height: calc(100dvh - 72px); overflow-y: auto !important; }
+}
+@media (max-width: 768px) {
+  section { padding-block: clamp(36px, 7vw, 60px); }
+  .container { width: calc(100% - 28px); }
+  .hero { padding: 64px 14px; }
+  .hero h1 { font-size: clamp(2rem, 8vw, 3.2rem); }
+  .hero p { font-size: 1rem; }
+  .hero-btn-group { gap: 10px; }
+  .hero-btn-group .btn { flex: 1 1 160px; }
+  .grid, .responsive-split, .monitor-grid, .profile-grid { grid-template-columns: minmax(0, 1fr); }
+  .form-container, .monitor-panel, .feed-input-card, .post-card, .ai-box, .map-container-stray { padding: clamp(14px, 4vw, 24px); }
+  .filter-bar { border-radius: 18px; padding: 14px; }
+  .feed-action-row { flex-wrap: wrap; gap: 6px; }
+  .action-btn { flex: 1 1 auto; justify-content: center; }
+  .sf-modal-container { width: calc(100% - 20px); }
+  .sf-modal-close { right: 10px; top: 10px; }
+  #strayMapLive { height: min(55dvh, 420px); min-height: 260px; }
+  .shelter-finder-layout { grid-template-columns: minmax(0, 1fr); }
+  .shelter-finder-layout #shelterFinderMap { height: min(55dvh, 370px); min-height: 250px; }
+  .shelter-finder-list { max-height: none; }
+  .history-table { min-width: 520px; }
+}
+@media (max-width: 480px) {
+  .container { width: calc(100% - 24px); }
+  .header { padding: 10px 12px; }
+  .logo { font-size: 1.05rem; gap: 8px; }
+  .logo .logo-icon { width: 34px; height: 34px; flex-shrink: 0; }
+  .hero { padding: 48px 10px; }
+  .hero h1 { font-size: clamp(1.8rem, 9vw, 2.6rem); }
+  .section-title { font-size: clamp(1.5rem, 7vw, 2rem); }
+  .section-subtitle { font-size: .95rem; }
+  .pet-card-img-wrap { height: clamp(180px, 55vw, 260px); }
+  .pet-card-content { padding: 18px; }
+  .topbar { font-size: 11px; line-height: 1.5; }
+  .sf-modal-overlay { padding: 8px 0; }
+  .sf-modal-container { width: calc(100% - 12px); }
+  .notification-panel { max-width: calc(100vw - 24px); }
+}
+@media (orientation: landscape) and (max-height: 500px) {
+  .hero { padding-block: 32px; }
+  .nav-links.active { max-height: calc(100dvh - 58px); }
+  .sf-modal-container { max-height: none; }
+}
+</style>
 </head>
 
 <body>
@@ -1246,7 +1326,7 @@ html { scroll-padding-top: 100px; }
             <h2 class="section-title text-center">Community Board</h2>
             <p class="section-subtitle text-center">Share your adoption journey, report missing pets, and connect with other pet lovers.</p>
             
-            <div class="grid" style="grid-template-columns: 2fr 1fr; gap: 40px;" id="lost_found">
+            <div class="grid responsive-split" style="gap: 40px;" id="lost_found">
                 
                 
                 <div>
@@ -1914,7 +1994,7 @@ html { scroll-padding-top: 100px; }
             <h2 class="section-title text-center"><i class="fas fa-book-medical" style="color:var(--success);"></i> Pet Care Center</h2>
             <p class="section-subtitle text-center">Resources and fun tools for responsible pet ownership.</p>
             
-            <div class="grid" style="grid-template-columns: 2fr 1fr; gap: 40px; margin-bottom: 50px;" id="name_generator">
+            <div class="grid responsive-split" style="gap: 40px; margin-bottom: 50px;" id="name_generator">
                 
                 <div class="form-container" style="background: linear-gradient(135deg, var(--primary-light), #FFFFFF);">
                     <h3 style="border-bottom:none; margin-bottom: 10px;"><i class="fas fa-dice" style="color:var(--primary);"></i> Pet Name Generator</h3>
