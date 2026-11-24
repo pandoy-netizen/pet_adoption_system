@@ -502,7 +502,7 @@ $has_approved_application = ($check_approval && mysqli_num_rows($check_approval)
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=1100, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Pet Rescue - Client Dashboard</title>
 
 
@@ -1196,6 +1196,66 @@ input[type="checkbox"], input[type="radio"] { width: auto; }
   .hero { padding-block: 32px; }
   .nav-links.active { max-height: calc(100dvh - 58px); }
   .sf-modal-container { max-height: none; }
+}
+</style>
+
+<style>
+/* Compact mobile layout: real device viewport, never a scaled desktop canvas. */
+html { width:100%; overflow-x:clip; }
+body { width:100%; overflow-x:clip; }
+*, *::before, *::after { box-sizing:border-box; }
+.container { width:min(100% - 28px,1280px); }
+.grid > *, .process-grid > *, .profile-grid > *, .monitor-grid > *,
+.responsive-split > *, .shelter-finder-layout > * { min-width:0; }
+img, video, iframe { max-width:100%; }
+input, textarea, select { max-width:100%; min-width:0; }
+@media (min-width: 600px) and (max-width: 992px) {
+  .grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .process-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .monitor-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; }
+  .responsive-split { grid-template-columns:minmax(0,1.4fr) minmax(0,1fr); gap:16px; }
+}
+@media (max-width: 599px) {
+  section { padding-block:32px; }
+  .container { width:calc(100% - 24px); }
+  .hero { padding:36px 10px; }
+  .hero h1 { font-size:clamp(1.75rem,6.8vw,2.4rem); line-height:1.15; margin-bottom:14px; }
+  .hero p { font-size:.95rem; margin-bottom:18px; line-height:1.5; }
+  .hero-btn-group { gap:8px; }
+  .hero-btn-group .btn { flex:0 1 auto; padding:10px 13px; font-size:.84rem; }
+  .section-title { font-size:clamp(1.4rem,5.5vw,1.85rem); }
+  .section-subtitle { font-size:.9rem; margin-bottom:22px; }
+  .grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+  .pet-card-img-wrap { height:clamp(110px,36vw,185px); }
+  .pet-card-content { padding:11px; }
+  .pet-card-title { font-size:1rem; margin-bottom:8px; }
+  .pet-tags { gap:4px; margin-bottom:10px; }
+  .pet-tag { font-size:.68rem; padding:4px 6px; }
+  .pet-card .btn { padding:9px 7px; font-size:.76rem; }
+  .favorite-btn { width:34px; height:34px; top:7px; right:7px; }
+  .process-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin-top:22px; }
+  .process-card { padding:18px 10px; }
+  .process-icon { width:55px; height:55px; line-height:55px; font-size:26px; margin-bottom:10px; }
+  .process-card h3 { font-size:.95rem; }
+  .process-card p { font-size:.82rem; }
+  .profile-grid, .monitor-grid, .responsive-split, .shelter-finder-layout { grid-template-columns:minmax(0,1fr); gap:14px; }
+  .form-container, .monitor-panel, .feed-input-card, .post-card, .ai-box, .map-container-stray { padding:14px; }
+  .filter-bar { gap:8px; padding:10px; margin-bottom:20px; border-radius:14px; }
+  .filter-bar input, .filter-bar select { flex:1 1 130px; min-width:0; width:auto; padding:10px; font-size:.85rem; }
+  .header { padding:10px 12px; }
+  .topbar { padding:6px 10px; font-size:11px; }
+  .feed-action-row { flex-wrap:wrap; gap:5px; }
+  .action-btn { padding:8px; font-size:.8rem; }
+  .sf-modal-container { width:calc(100% - 16px); }
+  .sf-modal-overlay { padding:8px 0; }
+  .history-table { min-width:520px; }
+  .form-container:has(.history-table) { overflow-x:auto; }
+}
+@media (max-width: 355px) {
+  /* Very narrow phones need one readable card per row. */
+  .grid { grid-template-columns:minmax(0,1fr); }
+  .pet-card-img-wrap { height:190px; }
+  .process-grid { grid-template-columns:minmax(0,1fr); }
 }
 </style>
 </head>
