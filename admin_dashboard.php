@@ -2681,6 +2681,12 @@ input, select, textarea { min-width: 0; }
   .nav-links.active-menu { padding: 9px; gap: 6px; }
   .nav-links.active-menu > .nav-link { font-size: .76rem; padding: 9px 7px; }
 }
+@media (max-width: 1200px) {
+  #navLinks.active-menu { display: flex !important; visibility: visible !important; }
+}
+@media (max-width: 600px) {
+  #navLinks.active-menu { display: grid !important; }
+}
 </style>
 
 </head>
@@ -2694,6 +2700,30 @@ input, select, textarea { min-width: 0; }
     San Pedro Animal Shelter - Administration Portal
 </div>
 
+<script>
+function toggleMenu() {
+    const nav = document.getElementById('navLinks');
+    const button = document.getElementById('adminMobileMenuButton');
+    if (!nav) return;
+    const opened = nav.classList.toggle('active-menu');
+    if (button) {
+        button.setAttribute('aria-expanded', String(opened));
+        button.setAttribute('aria-label', opened ? 'Close admin navigation' : 'Open admin navigation');
+        const icon = button.querySelector('i');
+        if (icon) icon.className = opened ? 'fas fa-times' : 'fas fa-bars';
+    }
+}
+document.addEventListener('click', function(event) {
+    const nav = document.getElementById('navLinks');
+    const button = document.getElementById('adminMobileMenuButton');
+    if (!nav || !button || !nav.classList.contains('active-menu')) return;
+    if (!nav.contains(event.target) && !button.contains(event.target)) toggleMenu();
+});
+document.addEventListener('keydown', function(event) {
+    const nav = document.getElementById('navLinks');
+    if (event.key === 'Escape' && nav && nav.classList.contains('active-menu')) toggleMenu();
+});
+</script>
 <header class="header">
 
     <div class="logo">
@@ -2703,7 +2733,7 @@ input, select, textarea { min-width: 0; }
         Admin Panel
     </div>
 
-    <button class="mobile-toggle" onclick="toggleMenu()">
+    <button type="button" class="mobile-toggle" id="adminMobileMenuButton" onclick="toggleMenu()" aria-label="Open admin navigation" aria-controls="navLinks" aria-expanded="false">
         <i class="fas fa-bars"></i>
     </button>
 
@@ -4811,11 +4841,7 @@ input, select, textarea { min-width: 0; }
     themeBtn.addEventListener('click', toggleTheme);
     themeBtnMobile.addEventListener('click', toggleTheme);
 
-    // Mobile Hamburger Menu Toggle
-    function toggleMenu() {
-        const nav = document.getElementById('navLinks');
-        nav.classList.toggle('active-menu');
-    }
+
 
 /* =========================
    MODAL HELPER FUNCTIONS 
