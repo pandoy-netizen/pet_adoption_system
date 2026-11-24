@@ -2804,6 +2804,42 @@ input, select, textarea { min-width: 0; }
   .mobile-pets .pet-card-content { padding:7px!important; }
 }
 </style>
+
+<style id="admin-mobile-layout-refinement">
+@media(max-width:700px){
+.mobile-appointments .appointment-profile-table,.mobile-appointments .appointment-profile-table tbody{display:block!important;width:100%!important;min-width:0!important;table-layout:auto!important}
+.mobile-appointments .appointment-profile-table thead{display:none!important}
+.mobile-appointments .appointment-profile-table tbody tr{display:block!important;width:100%!important;min-width:0!important;box-sizing:border-box!important;padding:11px!important;margin:0 0 10px!important;border:1px solid var(--border-color)!important;border-radius:13px!important;background:var(--hero-bg-top)!important}
+.mobile-appointments .appointment-profile-table tbody td{display:block!important;width:100%!important;max-width:100%!important;min-width:0!important;box-sizing:border-box!important;text-align:left!important;padding:7px 0!important;border:0!important;white-space:normal!important;overflow-wrap:anywhere!important;word-break:normal!important;font-size:.79rem!important;line-height:1.4!important}
+.mobile-appointments .appointment-profile-table tbody td+td{border-top:1px solid var(--border-color)!important}
+.mobile-appointments .appointment-profile-table tbody td[data-label]:before{content:attr(data-label)!important;display:block!important;max-width:none!important;font-size:.64rem!important;color:var(--text-muted)!important;font-weight:800!important;text-align:left!important;margin:0 0 4px!important;letter-spacing:.04em!important;text-transform:uppercase!important}
+.mobile-appointments .appointment-profile-table tbody td[colspan]{text-align:center!important}
+.mobile-appointments .appointment-profile-table tbody td strong,.mobile-appointments .appointment-profile-table tbody td small,.mobile-appointments .appointment-profile-table tbody td span{overflow-wrap:anywhere!important}
+.mobile-appointments .appointment-pet-profile{display:flex!important;justify-content:flex-start!important;align-items:center!important;gap:10px!important;width:100%!important;min-width:0!important}
+.mobile-appointments .appointment-pet-photo{width:54px!important;height:54px!important;flex:0 0 54px!important}
+.mobile-appointments .appointment-pet-details{min-width:0!important;flex:1!important;text-align:left!important}
+.mobile-appointments .appointment-profile-table tbody td form{display:flex!important;align-items:center!important;justify-content:flex-start!important;gap:8px!important;flex-wrap:nowrap!important;width:100%!important}
+.mobile-appointments .appointment-profile-table tbody td form select{flex:1!important;min-width:0!important;width:auto!important;max-width:100%!important}
+.mobile-appointments .appointment-profile-table tbody td form button{flex:0 0 auto!important}
+.mobile-appointments .form-container>div[style*="overflow-x:auto"]{overflow:visible!important}
+.mobile-rescue .grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important}
+.mobile-rescue .grid>.pet-card{min-width:0!important;width:100%!important;overflow:hidden!important}
+.mobile-rescue .pet-card-img-wrap{height:125px!important;min-height:0!important}
+.mobile-rescue .pet-card-img-wrap:has(.rescue-photo-view){min-height:0!important;height:125px!important}
+.mobile-rescue .rescue-photo-placeholder{gap:5px!important;padding:8px!important}
+.mobile-rescue .rescue-photo-placeholder i{font-size:27px!important}
+.mobile-rescue .rescue-photo-placeholder span{font-size:.65rem!important;line-height:1.25!important}
+.mobile-rescue .pet-card-content{padding:10px!important;min-width:0!important}
+.mobile-rescue .pet-card-content h4{font-size:.82rem!important;line-height:1.3!important;overflow-wrap:anywhere!important;margin-bottom:7px!important}
+.mobile-rescue .pet-card-content p,.mobile-rescue .pet-card-content small,.mobile-rescue .pet-card-content label{font-size:.69rem!important;overflow-wrap:anywhere!important;line-height:1.35!important}
+.mobile-rescue .pet-card-content>div{min-width:0!important;max-width:100%!important;overflow-wrap:anywhere!important}
+.mobile-rescue .pet-card-content input,.mobile-rescue .pet-card-content select,.mobile-rescue .pet-card-content textarea{min-width:0!important;max-width:100%!important;width:100%!important;box-sizing:border-box!important;font-size:.72rem!important}
+.mobile-rescue .pet-card-content .btn{font-size:.7rem!important;padding:7px 6px!important;min-width:0!important;max-width:100%!important;white-space:normal!important}
+.mobile-rescue .pet-card-status{font-size:.59rem!important;padding:5px 7px!important;max-width:88%!important}
+.mobile-rescue .rescue-photo-zoom{font-size:.59rem!important;padding:4px 6px!important;right:5px!important;bottom:5px!important}
+}
+@media(max-width:380px){.mobile-rescue .grid{gap:7px!important}.mobile-rescue .pet-card-content{padding:8px!important}}
+</style>
 </head>
 
 <body>
@@ -3280,7 +3316,7 @@ input, select, textarea { min-width: 0; }
 
 
 
-<section class="main-container <?php echo $activeTab == 'rescue-reports' ? 'active' : ''; ?>">
+<section class="main-container <?php echo $activeTab == 'rescue-reports' ? 'active' : ''; ?> mobile-rescue">
     
     <div class="container">
         
@@ -3642,7 +3678,7 @@ input, select, textarea { min-width: 0; }
 
 
 
-<section class="main-container <?php echo $activeTab == 'medical-records' ? 'active' : ''; ?> mobile-health"">
+<section class="main-container <?php echo $activeTab == 'medical-records' ? 'active' : ''; ?> mobile-health">
     <div class="container">
         <h1 class="section-title">
             <i class="fas fa-notes-medical" style="color:var(--danger);"></i>
@@ -3790,7 +3826,7 @@ input, select, textarea { min-width: 0; }
 
 
 
-<section class="main-container <?php echo $activeTab == 'appointments' ? 'active' : ''; ?> mobile-appointments"">
+<section class="main-container <?php echo $activeTab == 'appointments' ? 'active' : ''; ?> mobile-appointments">
     <div class="container">
         
         <h1 class="section-title">
@@ -3906,7 +3942,7 @@ input, select, textarea { min-width: 0; }
 
 
 
-<section class="main-container <?php echo $activeTab == 'foster-care' ? 'active' : ''; ?> mobile-foster"">
+<section class="main-container <?php echo $activeTab == 'foster-care' ? 'active' : ''; ?> mobile-foster">
     <div class="container">
         <h1 class="section-title">
             <i class="fas fa-home" style="color:var(--secondary);"></i>
