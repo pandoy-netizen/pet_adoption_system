@@ -2744,6 +2744,66 @@ input, select, textarea { min-width: 0; }
 }
 </style>
 
+
+<style id="admin-mobile-record-layout">
+@media (max-width: 700px) {
+  .mobile-pets .grid { display:grid!important; grid-template-columns:repeat(2,minmax(0,1fr))!important; gap:10px!important; }
+  .mobile-pets .pet-card { min-width:0!important; width:100%; overflow:hidden; }
+  .mobile-pets .pet-card-img-wrap { height:112px!important; }
+  .mobile-pets .pet-card-content { padding:10px!important; }
+  .mobile-pets .pet-card-title { font-size:.96rem!important; line-height:1.25; }
+  .mobile-pets .pet-card-subtitle { font-size:.72rem!important; line-height:1.3; }
+  .mobile-pets .pet-tags { display:flex;flex-wrap:wrap;gap:4px; }
+  .mobile-pets .pet-tag { font-size:.62rem!important;padding:3px 5px!important; }
+  .mobile-pets .pet-card-status { font-size:.6rem!important;max-width:85%; }
+  .mobile-pets .pet-card .btn { font-size:.7rem!important; padding:7px 6px!important; min-width:0; }
+  .mobile-pets .pet-card-content > div { min-width:0; }
+  .mobile-pets .pet-card-content form { min-width:0; }
+  .mobile-adoptions .grid { display:grid!important; grid-template-columns:repeat(2,minmax(0,1fr))!important; gap:9px!important; }
+  .mobile-adoptions .grid > .form-container { padding:10px!important; min-width:0; width:100%; margin:0; overflow:hidden; }
+  .mobile-adoptions .grid > .form-container > div { min-width:0; }
+  .mobile-adoptions .grid > .form-container > div:first-child { gap:4px;flex-wrap:wrap; margin-bottom:9px!important; }
+  .mobile-adoptions .application-identity { gap:6px!important; min-width:0; margin-bottom:9px!important; }
+  .mobile-adoptions .application-identity-details { min-width:0; }
+  .mobile-adoptions .application-identity-details h4 { font-size:.82rem!important; line-height:1.25; overflow-wrap:anywhere; }
+  .mobile-adoptions .application-identity-details p { font-size:.7rem!important; line-height:1.3; overflow-wrap:anywhere; }
+  .mobile-adoptions .application-avatar { width:30px!important;height:30px!important;flex:0 0 30px!important; }
+  .mobile-adoptions .application-pet-photo { width:36px!important;height:36px!important;flex:0 0 36px!important; }
+  .mobile-adoptions .grid > .form-container > div[style*="background:var(--bg-main)"] { padding:8px!important; margin-bottom:10px!important; }
+  .mobile-adoptions .grid > .form-container > div[style*="background:var(--bg-main)"] > div:first-child { gap:6px!important; }
+  .mobile-adoptions .grid > .form-container > div[style*="background:var(--bg-main)"] .application-avatar,
+  .mobile-adoptions .grid > .form-container > div[style*="background:var(--bg-main)"] .avatar-small { width:30px!important;height:30px!important;flex:0 0 30px!important;font-size:.85rem!important; }
+  .mobile-adoptions .grid > .form-container > div[style*="background:var(--bg-main)"] strong { font-size:.77rem!important; }
+  .mobile-adoptions .grid > .form-container > div[style*="background:var(--bg-main)"] div { font-size:.7rem!important;line-height:1.45!important;overflow-wrap:anywhere; }
+  .mobile-adoptions .grid > .form-container > div[style*="font-size:0.95rem"] { font-size:.72rem!important;line-height:1.45!important;margin-bottom:9px!important;overflow-wrap:anywhere; }
+  .mobile-adoptions .grid > .form-container > div[style*="font-size:0.95rem"] b { font-size:.65rem!important; }
+  .mobile-adoptions .grid > .form-container form { gap:5px!important;flex-wrap:wrap; }
+  .mobile-adoptions .grid > .form-container form .btn { padding:8px 4px!important;font-size:.67rem!important;min-width:0; }
+  .mobile-health .history-table, .mobile-foster .history-table, .mobile-appointments .history-table { width:100%!important;min-width:0!important;display:block!important;overflow:visible!important; }
+  .mobile-health .history-table thead, .mobile-foster .history-table thead, .mobile-appointments .history-table thead { display:none!important; }
+  .mobile-health .history-table tbody, .mobile-foster .history-table tbody, .mobile-appointments .history-table tbody { display:block!important;width:100%!important; }
+  .mobile-health .history-table tbody tr, .mobile-foster .history-table tbody tr, .mobile-appointments .history-table tbody tr { display:block!important;width:100%!important;min-width:0!important;padding:10px!important;margin:0 0 10px!important;border:1px solid var(--border-color)!important;border-radius:12px!important;background:var(--hero-bg-top); }
+  .mobile-health .history-table tbody td, .mobile-foster .history-table tbody td, .mobile-appointments .history-table tbody td { display:flex!important;align-items:flex-start;justify-content:space-between;gap:9px;width:100%!important;min-width:0!important;max-width:100%!important;white-space:normal!important;overflow-wrap:anywhere!important;padding:7px 0!important;border:0!important;text-align:right!important;font-size:.78rem!important;line-height:1.4; }
+  .mobile-health .history-table tbody td + td, .mobile-foster .history-table tbody td + td, .mobile-appointments .history-table tbody td + td { border-top:1px solid var(--border-color)!important; }
+  .mobile-health .history-table tbody td[data-label]::before, .mobile-foster .history-table tbody td[data-label]::before, .mobile-appointments .history-table tbody td[data-label]::before { content:attr(data-label);display:block;flex:0 0 36%;max-width:36%;font-size:.68rem;font-weight:750;text-transform:uppercase;letter-spacing:.02em;color:var(--text-muted);text-align:left; }
+  .mobile-health .history-table tbody td[colspan], .mobile-foster .history-table tbody td[colspan], .mobile-appointments .history-table tbody td[colspan] { display:block!important;text-align:center!important; }
+  .mobile-health .history-table tbody td form, .mobile-foster .history-table tbody td form, .mobile-appointments .history-table tbody td form { display:flex!important;justify-content:flex-end;flex-wrap:wrap;gap:6px;min-width:0; }
+  .mobile-foster .history-table tbody td select, .mobile-appointments .history-table tbody td select { min-width:0!important;width:auto;max-width:100%;font-size:.78rem;padding:7px!important; }
+  .mobile-appointments .appointment-pet-profile { min-width:0;justify-content:flex-end;gap:7px; }
+  .mobile-appointments .appointment-pet-photo { width:44px!important;height:44px!important;flex:0 0 44px!important; }
+  .mobile-appointments .appointment-pet-details { text-align:left;min-width:0; }
+  .mobile-appointments .appointment-pet-details strong { font-size:.82rem; }
+  .mobile-appointments .appointment-pet-details span,.mobile-appointments .appointment-pet-details a { font-size:.68rem; }
+  .mobile-appointments .form-container,.mobile-health .form-container,.mobile-foster .form-container { padding:12px!important; }
+  .mobile-appointments .form-container > div:first-child,.mobile-foster .form-container > div:first-child { flex-wrap:wrap;gap:8px;margin-bottom:10px!important; }
+  .mobile-appointments .form-container > div[style*="overflow-x:auto"],.mobile-health .form-container > div[style*="overflow-x:auto"],.mobile-foster .form-container > div[style*="overflow-x:auto"] { overflow:visible!important;max-width:100%; }
+}
+@media (max-width: 355px) {
+  .mobile-pets .grid,.mobile-adoptions .grid { grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:6px!important; }
+  .mobile-adoptions .grid > .form-container { padding:7px!important; }
+  .mobile-pets .pet-card-content { padding:7px!important; }
+}
+</style>
 </head>
 
 <body>
@@ -3582,7 +3642,7 @@ input, select, textarea { min-width: 0; }
 
 
 
-<section class="main-container <?php echo $activeTab == 'medical-records' ? 'active' : ''; ?>">
+<section class="main-container <?php echo $activeTab == 'medical-records' ? 'active' : ''; ?> mobile-health"">
     <div class="container">
         <h1 class="section-title">
             <i class="fas fa-notes-medical" style="color:var(--danger);"></i>
@@ -3671,7 +3731,7 @@ input, select, textarea { min-width: 0; }
         <div class="form-container">
             <h3><i class="fas fa-history" style="color:var(--secondary);"></i> Recent Health Records</h3>
             <div style="overflow-x:auto;">
-                <table class="history-table">
+                <table class="history-table compact-records">
                     <thead>
                         <tr>
                             <th>Pet</th>
@@ -3690,12 +3750,12 @@ input, select, textarea { min-width: 0; }
                         while ($mr = mysqli_fetch_assoc($medical_records)) {
                     ?>
                         <tr>
-                            <td><strong><?php echo htmlspecialchars($mr['pet_name'] ?? 'Unknown'); ?></strong><br><small><?php echo htmlspecialchars($mr['species'] ?? ''); ?></small></td>
-                            <td><span class="badge badge-primary"><?php echo htmlspecialchars($mr['record_type']); ?></span></td>
-                            <td><?php echo htmlspecialchars($mr['diagnosis'] ?: '—'); ?></td>
-                            <td><?php echo htmlspecialchars($mr['veterinarian'] ?: '—'); ?></td>
-                            <td><?php echo !empty($mr['record_date']) ? date('M j, Y', strtotime($mr['record_date'])) : '—'; ?></td>
-                            <td>
+                            <td data-label="Pet"><strong><?php echo htmlspecialchars($mr['pet_name'] ?? 'Unknown'); ?></strong><br><small><?php echo htmlspecialchars($mr['species'] ?? ''); ?></small></td>
+                            <td data-label="Type"><span class="badge badge-primary"><?php echo htmlspecialchars($mr['record_type']); ?></span></td>
+                            <td data-label="Finding"><?php echo htmlspecialchars($mr['diagnosis'] ?: '—'); ?></td>
+                            <td data-label="Veterinarian"><?php echo htmlspecialchars($mr['veterinarian'] ?: '—'); ?></td>
+                            <td data-label="Record Date"><?php echo !empty($mr['record_date']) ? date('M j, Y', strtotime($mr['record_date'])) : '—'; ?></td>
+                            <td data-label="Next Checkup">
                                 <?php
                                 if (!empty($mr['next_checkup'])) {
                                     $check_date = strtotime($mr['next_checkup']);
@@ -3706,7 +3766,7 @@ input, select, textarea { min-width: 0; }
                                 }
                                 ?>
                             </td>
-                            <td>
+                            <td data-label="Action">
                                 <form method="POST" onsubmit="return confirm('Delete this medical record?');">
                                     <input type="hidden" name="medical_record_id" value="<?php echo $mr['id']; ?>">
                                     <button type="submit" name="delete_medical_record" class="btn btn-danger" style="padding:8px 12px; font-size:0.8rem;">
@@ -3730,7 +3790,7 @@ input, select, textarea { min-width: 0; }
 
 
 
-<section class="main-container <?php echo $activeTab == 'appointments' ? 'active' : ''; ?>">
+<section class="main-container <?php echo $activeTab == 'appointments' ? 'active' : ''; ?> mobile-appointments"">
     <div class="container">
         
         <h1 class="section-title">
@@ -3753,7 +3813,7 @@ input, select, textarea { min-width: 0; }
             </div>
             
             <div style="overflow-x:auto;">
-                <table class="history-table appointment-profile-table">
+                <table class="history-table compact-appointments appointment-profile-table">
                     <thead>
                         <tr>
                             <th>Date / Time</th>
@@ -3781,13 +3841,13 @@ input, select, textarea { min-width: 0; }
                             }
                     ?>
                         <tr style="<?php echo ($ap['status'] === 'Pending') ? 'background-color: var(--hero-bg-top);' : ''; ?>">
-                            <td>
+                            <td data-label="Date / Time">
                                 <strong><?php echo date('M j, Y', strtotime($ap['appointment_date'])); ?></strong><br>
                                 <span style="color: var(--text-muted); font-weight: 700;">
                                     <i class="far fa-clock"></i> <?php echo date('g:i A', strtotime($ap['appointment_time'])); ?>
                                 </span>
                             </td>
-                            <td>
+                            <td data-label="Client">
                                 <strong><?php echo htmlspecialchars($ap['user_name'] ?? 'Unknown'); ?></strong><br>
                                 <small style="color: var(--text-light);"><?php echo htmlspecialchars($ap['email'] ?? ''); ?></small>
                             </td>
@@ -3810,14 +3870,14 @@ input, select, textarea { min-width: 0; }
                                     </div>
                                 </div>
                             </td>
-                            <td>
+                            <td data-label="Purpose & Notes">
                                 <strong><?php echo htmlspecialchars($ap['purpose']); ?></strong>
                                 <?php if(!empty($ap['notes'])): ?>
                                     <br><small style="color: var(--text-muted);"><?php echo htmlspecialchars($ap['notes']); ?></small>
                                 <?php endif; ?>
                             </td>
-                            <td><span class="badge <?php echo $appointment_badge; ?>"><?php echo htmlspecialchars($ap['status']); ?></span></td>
-                            <td>
+                            <td data-label="Status"><span class="badge <?php echo $appointment_badge; ?>"><?php echo htmlspecialchars($ap['status']); ?></span></td>
+                            <td data-label="Admin Action">
                                 <form method="POST" style="display:flex; gap:6px; align-items:center;">
                                     <input type="hidden" name="appointment_id" value="<?php echo $ap['id']; ?>">
                                     <select name="appointment_status" style="margin:0; padding:8px; min-width:130px; border-color: var(--border-color);">
@@ -3846,7 +3906,7 @@ input, select, textarea { min-width: 0; }
 
 
 
-<section class="main-container <?php echo $activeTab == 'foster-care' ? 'active' : ''; ?>">
+<section class="main-container <?php echo $activeTab == 'foster-care' ? 'active' : ''; ?> mobile-foster"">
     <div class="container">
         <h1 class="section-title">
             <i class="fas fa-home" style="color:var(--secondary);"></i>
@@ -3884,7 +3944,7 @@ input, select, textarea { min-width: 0; }
             </div>
             
             <div style="overflow-x:auto;">
-                <table class="history-table">
+                <table class="history-table compact-records">
                     <thead>
                         <tr>
                             <th>Caregiver Info</th>
@@ -3903,26 +3963,26 @@ input, select, textarea { min-width: 0; }
                             $foster_badge = ($fo['status'] === 'Approved' || $fo['status'] === 'Active') ? 'badge-success' : (($fo['status'] === 'Rejected' || $fo['status'] === 'Completed') ? 'badge-gray' : 'badge-pending');
                     ?>
                         <tr style="<?php echo ($fo['status'] === 'Pending') ? 'background-color: var(--hero-bg-top);' : ''; ?>">
-                            <td>
+                            <td data-label="Caregiver">
                                 <strong><?php echo htmlspecialchars($fo['caregiver_name'] ?? 'Unknown'); ?></strong><br>
                                 <small style="color: var(--text-light);"><?php echo htmlspecialchars($fo['email'] ?? ''); ?></small>
                             </td>
-                            <td>
+                            <td data-label="Pet Requested">
                                 <strong style="color: var(--primary);"><?php echo htmlspecialchars($fo['pet_name'] ?? 'Unknown'); ?></strong><br>
                                 <small style="color: var(--text-muted);"><?php echo htmlspecialchars($fo['species'] ?? ''); ?></small>
                             </td>
-                            <td>
+                            <td data-label="Schedule">
                                 <?php echo !empty($fo['start_date']) ? date('M j, Y', strtotime($fo['start_date'])) : '—'; ?><br>
                                 to <span style="font-weight: 700; color: var(--text-muted);"><?php echo !empty($fo['expected_end_date']) ? date('M j, Y', strtotime($fo['expected_end_date'])) : 'Open'; ?></span>
                             </td>
-                            <td style="max-width:250px;">
+                            <td style="max-width:250px;" data-label="Reason & Notes">
                                 <strong><?php echo htmlspecialchars($fo['foster_reason'] ?: '—'); ?></strong>
                                 <?php if(!empty($fo['notes'])): ?>
                                     <br><small style="color: var(--text-muted);"><?php echo htmlspecialchars($fo['notes']); ?></small>
                                 <?php endif; ?>
                             </td>
-                            <td><span class="badge <?php echo $foster_badge; ?>"><?php echo htmlspecialchars($fo['status']); ?></span></td>
-                            <td>
+                            <td data-label="Status"><span class="badge <?php echo $foster_badge; ?>"><?php echo htmlspecialchars($fo['status']); ?></span></td>
+                            <td data-label="Admin Action">
                                 <form method="POST" style="display:flex; gap:6px; align-items:center;">
                                     <input type="hidden" name="foster_id" value="<?php echo $fo['id']; ?>">
                                     <select name="foster_status" style="margin:0; padding:8px; min-width:120px; border-color: var(--border-color);">
@@ -3951,7 +4011,7 @@ input, select, textarea { min-width: 0; }
 
 
 
-<section class="main-container <?php echo $activeTab == 'manage-pets' ? 'active' : ''; ?>">
+<section class="main-container <?php echo $activeTab == 'manage-pets' ? 'active' : ''; ?> mobile-pets"">
     
     <div class="container">
         
@@ -4107,7 +4167,7 @@ input, select, textarea { min-width: 0; }
 
 
 
-<section class="main-container <?php echo $activeTab == 'review-applications' ? 'active' : ''; ?>">
+<section class="main-container <?php echo $activeTab == 'review-applications' ? 'active' : ''; ?> mobile-adoptions"">
     
     <div class="container">
         
