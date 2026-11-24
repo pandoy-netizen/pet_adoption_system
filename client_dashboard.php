@@ -1375,6 +1375,71 @@ input, textarea, select { max-width:100%; min-width:0; }
   #community_feed .feed-action-row .action-btn i { font-size: .88rem; }
 }
 </style>
+
+<style id="mobile-responsive-v4">
+/* Mobile v4: real viewport, denser pet gallery, no desktop scaling */
+.pet-view-short { display:none; }
+@media (max-width: 599px) {
+  html, body { max-width:100%; overflow-x:clip; }
+  #pets .container { width:calc(100% - 16px); }
+  #dashboardPetGrid {
+    display:grid !important;
+    grid-template-columns:repeat(3,minmax(0,1fr)) !important;
+    gap:7px !important;
+  }
+  #dashboardPetGrid .pet-card { min-width:0; border-radius:10px; }
+  #dashboardPetGrid .pet-card-img-wrap { height:auto !important; aspect-ratio:1/1; }
+  #dashboardPetGrid .pet-card-img { width:100%;height:100%;object-fit:cover; }
+  #dashboardPetGrid .pet-card-content { padding:7px 6px !important; gap:3px; }
+  #dashboardPetGrid .pet-card-title { font-size:clamp(.76rem,2.8vw,.92rem); margin:0 0 3px; overflow-wrap:anywhere; }
+  #dashboardPetGrid .pet-card-content > div[style*="margin:-5px"] { margin:0 0 4px !important; }
+  #dashboardPetGrid .badge { font-size:.56rem; letter-spacing:0; padding:3px 5px; }
+  #dashboardPetGrid .pet-tags { margin-bottom:5px; gap:3px; }
+  #dashboardPetGrid .pet-tag { padding:2px 4px; font-size:.61rem; line-height:1.15; max-width:100%; overflow-wrap:anywhere; }
+  #dashboardPetGrid .pet-tag:nth-child(n+3) { display:none; }
+  #dashboardPetGrid .pet-card-content > div[style*="display:flex"] { gap:3px !important; }
+  #dashboardPetGrid .pet-card-content .btn { min-width:0; padding:7px 2px !important; font-size:.71rem; border-radius:7px; line-height:1.1; }
+  #dashboardPetGrid .pet-card-content .btn-outline { flex:0 0 25px !important; }
+  #dashboardPetGrid .favorite-btn { width:25px; height:25px; top:5px; right:5px; font-size:.76rem; }
+  #dashboardPetGrid .pet-view-full { display:none; }
+  #dashboardPetGrid .pet-view-short { display:inline; }
+  #pets .dashboard-tools { gap:7px; }
+  #pets .dashboard-tools input, #pets .dashboard-tools select { font-size:.82rem; }
+  /* Activity feed: full phone width, Facebook-like compact cards */
+  #community_feed .container { width:100% !important; max-width:100% !important; }
+  #community_feed #lost_found {
+    display:grid !important;
+    grid-template-columns:minmax(0,1fr) !important;
+    gap:18px !important;
+    margin:0 !important;
+  }
+  #community_feed #lost_found > div { min-width:0; max-width:100%; }
+  #community_feed #lost_found > div:first-child > h3 { padding:0 12px; margin:0 0 10px !important; font-size:1.05rem; }
+  #community_feed .feed-input-card, #community_feed .post-card {
+    margin:0 0 7px !important;
+    padding:11px 12px !important;
+    border-radius:0 !important;
+    box-shadow:none !important;
+    width:100% !important;
+  }
+  #community_feed .feed-input-card { margin-top:0 !important; }
+  #community_feed .feed-input-top { padding-bottom:8px; }
+  #community_feed .feed-action-row { padding-top:7px; }
+  #community_feed .feed-action-row .action-btn { font-size:clamp(.66rem,2.7vw,.78rem); padding:8px 2px; }
+  #community_feed .post-card > div:first-child { margin-bottom:8px !important; }
+  #community_feed .post-card > div:nth-child(2) { margin-bottom:8px !important; }
+  #community_feed #lost_found > div:nth-child(2) { padding:0 10px; }
+  #community_feed .section-title { margin-bottom:7px; }
+  #community_feed .section-subtitle { margin-bottom:16px; }
+}
+@media (min-width: 600px) and (max-width: 799px) {
+  #dashboardPetGrid { grid-template-columns:repeat(4,minmax(0,1fr)) !important; gap:10px !important; }
+  #dashboardPetGrid .pet-card-content { padding:10px; }
+}
+@media (min-width: 800px) and (max-width: 1100px) {
+  #dashboardPetGrid { grid-template-columns:repeat(4,minmax(0,1fr)) !important; }
+}
+</style>
 </head>
 
 <body>
@@ -1817,7 +1882,7 @@ input, textarea, select { max-width:100%; min-width:0; }
                         </div>
                         <div style="display:flex; gap:10px; margin-top: auto;">
                             <button class="btn btn-primary" style="flex:2;" onclick="openSFModal('<?php echo $row['id']; ?>', '<?php echo $safe_name; ?>', '<?php echo $safe_breed; ?>', '<?php echo $row['age']; ?>', '<?php echo $safe_gender; ?>', '<?php echo $safe_size; ?>', '<?php echo $safe_temp; ?>', '<?php echo $safe_act; ?>', '<?php echo $safe_traits; ?>', '<?php echo $image; ?>')">
-                                View Full Profile
+                                <span class="pet-view-full">View Full Profile</span><span class="pet-view-short">View</span>
                             </button>
                             <button class="btn btn-outline" style="flex:1; padding:12px 10px;" onclick="openSponsorModal('<?php echo $safe_name; ?>')" title="Sponsor this pet">
                                 <i class="fas fa-hand-holding-heart" style="color:var(--danger);"></i>
