@@ -1712,6 +1712,12 @@ input, textarea, select { max-width:100%; min-width:0; }
 #report_stray #shelterLocationStatus{font-size:.78rem;margin:8px 0}
 @media(max-width:440px){#report_stray .shelter-card-primary-actions{grid-template-columns:1fr 1fr}#report_stray .shelter-card-primary-actions button{font-size:.74rem;padding:10px 4px}#report_stray .shelter-extra-grid{gap:9px}}
 </style>
+<style id="shelter-auto-focus-map-v10">
+.shelter-card-identity[role="button"]{cursor:pointer;border-radius:8px}
+.shelter-card-identity[role="button"]:focus-visible{outline:2px solid #f59e0b;outline-offset:4px}
+.shelter-card-identity[role="button"]:hover h3{text-decoration:underline;text-decoration-color:#f59e0b}
+#shelterFinderMap .leaflet-popup-content-wrapper{border-radius:12px}
+</style>
 </head>
 
 <body>
@@ -4072,7 +4078,34 @@ document.addEventListener('keydown',function(e){if(e.key==='Escape')closeLostPet
      }
    }catch(e){journeyShowMessage('Could not display a route. Please try again.');}
  }
+ let selectedShelterMarker=null;
+ let selectedShelterHalo=null;
+ function focusVerifiedShelter(s,scroll=true){
+   if(!map||!valid(s)){
+     const statusEl=document.getElementById('shelterLocationStatus');
+     if(statusEl)statusEl.textContent='This shelter has no valid map coordinates.';
+     return false;
+   }
+   const destination=L.latLng(Number(s.latitude),Number(s.longitude));
+   if(selectedShelterHalo){map.removeLayer(selectedShelterHalo);selectedShelterHalo=null;}
+   selectedShelterHalo=L.circleMarker(destination,{
+     radius:19,color:'#f59e0b',weight:4,fillColor:'#f59e0b',fillOpacity:.16,interactive:false
+   }).addTo(map);
+   const marker=markers.find(m=>m.getLatLng().distanceTo(destination)<2);
+   if(marker){selectedShelterMarker=marker;marker.openPopup();}
+   if(userPosition){
+     const bounds=L.latLngBounds([userPosition.lat,userPosition.lng],destination);
+     map.fitBounds(bounds.pad(.32),{padding:[45,45],maxZoom:16,animate:true});
+   }else map.flyTo(destination,16,{duration:.7});
+   if(scroll){
+     const target=document.getElementById('shelterFinderMap');
+     target.scrollIntoView({behavior:'smooth',block:'center'});
+     setTimeout(()=>{map.invalidateSize();if(userPosition){map.fitBounds(L.latLngBounds([userPosition.lat,userPosition.lng],destination).pad(.32),{padding:[30,30],maxZoom:16});}else map.setView(destination,16);if(marker)marker.openPopup();},450);
+   }
+   return true;
+ }
  function navigateToShelter(s){
+   focusVerifiedShelter(s,true);
    if(!valid(s)){
      journeyShowMessage('This shelter has no verified GPS coordinates, so in-app navigation is unavailable.');
      journeyPanel.scrollIntoView({behavior:'smooth',block:'center'});return;
@@ -4089,7 +4122,7 @@ document.addEventListener('keydown',function(e){if(e.key==='Escape')closeLostPet
    journeyPanel.appendChild(journeyMakeModeSelector());
    const go=document.createElement('button');go.type='button';go.className='btn btn-primary';go.textContent='Show route in PetRescue';
    go.addEventListener('click',()=>journeyBuildRoute(s,true));journeyPanel.appendChild(go);
-   journeyPanel.scrollIntoView({behavior:'smooth',block:'center'});
+   // The selected shelter is already highlighted on the shared map.
  }
  function render(){const q=search.value.toLowerCase().trim(),f=filter.value;const rows=shelters.filter(s=>(!q||[s.shelter_name,s.address,s.city,s.province,s.animal_types,s.description].join(' ').toLowerCase().includes(q))&&(f!=='rescue'||Number(s.rescue_available)===1)&&(f!=='slots'||Number(s.available_slots)>0)&&(f!=='open'||hoursStatus(s).open)).sort((a,b)=>userPosition?score(b)-score(a):a.shelter_name.localeCompare(b.shelter_name));
   if(map){markers.forEach(m=>map.removeLayer(m));markers=[];}
@@ -4131,7 +4164,9 @@ document.addEventListener('keydown',function(e){if(e.key==='Escape')closeLostPet
       <div class="shelter-card-actions"><button type="button" data-rate="${Number(s.id)}">Rate / Review</button>${valid(s)?'<button type="button" data-show="'+Number(s.id)+'">Show on Map</button><button type="button" data-route="'+Number(s.id)+'">Route to Rescue</button>':''}</div>
     </div>`;
    list.appendChild(card);
-   if(map&&valid(s)){const m=L.marker([Number(s.latitude),Number(s.longitude)]).addTo(map).bindPopup('<strong>'+esc(s.shelter_name)+'</strong><div>'+esc(s.city+', '+s.province)+'</div>');markers.push(m);card.querySelector('[data-show]')?.addEventListener('click',()=>{map.setView(m.getLatLng(),13);m.openPopup();document.getElementById('shelterFinderMap').scrollIntoView({behavior:'smooth',block:'center'});});}
+   if(map&&valid(s)){const m=L.marker([Number(s.latitude),Number(s.longitude)]).addTo(map).bindPopup('<strong>'+esc(s.shelter_name)+'</strong><div>'+esc(s.city+', '+s.province)+'</div>');markers.push(m);card.querySelector('[data-show]')?.addEventListener('click',()=>focusVerifiedShelter(s,true));}
+   const identity=card.querySelector('.shelter-card-identity');
+   if(identity&&valid(s)){identity.setAttribute('role','button');identity.setAttribute('tabindex','0');identity.setAttribute('aria-label','Show '+s.shelter_name+' on the map');identity.addEventListener('click',()=>focusVerifiedShelter(s,true));identity.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();focusVerifiedShelter(s,true);}});}
    card.querySelector('[data-detail-toggle]')?.addEventListener('click',()=>{
      const detail=card.querySelector('.shelter-card-extra');const button=card.querySelector('[data-detail-toggle]');
      detail.hidden=!detail.hidden;button.setAttribute('aria-expanded',String(!detail.hidden));
@@ -4141,9 +4176,10 @@ document.addEventListener('keydown',function(e){if(e.key==='Escape')closeLostPet
    card.querySelector('[data-navigate]')?.addEventListener('click',()=>navigateToShelter(s));
    card.querySelector('[data-rate]').addEventListener('click',()=>{document.getElementById('reviewShelterId').value=s.id;document.getElementById('shelterReviewTitle').textContent='Rate '+s.shelter_name;document.getElementById('shelterReviewPanel').hidden=false;document.getElementById('shelterReviewPanel').scrollIntoView({behavior:'smooth',block:'center'});});
   });
+  if(map&&journeyDestination&&valid(journeyDestination)){const destination=L.latLng(Number(journeyDestination.latitude),Number(journeyDestination.longitude));const active=markers.find(m=>m.getLatLng().distanceTo(destination)<2);if(active)selectedShelterMarker=active;}
  }
  search.addEventListener('input',render);filter.addEventListener('change',render);
- document.getElementById('locateShelterBtn').addEventListener('click',()=>{if(!navigator.geolocation){status.textContent='Location is not supported by this browser.';return;}status.textContent='Requesting your location...';navigator.geolocation.getCurrentPosition(p=>{userPosition={lat:p.coords.latitude,lng:p.coords.longitude};status.textContent='Nearby shelters are now ranked by location, rescue availability, available slots and ratings.';journeySetPosition(p);if(map){map.setView([userPosition.lat,userPosition.lng],10);map.invalidateSize();}render();},()=>{status.textContent='Location access was denied or unavailable. You can still search all verified shelters.';},{enableHighAccuracy:false,timeout:12000,maximumAge:300000});});
+ document.getElementById('locateShelterBtn').addEventListener('click',()=>{if(!navigator.geolocation){status.textContent='Location is not supported by this browser.';return;}status.textContent='Requesting your location...';navigator.geolocation.getCurrentPosition(p=>{userPosition={lat:p.coords.latitude,lng:p.coords.longitude};status.textContent='Nearby shelters are now ranked by location, rescue availability, available slots and ratings.';journeySetPosition(p);if(map){map.setView([userPosition.lat,userPosition.lng],10);map.invalidateSize();}render();if(journeyDestination)focusVerifiedShelter(journeyDestination,false);},()=>{status.textContent='Location access was denied or unavailable. You can still search all verified shelters.';},{enableHighAccuracy:false,timeout:12000,maximumAge:300000});});
  document.getElementById('detected-address')?.addEventListener('input',()=>{document.getElementById('lat').value='';document.getElementById('lon').value='';});
  document.getElementById('lost-last-seen')?.addEventListener('input',()=>{document.getElementById('lost-lat').value='';document.getElementById('lost-lon').value='';});
  render();setInterval(render,60000);setTimeout(()=>map&&map.invalidateSize(),300);
