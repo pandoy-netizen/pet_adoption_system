@@ -2,9 +2,6 @@
 session_start();
 ob_start();
 
-
-
-
 if (
     isset($_GET['action']) && 
     $_GET['action'] === 'logout'
@@ -2687,6 +2684,40 @@ input, select, textarea { min-width: 0; }
 @media (max-width: 600px) {
   #navLinks.active-menu { display: grid !important; }
 }
+
+@media (max-width: 1200px) {
+  body .header { position: sticky !important; top: 0 !important; z-index: 2147483000 !important; isolation: isolate; }
+  body .header .mobile-toggle { position: relative; z-index: 3; }
+  body .header #navLinks.active-menu {
+    position: fixed !important;
+    top: var(--admin-menu-top, 70px) !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100vw !important;
+    max-width: 100vw !important;
+    height: auto !important;
+    max-height: calc(100dvh - var(--admin-menu-top, 70px)) !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    z-index: 2147483001 !important;
+    background: var(--bg-surface, #1e293b) !important;
+    box-shadow: 0 20px 40px rgba(0,0,0,.45) !important;
+    padding: 14px !important;
+    box-sizing: border-box !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    transform: none !important;
+  }
+}
+@media (min-width: 601px) and (max-width: 1200px) {
+  body .header #navLinks.active-menu { display: flex !important; flex-direction: column !important; align-items: stretch !important; }
+}
+@media (max-width: 600px) {
+  body .header #navLinks.active-menu { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)) !important; align-content: start !important; gap: 9px !important; }
+  body .header #navLinks.active-menu > .nav-link { width: 100% !important; margin: 0 !important; }
+  body .header #navLinks.active-menu .mobile-only-links { grid-column: 1 / -1 !important; }
+}
 </style>
 
 </head>
@@ -2705,7 +2736,13 @@ function toggleMenu() {
     const nav = document.getElementById('navLinks');
     const button = document.getElementById('adminMobileMenuButton');
     if (!nav) return;
+    const header = document.querySelector('.header');
+    if (header) {
+        const bounds = header.getBoundingClientRect();
+        document.documentElement.style.setProperty('--admin-menu-top', Math.max(0, Math.round(bounds.bottom)) + 'px');
+    }
     const opened = nav.classList.toggle('active-menu');
+    document.body.classList.toggle('admin-menu-open', opened);
     if (button) {
         button.setAttribute('aria-expanded', String(opened));
         button.setAttribute('aria-label', opened ? 'Close admin navigation' : 'Open admin navigation');
