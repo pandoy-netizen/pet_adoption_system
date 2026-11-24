@@ -2508,6 +2508,35 @@ f.addEventListener('change',refresh);refresh();
 const obs=new MutationObserver(refresh);obs.observe(f,{attributes:true,subtree:true,attributeFilter:['value']});
 });
 </script>
+<style id="rescue-photo-display-fix">
+.pet-card-img-wrap:has(.rescue-photo-view){position:relative;min-height:205px;overflow:hidden}
+.pet-card-img-wrap:has(.rescue-photo-view) .rescue-photo-view{position:absolute;inset:0;z-index:2;display:block;overflow:hidden}
+.pet-card-img-wrap .rescue-photo-view .rescue-report-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+.rescue-photo-zoom{position:absolute;right:12px;bottom:12px;background:rgba(12,20,36,.88);color:white;padding:7px 11px;border-radius:9px;font-size:12px;font-weight:700}
+.pet-card-img-wrap:has(.rescue-photo-view) .rescue-photo-placeholder{z-index:0}
+</style>
+<style id="appointment-pet-profile-styles">
+.appointment-profile-table {width:100%;}
+.appointment-profile-table td {vertical-align:middle;}
+.appointment-pet-profile {display:flex;align-items:center;gap:12px;min-width:190px;}
+.appointment-pet-photo {width:82px;height:82px;flex:0 0 82px;overflow:hidden;border-radius:12px;background:#16243a;border:1px solid #34455f;}
+.appointment-pet-photo img {display:block;width:100%;height:100%;object-fit:cover;}
+.appointment-pet-photo-fallback {width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#f59e0b;font-size:27px;}
+.appointment-pet-details {display:flex;flex-direction:column;align-items:flex-start;gap:3px;min-width:0;}
+.appointment-pet-details strong {color:#f59e0b;font-size:1rem;}
+.appointment-pet-details span {color:var(--text-muted);font-size:.78rem;overflow-wrap:anywhere;}
+.appointment-pet-details .appointment-pet-status {color:#4ade80;font-weight:700;}
+.appointment-pet-details a {font-size:.75rem;color:#60a5fa;}
+@media(max-width:850px) {
+ .appointment-profile-table thead {display:none;}
+ .appointment-profile-table,.appointment-profile-table tbody,.appointment-profile-table tr,.appointment-profile-table td {display:block;width:100%;}
+ .appointment-profile-table tr {border:1px solid var(--border-color);border-radius:14px;margin-bottom:12px;padding:12px;background:var(--hero-bg-top);}
+ .appointment-profile-table td {padding:8px 0!important;border:0!important;overflow-wrap:anywhere;}
+ .appointment-profile-table td:first-child {font-weight:600;}
+ .appointment-profile-table td:last-child form {flex-wrap:wrap;}
+ .appointment-pet-profile {min-width:0;}
+}
+</style>
 </head>
 
 <body>
@@ -3005,13 +3034,16 @@ const obs=new MutationObserver(refresh);obs.observe(f,{attributes:true,subtree:t
                             <span>No rescue photo available</span>
                         </div>
                         <?php if ($r_img !== ''): ?>
+                        <a class="rescue-photo-view" href="<?php echo htmlspecialchars($r_img, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer" aria-label="Open rescue animal photo in full size">
                         <img
                             src="<?php echo htmlspecialchars($r_img, ENT_QUOTES, 'UTF-8'); ?>"
                             class="pet-card-img rescue-report-photo"
-                            alt="Rescue report photo"
+                            alt="Photo of animal in rescue report"
                             loading="lazy"
-                            onerror="this.style.display='none';"
+                            onerror="this.closest('a').style.display='none';"
                         >
+                        <span class="rescue-photo-zoom"><i class="fas fa-expand"></i> View photo</span>
+                        </a>
                         <?php endif; ?>
                     </div>
                     
@@ -3198,13 +3230,16 @@ const obs=new MutationObserver(refresh);obs.observe(f,{attributes:true,subtree:t
                             <span>No rescue photo available</span>
                         </div>
                         <?php if ($r_img !== ''): ?>
+                        <a class="rescue-photo-view" href="<?php echo htmlspecialchars($r_img, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer" aria-label="Open rescue animal photo in full size">
                         <img
                             src="<?php echo htmlspecialchars($r_img, ENT_QUOTES, 'UTF-8'); ?>"
                             class="pet-card-img rescue-report-photo"
-                            alt="Rescue report photo"
+                            alt="Photo of animal in rescue report"
                             loading="lazy"
-                            onerror="this.style.display='none';"
+                            onerror="this.closest('a').style.display='none';"
                         >
+                        <span class="rescue-photo-zoom"><i class="fas fa-expand"></i> View photo</span>
+                        </a>
                         <?php endif; ?>
                     </div>
                     
@@ -3461,7 +3496,7 @@ const obs=new MutationObserver(refresh);obs.observe(f,{attributes:true,subtree:t
             </div>
             
             <div style="overflow-x:auto;">
-                <table class="history-table">
+                <table class="history-table appointment-profile-table">
                     <thead>
                         <tr>
                             <th>Date / Time</th>
@@ -3474,10 +3509,19 @@ const obs=new MutationObserver(refresh);obs.observe(f,{attributes:true,subtree:t
                     </thead>
                     <tbody>
                     <?php
-                    $appointments = mysqli_query($conn, "SELECT aa.*, p.name AS pet_name, p.species, u.$u_name_field AS user_name, u.email FROM adoption_appointments aa LEFT JOIN pets p ON p.id=aa.pet_id LEFT JOIN users u ON u.id=aa.user_id ORDER BY aa.status = 'Pending' DESC, aa.appointment_date ASC, aa.appointment_time ASC");
+                    $appointments = mysqli_query($conn, "SELECT aa.*, p.name AS pet_name, p.species, p.breed AS pet_breed, p.age AS pet_age, p.gender AS pet_gender, p.status AS pet_status, p.image AS pet_image, u.$u_name_field AS user_name, u.email FROM adoption_appointments aa LEFT JOIN pets p ON p.id=aa.pet_id LEFT JOIN users u ON u.id=aa.user_id ORDER BY aa.status = 'Pending' DESC, aa.appointment_date ASC, aa.appointment_time ASC");
                     if ($appointments && mysqli_num_rows($appointments) > 0) {
                         while ($ap = mysqli_fetch_assoc($appointments)) {
                             $appointment_badge = ($ap['status'] === 'Completed') ? 'badge-success' : (($ap['status'] === 'Cancelled' || $ap['status'] === 'No Show') ? 'badge-danger' : (($ap['status'] === 'Confirmed') ? 'badge-primary' : 'badge-pending'));
+                            $appointmentPetPhoto = trim((string)($ap['pet_image'] ?? ''));
+                            $appointmentPetUrl = '';
+                            if ($appointmentPetPhoto !== '' && !in_array(strtolower($appointmentPetPhoto), ['default.jpg', 'none', 'null'], true)) {
+                                if (preg_match('~^https?://~i', $appointmentPetPhoto)) {
+                                    $appointmentPetUrl = $appointmentPetPhoto;
+                                } else {
+                                    $appointmentPetUrl = (strpos(ltrim($appointmentPetPhoto, '/'), 'uploads/') === 0 ? ltrim($appointmentPetPhoto, '/') : 'uploads/' . ltrim($appointmentPetPhoto, '/'));
+                                }
+                            }
                     ?>
                         <tr style="<?php echo ($ap['status'] === 'Pending') ? 'background-color: var(--hero-bg-top);' : ''; ?>">
                             <td>
@@ -3490,8 +3534,24 @@ const obs=new MutationObserver(refresh);obs.observe(f,{attributes:true,subtree:t
                                 <strong><?php echo htmlspecialchars($ap['user_name'] ?? 'Unknown'); ?></strong><br>
                                 <small style="color: var(--text-light);"><?php echo htmlspecialchars($ap['email'] ?? ''); ?></small>
                             </td>
-                            <td>
-                                <strong style="color: var(--primary);"><?php echo htmlspecialchars($ap['pet_name'] ?? 'Unknown'); ?></strong>
+                            <td data-label="Pet Requested">
+                                <div class="appointment-pet-profile">
+                                    <div class="appointment-pet-photo">
+                                        <?php if ($appointmentPetUrl !== ''): ?>
+                                            <img src="<?php echo htmlspecialchars($appointmentPetUrl, ENT_QUOTES, 'UTF-8'); ?>" alt="Photo of <?php echo htmlspecialchars($ap['pet_name'] ?? 'pet', ENT_QUOTES, 'UTF-8'); ?>" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+                                            <span class="appointment-pet-photo-fallback" style="display:none"><i class="fas fa-paw"></i></span>
+                                        <?php else: ?>
+                                            <span class="appointment-pet-photo-fallback"><i class="fas fa-paw"></i></span>
+                                        <?php endif; ?>
+                                    </div>
+                                    <div class="appointment-pet-details">
+                                        <strong><?php echo htmlspecialchars($ap['pet_name'] ?? 'Unknown'); ?></strong>
+                                        <span><?php echo htmlspecialchars(implode(' · ', array_filter([$ap['species'] ?? '', $ap['pet_breed'] ?? '']))); ?></span>
+                                        <span><?php echo htmlspecialchars(implode(' · ', array_filter([$ap['pet_gender'] ?? '', (string)($ap['pet_age'] ?? '') !== '' ? $ap['pet_age'] . ' yrs' : '']))); ?></span>
+                                        <?php if (!empty($ap['pet_status'])): ?><span class="appointment-pet-status"><?php echo htmlspecialchars($ap['pet_status']); ?></span><?php endif; ?>
+                                        <?php if ($appointmentPetUrl !== ''): ?><a href="<?php echo htmlspecialchars($appointmentPetUrl, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer">View full photo</a><?php endif; ?>
+                                    </div>
+                                </div>
                             </td>
                             <td>
                                 <strong><?php echo htmlspecialchars($ap['purpose']); ?></strong>
