@@ -502,7 +502,7 @@ $has_approved_application = ($check_approval && mysqli_num_rows($check_approval)
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=1100, initial-scale=1">
 <title>Pet Rescue - Client Dashboard</title>
 
 
