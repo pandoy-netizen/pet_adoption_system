@@ -1570,6 +1570,35 @@ input, textarea, select { max-width:100%; min-width:0; }
   .leaflet-container .leaflet-control-container {font-size:12px;}
 }
 </style>
+<style id="shelter-in-app-navigation-styles">
+#shelterJourneyStatus{min-width:0;max-width:100%;overflow-wrap:anywhere}
+#shelterJourneyStatus h4{font-size:1.05rem;margin:0 0 8px;color:inherit}
+#shelterJourneyStatus h5{font-size:.94rem;margin:16px 0 8px}
+#shelterJourneyStatus .journey-route-summary{font-weight:700;color:#60a5fa}
+.journey-buttons{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.journey-buttons .btn{font-size:.84rem;padding:9px 12px;white-space:normal}
+.journey-steps{margin:8px 0;padding-left:24px;max-height:290px;overflow-y:auto}
+.journey-steps li{padding:8px 6px;border-bottom:1px solid rgba(148,163,184,.22);font-size:.87rem;line-height:1.45}
+.journey-steps li.journey-current-step{background:rgba(59,130,246,.16);border-left:3px solid #3b82f6}
+#shelterFinderMap{height:clamp(300px,58vh,560px);min-width:0;width:100%;overflow:hidden}
+#shelterFinderMap .leaflet-routing-container{display:none!important}
+@media(max-width:600px){#shelterFinderMap{height:340px}.journey-buttons .btn{flex:1 1 130px}}
+</style>
+<style id="petrescue-voice-navigation-css">
+.journey-next-turn{background:#123259;border:1px solid #3b82f6;border-radius:12px;padding:12px 14px;margin:12px 0;color:#fff;font-size:1rem;font-weight:700;line-height:1.4;overflow-wrap:anywhere}
+.journey-corner-preview{width:100%;height:230px;min-height:230px;border-radius:12px;overflow:hidden;border:1px solid rgba(148,163,184,.35);margin:10px 0}
+.journey-corner-preview[hidden]{display:none!important}
+#journeySteps li{cursor:pointer}
+@media(max-width:600px){.journey-corner-preview{height:190px;min-height:190px}.journey-next-turn{font-size:.9rem;padding:10px}}
+</style>
+<style id="shelter-transport-modes-css">
+.journey-mode-selector{min-width:0;border:1px solid rgba(148,163,184,.35);border-radius:12px;padding:12px;margin:12px 0;display:flex;flex-wrap:wrap;gap:8px}
+.journey-mode-selector legend{font-weight:700;font-size:.92rem;padding:0 6px}
+.journey-mode-btn{background:#172337;color:#e2e8f0;border:1px solid #475569;border-radius:9px;padding:10px 12px;font-size:.87rem;cursor:pointer;min-height:42px}
+.journey-mode-btn[aria-pressed="true"]{background:#2563eb;border-color:#93c5fd;color:white;font-weight:700}
+.journey-mode-selector .shelter-hint{width:100%;margin:4px 0 0}
+@media(max-width:600px){.journey-mode-btn{flex:1 1 calc(50% - 8px);padding:9px 5px;font-size:.8rem}}
+</style>
 </head>
 
 <body>
@@ -2625,7 +2654,7 @@ input, textarea, select { max-width:100%; min-width:0; }
                     <div id="rescuePinNavigation" class="rescue-pin-navigation" hidden style="margin-top:10px"></div>
                     <div class="shelter-integrated-panel"><h3><i class="fas fa-shield-heart" style="color:var(--primary)"></i> Verified Shelter Finder</h3><p class="shelter-hint">Search verified shelters, view their map pins, request directions or leave a review.</p><?php if ($shelterClientNotice !== ''): ?><div class="shelter-client-notice"><?php echo htmlspecialchars($shelterClientNotice,ENT_QUOTES,'UTF-8'); ?></div><?php endif; ?>
   <div class="shelter-finder-controls"><input type="search" id="shelterSearch" placeholder="Search shelter, city, province or animal type..." aria-label="Search shelters"><select id="shelterFilter" aria-label="Shelter filter"><option value="all">All verified shelters</option><option value="rescue">Rescue available</option><option value="slots">With available slots</option><option value="open">Open now</option></select><button type="button" class="btn btn-primary" id="locateShelterBtn"><i class="fas fa-location-crosshairs"></i> Find Near Me</button></div>
-  <div id="shelterJourneyStatus" class="shelter-journey-status" role="status" aria-live="polite">Tap <strong>Find Near Me</strong>, then select <strong>Navigate</strong> on a shelter to see the road route, estimated distance and travel time. GPS permission is required.</div>
+  <div id="shelterJourneyStatus" class="shelter-journey-status" role="status" aria-live="polite">Tap <strong>Find Near Me</strong>, choose a shelter, then tap <strong>Navigate Here</strong>. Route, directions, and location tracking stay inside PetRescue.</div>
   <p id="shelterLocationStatus" class="shelter-hint">Allow location access to rank shelters by distance. Shelters without GPS coordinates will still appear in the list.</p>
   <p class="shelter-hint">Select a shelter below to view it on the shared map beside the Rescue Report.</p><div class="shelter-finder-list" id="shelterFinderList" aria-live="polite"></div>
   <div class="shelter-review-panel" id="shelterReviewPanel" hidden><h3 id="shelterReviewTitle">Rate Shelter</h3><form method="post" action="client_dashboard.php#shelter_finder"><input type="hidden" name="submit_shelter_rating" value="1"><input type="hidden" name="shelter_csrf" value="<?php echo htmlspecialchars($_SESSION['shelter_client_csrf'],ENT_QUOTES,'UTF-8'); ?>"><input type="hidden" name="shelter_id" id="reviewShelterId"><label>Rating <select name="rating" required><option value="5">★★★★★ — 5</option><option value="4">★★★★ — 4</option><option value="3">★★★ — 3</option><option value="2">★★ — 2</option><option value="1">★ — 1</option></select></label><label>Review (optional)<textarea name="review" maxlength="1500" rows="3" placeholder="Share your experience with this shelter"></textarea></label><div style="display:flex;gap:12px"><button type="submit" class="btn btn-primary">Save Rating</button><button type="button" class="btn" onclick="document.getElementById('shelterReviewPanel').hidden=true">Cancel</button></div></form></div>
@@ -3648,56 +3677,263 @@ document.addEventListener('keydown',function(e){if(e.key==='Escape')closeLostPet
  }else{document.getElementById('shelterFinderMap').textContent='Map could not load. The shelter directory is still available.';}
  let journeyRouteControl=null;
  let journeyLocationMarker=null;
- function navigateToShelter(s){
-   const panel=document.getElementById('shelterJourneyStatus');
-   if(!valid(s)){
-     panel.textContent='This shelter has no verified GPS coordinates. Use Open Maps to search its address.';
-     panel.scrollIntoView({behavior:'smooth',block:'center'});
-     return;
+ let journeyWatchId=null;
+ let journeyDestination=null;
+ let journeyLastRouteAt=0;
+ let journeyLastRouteOrigin=null;
+ let journeyInstructions=[];
+ let journeyActiveStep=-1;
+ let journeyRouteGeometry=[];
+ let journeyVoiceEnabled=false;
+ let journeyTravelMode='car';
+ let journeyLastAnnouncement='';
+ let journeyPreviewMap=null;
+ let journeyPreviewMarker=null;
+ const journeyCanSpeak=('speechSynthesis' in window)&&('SpeechSynthesisUtterance' in window);
+ function journeySpeak(message){
+   if(!journeyVoiceEnabled||!journeyCanSpeak||!message)return;
+   try{window.speechSynthesis.cancel();const utterance=new SpeechSynthesisUtterance(message);utterance.lang='en-PH';utterance.rate=.92;utterance.pitch=1;window.speechSynthesis.speak(utterance);}catch(e){}
+ }
+ function journeyTurnText(step){return String(step?.text||'Continue on the road');}
+ function journeyShowCorner(step){
+   if(!step||!step.waypoint||!map)return;
+   const panel=document.getElementById('journeyCornerPreview');if(!panel)return;
+   panel.hidden=false;
+   if(!journeyPreviewMap){
+     journeyPreviewMap=L.map(panel,{zoomControl:true,scrollWheelZoom:false,attributionControl:true});
+     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap contributors'}).addTo(journeyPreviewMap);
    }
-   if(!userPosition){
-     panel.textContent='Tap Find Near Me and allow location access, then tap Navigate again.';
-     panel.scrollIntoView({behavior:'smooth',block:'center'});
-     return;
+   const pt=[step.waypoint.lat,step.waypoint.lng];
+   if(journeyPreviewMarker)journeyPreviewMarker.setLatLng(pt);
+   else journeyPreviewMarker=L.circleMarker(pt,{radius:9,color:'#f59e0b',fillColor:'#fbbf24',fillOpacity:1}).addTo(journeyPreviewMap);
+   journeyPreviewMap.setView(pt,18);
+   setTimeout(()=>journeyPreviewMap.invalidateSize(),120);
+ }
+ function journeyUpdateGuidance(){
+   if(!userPosition||!journeyInstructions.length||!map)return;
+   let nearestIndex=0,nearestDist=Infinity;
+   journeyRouteGeometry.forEach((point,i)=>{const d=metersBetween(userPosition,point);if(d<nearestDist){nearestDist=d;nearestIndex=i;}});
+   const upcoming=journeyInstructions.map((step,i)=>({...step,stepNumber:i})).find(step=>Number.isInteger(step.index)&&step.index>=nearestIndex+1)
+      ||journeyInstructions[journeyInstructions.length-1];
+   if(!upcoming)return;
+   const stepNumber=upcoming.stepNumber??journeyInstructions.length-1;
+   const point=upcoming.waypoint;
+   const distance=point?metersBetween(userPosition,point):null;
+   const instruction=journeyTurnText(upcoming);
+   const nextEl=document.getElementById('journeyNextTurn');
+   if(nextEl)nextEl.textContent=(distance!==null?(distance>=1000?(distance/1000).toFixed(1)+' km':Math.round(distance)+' m')+' to next instruction · ':'')+instruction;
+   if(stepNumber!==journeyActiveStep){
+     journeyActiveStep=stepNumber;
+     document.querySelectorAll('#journeySteps li').forEach((el,i)=>el.classList.toggle('journey-current-step',i===stepNumber));
+     journeyShowCorner(upcoming);
+     journeyLastAnnouncement='';
    }
-   if(!map||typeof L.Routing==='undefined'){
-     panel.textContent='In-page routing is unavailable. Use Open Maps for navigation.';
-     return;
+   if(journeyWatchId===null||distance===null)return;
+   let phase=null;
+   if(distance<=35)phase='now';else if(distance<=110)phase='100';else if(distance<=330)phase='300';
+   if(phase){
+     const key=stepNumber+':'+phase;
+     if(journeyLastAnnouncement!==key){
+       journeyLastAnnouncement=key;
+       const prefix=phase==='now'?'Now, ':phase==='100'?'In about 100 meters, ':'In about 300 meters, ';
+       journeySpeak(prefix+instruction);
+     }
    }
+ }
+
+ function journeyMakeModeSelector(){
+   const field=document.createElement('fieldset');field.className='journey-mode-selector';
+   const legend=document.createElement('legend');legend.textContent='How will you travel?';field.appendChild(legend);
+   [['car','🚗 Car'],['motorcycle','🏍️ Motorcycle'],['walk','🚶 Walk'],['train','🚆 Train / Transit']].forEach(([mode,label])=>{
+     const button=document.createElement('button');button.type='button';button.className='journey-mode-btn';
+     button.textContent=label;button.setAttribute('aria-pressed',String(journeyTravelMode===mode));
+     button.addEventListener('click',()=>{
+       if(mode==='train'){
+         const msg=document.getElementById('journeyModeNotice');
+         if(msg)msg.textContent='Train/transit routing needs a public-transit timetable and routing provider. It is not available inside PetRescue yet; no train route will be invented.';
+         return;
+       }
+       if(mode===journeyTravelMode)return;
+       journeyTravelMode=mode;
+       if(journeyDestination)journeyBuildRoute(journeyDestination,true);
+     });field.appendChild(button);
+   });
+   const note=document.createElement('p');note.id='journeyModeNotice';note.className='shelter-hint';
+   note.textContent='Motorcycle uses the car road network as an approximation. Walking requires a separate pedestrian routing service.';
+   field.appendChild(note);return field;
+ }
+ const journeyPanel=document.getElementById('shelterJourneyStatus');
+ const journeyMapEl=document.getElementById('shelterFinderMap');
+ const metersBetween=(a,b)=>map&&map.distance(L.latLng(a.lat,a.lng),L.latLng(b.lat,b.lng));
+ function journeyShowMessage(message){
+   journeyPanel.replaceChildren();
+   const p=document.createElement('p');p.textContent=message;journeyPanel.appendChild(p);
+ }
+ function journeyStopTracking(){
+   if(journeyWatchId!==null){navigator.geolocation.clearWatch(journeyWatchId);journeyWatchId=null;}
+   const button=document.getElementById('journeyTrackingButton');
+   if(button){button.textContent='Start live location';button.setAttribute('aria-pressed','false');}
+ }
+ function journeySetPosition(position){
+   userPosition={lat:position.coords.latitude,lng:position.coords.longitude};
+   if(map){
+     if(!journeyLocationMarker){
+       journeyLocationMarker=L.circleMarker([userPosition.lat,userPosition.lng],{radius:8,color:'#2563eb',weight:3,fillColor:'#60a5fa',fillOpacity:1}).addTo(map).bindPopup('Your current location');
+     }else journeyLocationMarker.setLatLng([userPosition.lat,userPosition.lng]);
+   }
+   if(journeyDestination){
+     const end={lat:Number(journeyDestination.latitude),lng:Number(journeyDestination.longitude)};
+     const remaining=metersBetween(userPosition,end);
+     const remainingEl=document.getElementById('journeyRemaining');
+     if(remainingEl)remainingEl.textContent=remaining<100?'You are near your destination':(remaining/1000).toFixed(1)+' km straight-line remaining (road distance may differ)';
+     if(journeyInstructions.length)journeyUpdateGuidance();
+     const now=Date.now();
+     if(journeyWatchId!==null&&now-journeyLastRouteAt>30000&&(!journeyLastRouteOrigin||metersBetween(userPosition,journeyLastRouteOrigin)>80)){
+       journeyLastRouteAt=now;
+       journeyBuildRoute(journeyDestination,false);
+     }
+   }
+ }
+ function journeyStartTracking(){
+   if(!navigator.geolocation){journeyShowMessage('Your browser does not support GPS location.');return;}
+   if(journeyWatchId!==null){journeyStopTracking();return;}
+   journeyWatchId=navigator.geolocation.watchPosition(journeySetPosition,err=>{
+     journeyStopTracking();
+     const msg=err.code===1?'Location permission was denied. Enable location access in your browser.':'Could not update your GPS position. Try again in an open area.';
+     const alert=document.getElementById('journeyTrackingMessage');
+     if(alert)alert.textContent=msg;
+   },{enableHighAccuracy:true,maximumAge:5000,timeout:15000});
+   const button=document.getElementById('journeyTrackingButton');
+   if(button){button.textContent='Stop live location';button.setAttribute('aria-pressed','true');}
+ }
+ function journeyRenderRoute(s,route){
+   journeyRouteGeometry=(route.coordinates||[]).map(p=>({lat:p.lat,lng:p.lng}));
+   journeyInstructions=(route.instructions||[]).map(step=>({...step,waypoint:route.coordinates?.[step.index]||null}));
+   journeyLastAnnouncement='';
+   journeyActiveStep=-1;
+   journeyPanel.replaceChildren();
+   const title=document.createElement('h4');title.textContent='Directions to '+s.shelter_name;journeyPanel.appendChild(title);
+   const summary=document.createElement('p');
+   summary.className='journey-route-summary';
+   const modeNames={car:'Car',motorcycle:'Motorcycle',walk:'Walking'};
+   summary.textContent=(route.summary.totalDistance/1000).toFixed(1)+' km · '+(journeyTravelMode==='motorcycle'?'Car-road estimate only; motorcycle restrictions and travel time may differ':('about '+Math.max(1,Math.round(route.summary.totalTime/60))+' min '+(journeyTravelMode==='walk'?'walking':'driving')+' estimate (no live traffic)'));
+   const modeNote=document.createElement('p');modeNote.className='shelter-hint';
+   modeNote.textContent='Travel mode: '+(modeNames[journeyTravelMode]||'Car')+'. Change mode below to calculate a different route.';
+   journeyPanel.appendChild(modeNote);
+   journeyPanel.appendChild(journeyMakeModeSelector());
+   journeyPanel.appendChild(summary);
+   const nextTurn=document.createElement('div');nextTurn.id='journeyNextTurn';nextTurn.className='journey-next-turn';
+   nextTurn.setAttribute('role','status');nextTurn.textContent='Finding your next turn...';journeyPanel.appendChild(nextTurn);
+   const previewTitle=document.createElement('h5');previewTitle.textContent='Upcoming intersection — street map preview';journeyPanel.appendChild(previewTitle);
+   const preview=document.createElement('div');preview.id='journeyCornerPreview';preview.className='journey-corner-preview';preview.hidden=true;journeyPanel.appendChild(preview);
+   if(journeyPreviewMap){journeyPreviewMap.remove();journeyPreviewMap=null;journeyPreviewMarker=null;}
+   const photoNote=document.createElement('p');photoNote.className='shelter-hint';photoNote.textContent='This is a zoomed street map, not a real street photograph. Road names and junctions depend on OpenStreetMap data.';journeyPanel.appendChild(photoNote);
+   const remaining=document.createElement('p');remaining.id='journeyRemaining';remaining.textContent='Follow the blue route on the map.';journeyPanel.appendChild(remaining);
+   const buttons=document.createElement('div');buttons.className='journey-buttons';
+   const tracking=document.createElement('button');tracking.type='button';tracking.id='journeyTrackingButton';tracking.className='btn btn-primary';
+   tracking.textContent=journeyWatchId!==null?'Stop live location':'Start live location';
+   tracking.setAttribute('aria-pressed',journeyWatchId!==null?'true':'false');
+   tracking.addEventListener('click',journeyStartTracking);buttons.appendChild(tracking);
+   const center=document.createElement('button');center.type='button';center.className='btn btn-outline';center.textContent='Center my location';
+   center.addEventListener('click',()=>{if(userPosition&&map)map.setView([userPosition.lat,userPosition.lng],Math.max(15,map.getZoom()));});
+   buttons.appendChild(center);
+   const stop=document.createElement('button');stop.type='button';stop.className='btn btn-outline';stop.textContent='End route';
+   stop.addEventListener('click',()=>{
+     journeyStopTracking();journeyDestination=null;journeyInstructions=[];journeyRouteGeometry=[];
+     if(journeyCanSpeak)window.speechSynthesis.cancel();
+     if(journeyPreviewMap){journeyPreviewMap.remove();journeyPreviewMap=null;journeyPreviewMarker=null;}
+     if(journeyRouteControl){map.removeControl(journeyRouteControl);journeyRouteControl=null;}
+     journeyShowMessage('Navigation ended. Select Navigate Here on a shelter to start again.');
+   });buttons.appendChild(stop);
+   const voice=document.createElement('button');voice.type='button';voice.className='btn btn-outline';voice.id='journeyVoiceButton';
+   voice.textContent=journeyCanSpeak?(journeyVoiceEnabled?'Voice: On':'Voice: Off'):'Voice not supported';voice.disabled=!journeyCanSpeak;
+   voice.addEventListener('click',()=>{journeyVoiceEnabled=!journeyVoiceEnabled;voice.textContent=journeyVoiceEnabled?'Voice: On':'Voice: Off';
+     if(journeyVoiceEnabled)journeySpeak('Voice guidance enabled. Start live location to hear upcoming turns.');
+     else if(journeyCanSpeak)window.speechSynthesis.cancel();});
+   buttons.appendChild(voice);
+   journeyPanel.appendChild(buttons);
+   const trackingMessage=document.createElement('p');trackingMessage.id='journeyTrackingMessage';trackingMessage.className='shelter-hint';
+   trackingMessage.textContent='Start live location and turn Voice On to hear turn alerts. Keep this page open, allow GPS access and enable sound. Voice and GPS depend on your browser.';
+   journeyPanel.appendChild(trackingMessage);
+   const heading=document.createElement('h5');heading.textContent='Step-by-step directions';journeyPanel.appendChild(heading);
+   const steps=document.createElement('ol');steps.id='journeySteps';steps.className='journey-steps';
+   if(!journeyInstructions.length){
+     const li=document.createElement('li');li.textContent='Route is shown on the map, but detailed road instructions are unavailable.';steps.appendChild(li);
+   }else{
+     journeyInstructions.forEach(step=>{
+       const li=document.createElement('li');
+       const road=step.road?' onto '+step.road:'';
+       const distance=Number.isFinite(step.distance)?' · '+(step.distance>=1000?(step.distance/1000).toFixed(1)+' km':Math.round(step.distance)+' m'):'';
+       li.textContent=(step.text||'Continue')+(!step.text?.includes(step.road||'')?road:'')+distance;
+       li.addEventListener('click',()=>journeyShowCorner(step));
+       li.style.cursor='pointer';li.title='Preview this intersection';
+       steps.appendChild(li);
+     });
+   }
+   journeyPanel.appendChild(steps);
+   journeySetPosition({coords:{latitude:userPosition.lat,longitude:userPosition.lng}});
+   if(journeyInstructions.length)journeyShowCorner(journeyInstructions[0]);
+ }
+ function journeyBuildRoute(s,focus=true){
+   if(!map||typeof L.Routing==='undefined'){journeyShowMessage('Road routing service is temporarily unavailable. Please try again later.');return;}
+   if(!userPosition)return;
    if(journeyRouteControl){map.removeControl(journeyRouteControl);journeyRouteControl=null;}
    if(routeControl){map.removeControl(routeControl);routeControl=null;}
-   const start=L.latLng(userPosition.lat,userPosition.lng);
-   const end=L.latLng(Number(s.latitude),Number(s.longitude));
-   panel.textContent='Calculating the driving route to '+s.shelter_name+'...';
-   try {
-     journeyRouteControl=L.Routing.control({
-       waypoints:[start,end],routeWhileDragging:false,addWaypoints:false,
-       draggableWaypoints:false,showAlternatives:false,fitSelectedRoutes:true,
+   journeyLastRouteOrigin={...userPosition};
+   journeyLastRouteAt=Date.now();
+   if(focus)journeyShowMessage('Calculating '+journeyTravelMode+' route inside PetRescue to '+s.shelter_name+'...');
+   try{
+     const routingService=journeyTravelMode==='walk'
+       ?L.Routing.osrmv1({serviceUrl:'https://routing.openstreetmap.de/routed-foot/route/v1',profile:'foot'})
+       :L.Routing.osrmv1({serviceUrl:'https://router.project-osrm.org/route/v1',profile:'driving'});
+     const control=L.Routing.control({
+       router:routingService,
+       waypoints:[L.latLng(userPosition.lat,userPosition.lng),L.latLng(Number(s.latitude),Number(s.longitude))],
+       routeWhileDragging:false,addWaypoints:false,draggableWaypoints:false,
+       showAlternatives:false,fitSelectedRoutes:focus,
        createMarker:()=>null,
        lineOptions:{styles:[{color:'#2563eb',opacity:.95,weight:6}]}
      }).addTo(map);
-     journeyRouteControl.on('routesfound',e=>{
-       const r=e.routes&&e.routes[0];if(!r)return;
-       const kmRoad=(r.summary.totalDistance/1000).toFixed(1);
-       const mins=Math.max(1,Math.round(r.summary.totalTime/60));
-       panel.replaceChildren();
-       const info=document.createElement('p');
-       info.textContent='Route to '+s.shelter_name+': '+kmRoad+' km by road · about '+mins+' min estimated driving (no live traffic).';
-       panel.appendChild(info);
-       const link=document.createElement('a');link.className='btn btn-primary';
-       link.href='https://www.google.com/maps/dir/?api=1&origin='+encodeURIComponent(userPosition.lat+','+userPosition.lng)+'&destination='+encodeURIComponent(s.latitude+','+s.longitude)+'&travelmode=driving';
-       link.target='_blank';link.rel='noopener noreferrer';link.textContent='Start turn-by-turn navigation';panel.appendChild(link);
+     journeyRouteControl=control;
+     control.on('routesfound',e=>{
+       if(journeyRouteControl!==control)return;
+       const r=e.routes&&e.routes[0];
+       if(r)journeyRenderRoute(s,r);
+       else journeyShowMessage('No road route was returned for this shelter.');
      });
-     journeyRouteControl.on('routingerror',()=>{panel.textContent='Road routing failed. Use Open Maps to get directions.';});
-     document.getElementById('shelterFinderMap').scrollIntoView({behavior:'smooth',block:'center'});
-     setTimeout(()=>map.invalidateSize(),300);
-   }catch(e){panel.textContent='Unable to display the road route. Use Open Maps instead.';}
+     control.on('routingerror',()=>{
+       if(journeyRouteControl===control){journeyShowMessage('This '+journeyTravelMode+' route is unavailable right now. Try another travel mode or shelter.');journeyPanel.appendChild(journeyMakeModeSelector());}
+     });
+     if(focus){
+       journeyMapEl.scrollIntoView({behavior:'smooth',block:'center'});
+       setTimeout(()=>map.invalidateSize(),350);
+     }
+   }catch(e){journeyShowMessage('Could not display a route. Please try again.');}
+ }
+ function navigateToShelter(s){
+   if(!valid(s)){
+     journeyShowMessage('This shelter has no verified GPS coordinates, so in-app navigation is unavailable.');
+     journeyPanel.scrollIntoView({behavior:'smooth',block:'center'});return;
+   }
+   if(!userPosition){
+     journeyShowMessage('Tap Find Near Me first and allow location access, then select Navigate Here.');
+     document.getElementById('locateShelterBtn').scrollIntoView({behavior:'smooth',block:'center'});return;
+   }
+   journeyStopTracking();
+   journeyDestination=s;
+   journeyPanel.replaceChildren();
+   const title=document.createElement('h4');title.textContent='Directions to '+s.shelter_name;journeyPanel.appendChild(title);
+   const intro=document.createElement('p');intro.textContent='Choose how you will travel. Your route will appear here on the PetRescue map.';journeyPanel.appendChild(intro);
+   journeyPanel.appendChild(journeyMakeModeSelector());
+   const go=document.createElement('button');go.type='button';go.className='btn btn-primary';go.textContent='Show route in PetRescue';
+   go.addEventListener('click',()=>journeyBuildRoute(s,true));journeyPanel.appendChild(go);
+   journeyPanel.scrollIntoView({behavior:'smooth',block:'center'});
  }
  function render(){const q=search.value.toLowerCase().trim(),f=filter.value;const rows=shelters.filter(s=>(!q||[s.shelter_name,s.address,s.city,s.province,s.animal_types,s.description].join(' ').toLowerCase().includes(q))&&(f!=='rescue'||Number(s.rescue_available)===1)&&(f!=='slots'||Number(s.available_slots)>0)&&(f!=='open'||hoursStatus(s).open)).sort((a,b)=>userPosition?score(b)-score(a):a.shelter_name.localeCompare(b.shelter_name));
   if(map){markers.forEach(m=>map.removeLayer(m));markers=[];}
   list.innerHTML=rows.length?'':'<div class="shelter-finder-card">No verified shelters match your search. Ask the admin to add and approve shelters.</div>';
   rows.forEach((s,i)=>{const d=km(s), rating=s.average_rating===null?'Not rated yet':Number(s.average_rating).toFixed(1)+' / 5 ('+Number(s.rating_count)+' reviews)', location=[s.address,s.city,s.province].filter(Boolean).join(', '),maps=valid(s)?'https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(s.latitude+','+s.longitude):'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(location+', Philippines');
-   const h=hoursStatus(s);const card=document.createElement('article');card.className='shelter-finder-card';card.innerHTML='<h3>'+esc(s.shelter_name)+'</h3><p><i class="fas fa-location-dot"></i> '+esc(location)+'</p><p>⭐ '+esc(rating)+(d!==null?' · <strong>'+d.toFixed(1)+' km away</strong>':'')+'</p><p><strong>'+(Number(s.rescue_available)?'Rescue available':'Rescue unavailable')+'</strong> · '+Number(s.available_slots)+' / '+Number(s.capacity)+' available slots</p><p><span class="shelter-client-hours '+(h.open?'is-open':'is-closed')+'">'+esc(h.label)+'</span> · Today: '+esc(h.today)+'</p><details class="shelter-week-details"><summary>View weekly office hours</summary><div>'+h.week.map(v=>'<p>'+esc(v)+'</p>').join('')+'</div></details><p>'+esc(s.animal_types||'Animal types not specified')+'</p><div class="shelter-service-tags"><strong>Available Services</strong><div>'+String(s.description||'').split(/\s*,\s*/).filter(Boolean).map(service=>'<span class="shelter-service-tag"><i class="fas fa-circle-check"></i> '+esc(service)+'</span>').join('')+'</div></div><p>'+esc(s.contact_number||'')+(s.contact_email?' · '+esc(s.contact_email):'')+'</p><div class="shelter-card-actions"><a href="'+esc(maps)+'" target="_blank" rel="noopener noreferrer">Open Maps</a><button type="button" data-navigate="'+Number(s.id)+'">Navigate</button><button type="button" data-rate="'+Number(s.id)+'">Rate / Review</button>'+(valid(s)?'<button type="button" data-show="'+Number(s.id)+'">Show on Map</button><button type="button" data-route="'+Number(s.id)+'">Route to Rescue</button>':'')+'</div>';
+   const h=hoursStatus(s);const card=document.createElement('article');card.className='shelter-finder-card';card.innerHTML='<h3>'+esc(s.shelter_name)+'</h3><p><i class="fas fa-location-dot"></i> '+esc(location)+'</p><p>⭐ '+esc(rating)+(d!==null?' · <strong>'+d.toFixed(1)+' km away</strong>':'')+'</p><p><strong>'+(Number(s.rescue_available)?'Rescue available':'Rescue unavailable')+'</strong> · '+Number(s.available_slots)+' / '+Number(s.capacity)+' available slots</p><p><span class="shelter-client-hours '+(h.open?'is-open':'is-closed')+'">'+esc(h.label)+'</span> · Today: '+esc(h.today)+'</p><details class="shelter-week-details"><summary>View weekly office hours</summary><div>'+h.week.map(v=>'<p>'+esc(v)+'</p>').join('')+'</div></details><p>'+esc(s.animal_types||'Animal types not specified')+'</p><div class="shelter-service-tags"><strong>Available Services</strong><div>'+String(s.description||'').split(/\s*,\s*/).filter(Boolean).map(service=>'<span class="shelter-service-tag"><i class="fas fa-circle-check"></i> '+esc(service)+'</span>').join('')+'</div></div><p>'+esc(s.contact_number||'')+(s.contact_email?' · '+esc(s.contact_email):'')+'</p><div class="shelter-card-actions"><a href="'+esc(maps)+'" target="_blank" rel="noopener noreferrer">Open Maps</a><button type="button" data-navigate="'+Number(s.id)+'">Navigate Here</button><button type="button" data-rate="'+Number(s.id)+'">Rate / Review</button>'+(valid(s)?'<button type="button" data-show="'+Number(s.id)+'">Show on Map</button><button type="button" data-route="'+Number(s.id)+'">Route to Rescue</button>':'')+'</div>';
    list.appendChild(card);
    if(map&&valid(s)){const m=L.marker([Number(s.latitude),Number(s.longitude)]).addTo(map).bindPopup('<strong>'+esc(s.shelter_name)+'</strong><div>'+esc(s.city+', '+s.province)+'</div>');markers.push(m);card.querySelector('[data-show]')?.addEventListener('click',()=>{map.setView(m.getLatLng(),13);m.openPopup();document.getElementById('shelterFinderMap').scrollIntoView({behavior:'smooth',block:'center'});});}
    card.querySelector('[data-route]')?.addEventListener('click',()=>routeToShelter(s));
@@ -3706,7 +3942,7 @@ document.addEventListener('keydown',function(e){if(e.key==='Escape')closeLostPet
   });
  }
  search.addEventListener('input',render);filter.addEventListener('change',render);
- document.getElementById('locateShelterBtn').addEventListener('click',()=>{if(!navigator.geolocation){status.textContent='Location is not supported by this browser.';return;}status.textContent='Requesting your location...';navigator.geolocation.getCurrentPosition(p=>{userPosition={lat:p.coords.latitude,lng:p.coords.longitude};status.textContent='Nearby shelters are now ranked by location, rescue availability, available slots and ratings.';if(map){if(journeyLocationMarker)map.removeLayer(journeyLocationMarker);journeyLocationMarker=L.circleMarker([userPosition.lat,userPosition.lng],{radius:8,color:'#2563eb',fillColor:'#2563eb',fillOpacity:1}).addTo(map).bindPopup('Your approximate location');map.setView([userPosition.lat,userPosition.lng],10);}render();},()=>{status.textContent='Location access was denied or unavailable. You can still search all verified shelters.';},{enableHighAccuracy:false,timeout:12000,maximumAge:300000});});
+ document.getElementById('locateShelterBtn').addEventListener('click',()=>{if(!navigator.geolocation){status.textContent='Location is not supported by this browser.';return;}status.textContent='Requesting your location...';navigator.geolocation.getCurrentPosition(p=>{userPosition={lat:p.coords.latitude,lng:p.coords.longitude};status.textContent='Nearby shelters are now ranked by location, rescue availability, available slots and ratings.';journeySetPosition(p);if(map){map.setView([userPosition.lat,userPosition.lng],10);map.invalidateSize();}render();},()=>{status.textContent='Location access was denied or unavailable. You can still search all verified shelters.';},{enableHighAccuracy:false,timeout:12000,maximumAge:300000});});
  document.getElementById('detected-address')?.addEventListener('input',()=>{document.getElementById('lat').value='';document.getElementById('lon').value='';});
  document.getElementById('lost-last-seen')?.addEventListener('input',()=>{document.getElementById('lost-lat').value='';document.getElementById('lost-lon').value='';});
  render();setInterval(render,60000);setTimeout(()=>map&&map.invalidateSize(),300);
