@@ -1599,6 +1599,76 @@ input, textarea, select { max-width:100%; min-width:0; }
 .journey-mode-selector .shelter-hint{width:100%;margin:4px 0 0}
 @media(max-width:600px){.journey-mode-btn{flex:1 1 calc(50% - 8px);padding:9px 5px;font-size:.8rem}}
 </style>
+
+<style id="rescue-shelter-clean-layout-v8">
+/* Shelter controls + route instructions in the left panel, map alone on the right. */
+#report_stray .rescue-workspace {
+  grid-template-columns:minmax(0,1fr) minmax(0,1.08fr);
+  max-width:1350px;
+  gap:20px;
+  align-items:start;
+}
+#report_stray .rescue-form-card,
+#report_stray .rescue-assist-card {min-width:0;padding:clamp(16px,2vw,26px)}
+#report_stray .rescue-form-card h3 {margin-bottom:14px}
+#report_stray .rescue-assist-card {
+  position:sticky;
+  top:92px;
+  align-self:start;
+  gap:12px;
+}
+#report_stray .shelter-integrated-panel {
+  margin-top:24px;
+  padding-top:20px;
+  border-top:1px solid var(--border-color);
+}
+#report_stray .shelter-integrated-panel > h3 {margin-bottom:12px;font-size:1.12rem}
+#report_stray .shelter-finder-controls {
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(140px,.8fr);
+  gap:8px;
+  margin:10px 0;
+}
+#report_stray .shelter-finder-controls input,
+#report_stray .shelter-finder-controls select {width:100%;min-width:0;min-height:43px;font-size:.87rem}
+#report_stray #locateShelterBtn {grid-column:1/-1;width:100%;padding:11px}
+#report_stray .shelter-journey-status {
+  padding:12px;
+  border-radius:12px;
+  background:var(--bg-main);
+  border:1px solid var(--border-color);
+  max-width:100%;
+  overflow-wrap:anywhere;
+}
+#report_stray .shelter-journey-status p {margin:5px 0}
+#report_stray .shelter-finder-list {max-height:390px;overflow-y:auto;gap:9px}
+#report_stray .shelter-finder-card {padding:12px;border-radius:12px}
+#report_stray .shelter-finder-card p {margin:3px 0}
+#report_stray #shelterFinderMap {
+  width:100%;
+  height:min(68vh,680px);
+  min-height:420px;
+  border-radius:14px;
+}
+#report_stray .rescue-assist-heading h3 {font-size:1.15rem}
+#report_stray .rescue-assist-icon {width:40px;height:40px;font-size:18px;border-radius:12px}
+#report_stray .rescue-assist-footer {margin-top:0;padding:9px 11px;font-size:.78rem}
+#report_stray #rescueRouteStatus:empty {display:none}
+#report_stray #shelterJourneyStatus .journey-steps {max-height:220px}
+#report_stray #journeyCornerPreview {max-width:100%}
+@media(max-width:850px) {
+  #report_stray .rescue-workspace {grid-template-columns:minmax(0,1fr);gap:16px}
+  #report_stray .rescue-assist-card {position:static}
+  #report_stray #shelterFinderMap {height:360px;min-height:300px}
+  #report_stray .shelter-finder-controls {grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+}
+@media(max-width:450px) {
+  #report_stray .rescue-form-card,#report_stray .rescue-assist-card {padding:14px}
+  #report_stray .shelter-finder-controls {grid-template-columns:minmax(0,1fr)}
+  #report_stray .shelter-finder-controls button {grid-column:1}
+  #report_stray #shelterFinderMap {height:320px;min-height:280px}
+}
+</style>
 </head>
 
 <body>
@@ -2612,7 +2682,7 @@ input, textarea, select { max-width:100%; min-width:0; }
     <section id="report_stray" class="bg-white">
         <div class="container">
             <h2 class="section-title text-center"><i class="fas fa-camera" style="color:var(--primary);"></i> Report an Emergency Stray</h2>
-            <p class="section-subtitle text-center">Help us rescue animals in immediate danger. Fill in the rescue report on the left and pin the animal’s location on the map beside it. Verified shelters can preview a road route to the selected location.</p>
+            <p class="section-subtitle text-center">Report a stray, find a verified shelter, and navigate using the map.</p>
             
             <?php if($stray_success) echo "<div class='alert alert-success'><i class='fas fa-check-circle'></i> $stray_success</div>"; ?>
             
@@ -2621,13 +2691,13 @@ input, textarea, select { max-width:100%; min-width:0; }
                     <h3><i class="fas fa-clipboard-list" style="color:var(--primary)"></i> Rescue Report Details</h3>
                     <form method="POST" enctype="multipart/form-data" action="">
                         <div class="rescue-step"><span class="rescue-step-number">01</span> Add a clear photo</div>
-                        <p class="rescue-help">Show the animal and its surroundings so responders can recognize the situation.</p>
+                        <p class="rescue-help">Include the animal and nearby landmarks.</p>
                         <div class="form-group">
                             <label for="stray-report-photo">Visual Evidence (Photo)</label>
                             <input id="stray-report-photo" class="rescue-photo-input" type="file" name="stray_photo" accept="image/*" required>
                         </div>
                         <div class="rescue-step"><span class="rescue-step-number">02</span> Confirm the rescue location</div>
-                        <p class="rescue-help">Use GPS if you are at the scene, or open the Smart Map to pin the animal's actual location.</p>
+                        <p class="rescue-help">Use GPS or pin the location on the map.</p>
                         <button type="button" class="btn btn-secondary" style="width:100%;margin-bottom:14px" onclick="getDetailedLocation(this)"><i class="fas fa-crosshairs"></i> Use My Current Location</button>
                         <div class="form-group">
                             <label for="detected-address">Rescue Location / Address</label>
@@ -2635,13 +2705,20 @@ input, textarea, select { max-width:100%; min-width:0; }
                         </div>
                         <input type="hidden" name="lat" id="lat"><input type="hidden" name="lon" id="lon">
                         <div class="rescue-step"><span class="rescue-step-number">03</span> Describe the situation</div>
-                        <p class="rescue-help">Include visible injuries, behavior, nearby landmarks, and any immediate danger.</p>
+                        <p class="rescue-help">Describe the animal’s condition and any danger.</p>
                         <div class="form-group">
                             <label for="stray-report-description">Condition Notes</label>
                             <textarea id="stray-report-description" name="description" rows="4" placeholder="Example: Injured dog near the corner store, unable to walk..." required></textarea>
                         </div>
                         <button type="submit" name="submit_stray" class="btn btn-primary" style="width:100%">Submit Rescue Request <i class="fas fa-paper-plane"></i></button>
                     </form>
+                    <div class="shelter-integrated-panel"><h3><i class="fas fa-shield-heart" style="color:var(--primary)"></i> Verified Shelter Finder</h3><?php if ($shelterClientNotice !== ''): ?><div class="shelter-client-notice"><?php echo htmlspecialchars($shelterClientNotice,ENT_QUOTES,'UTF-8'); ?></div><?php endif; ?>
+  <div class="shelter-finder-controls"><input type="search" id="shelterSearch" placeholder="Search shelter, city, province or animal type..." aria-label="Search shelters"><select id="shelterFilter" aria-label="Shelter filter"><option value="all">All verified shelters</option><option value="rescue">Rescue available</option><option value="slots">With available slots</option><option value="open">Open now</option></select><button type="button" class="btn btn-primary" id="locateShelterBtn"><i class="fas fa-location-crosshairs"></i> Find Near Me</button></div>
+  <div id="shelterJourneyStatus" class="shelter-journey-status" role="status" aria-live="polite">Select a shelter and tap <strong>Navigate Here</strong> to start.</div>
+  <p id="shelterLocationStatus" class="shelter-hint">Enable location to see nearby shelters.</p>
+  <div class="shelter-finder-list" id="shelterFinderList" aria-live="polite"></div>
+  <div class="shelter-review-panel" id="shelterReviewPanel" hidden><h3 id="shelterReviewTitle">Rate Shelter</h3><form method="post" action="client_dashboard.php#shelter_finder"><input type="hidden" name="submit_shelter_rating" value="1"><input type="hidden" name="shelter_csrf" value="<?php echo htmlspecialchars($_SESSION['shelter_client_csrf'],ENT_QUOTES,'UTF-8'); ?>"><input type="hidden" name="shelter_id" id="reviewShelterId"><label>Rating <select name="rating" required><option value="5">★★★★★ — 5</option><option value="4">★★★★ — 4</option><option value="3">★★★ — 3</option><option value="2">★★ — 2</option><option value="1">★ — 1</option></select></label><label>Review (optional)<textarea name="review" maxlength="1500" rows="3" placeholder="Share your experience with this shelter"></textarea></label><div style="display:flex;gap:12px"><button type="submit" class="btn btn-primary">Save Rating</button><button type="button" class="btn" onclick="document.getElementById('shelterReviewPanel').hidden=true">Cancel</button></div></form></div>
+</div>
                 </div>
                 <aside id="shelter_finder" class="rescue-assist-card" aria-label="Rescue report assistance and verified shelters">
                     <div class="rescue-assist-heading">
@@ -2649,17 +2726,11 @@ input, textarea, select { max-width:100%; min-width:0; }
                         <div><h3>Location &amp; Rescue Guide</h3></div>
                     </div>
                     <div id="shelterFinderMap" role="region" aria-label="Rescue location and verified shelter map"></div>
-                    <div id="smartMapModeInfo" class="shelter-hint" role="status" aria-live="polite">Click the map to pin the rescue location. Tap the pin to see the route.</div>
-                    <div id="rescueRouteStatus" role="status" aria-live="polite" class="shelter-hint">After selecting a location, the nearest verified rescue-ready shelter route will appear here.</div>
+                    <div id="smartMapModeInfo" class="shelter-hint" role="status" aria-live="polite">Tap the map to mark a rescue location.</div>
+                    <div id="rescueRouteStatus" role="status" aria-live="polite" class="shelter-hint"></div>
                     <div id="rescuePinNavigation" class="rescue-pin-navigation" hidden style="margin-top:10px"></div>
-                    <div class="shelter-integrated-panel"><h3><i class="fas fa-shield-heart" style="color:var(--primary)"></i> Verified Shelter Finder</h3><p class="shelter-hint">Search verified shelters, view their map pins, request directions or leave a review.</p><?php if ($shelterClientNotice !== ''): ?><div class="shelter-client-notice"><?php echo htmlspecialchars($shelterClientNotice,ENT_QUOTES,'UTF-8'); ?></div><?php endif; ?>
-  <div class="shelter-finder-controls"><input type="search" id="shelterSearch" placeholder="Search shelter, city, province or animal type..." aria-label="Search shelters"><select id="shelterFilter" aria-label="Shelter filter"><option value="all">All verified shelters</option><option value="rescue">Rescue available</option><option value="slots">With available slots</option><option value="open">Open now</option></select><button type="button" class="btn btn-primary" id="locateShelterBtn"><i class="fas fa-location-crosshairs"></i> Find Near Me</button></div>
-  <div id="shelterJourneyStatus" class="shelter-journey-status" role="status" aria-live="polite">Tap <strong>Find Near Me</strong>, choose a shelter, then tap <strong>Navigate Here</strong>. Route, directions, and location tracking stay inside PetRescue.</div>
-  <p id="shelterLocationStatus" class="shelter-hint">Allow location access to rank shelters by distance. Shelters without GPS coordinates will still appear in the list.</p>
-  <p class="shelter-hint">Select a shelter below to view it on the shared map beside the Rescue Report.</p><div class="shelter-finder-list" id="shelterFinderList" aria-live="polite"></div>
-  <div class="shelter-review-panel" id="shelterReviewPanel" hidden><h3 id="shelterReviewTitle">Rate Shelter</h3><form method="post" action="client_dashboard.php#shelter_finder"><input type="hidden" name="submit_shelter_rating" value="1"><input type="hidden" name="shelter_csrf" value="<?php echo htmlspecialchars($_SESSION['shelter_client_csrf'],ENT_QUOTES,'UTF-8'); ?>"><input type="hidden" name="shelter_id" id="reviewShelterId"><label>Rating <select name="rating" required><option value="5">★★★★★ — 5</option><option value="4">★★★★ — 4</option><option value="3">★★★ — 3</option><option value="2">★★ — 2</option><option value="1">★ — 1</option></select></label><label>Review (optional)<textarea name="review" maxlength="1500" rows="3" placeholder="Share your experience with this shelter"></textarea></label><div style="display:flex;gap:12px"><button type="submit" class="btn btn-primary">Save Rating</button><button type="button" class="btn" onclick="document.getElementById('shelterReviewPanel').hidden=true">Cancel</button></div></form></div>
-</div>
-                    <div class="rescue-assist-footer"><i class="fas fa-circle-info" style="margin-right:7px"></i>Confirm the address in the form before submitting. The map shows estimated routes, not live traffic.</div>
+
+                    <div class="rescue-assist-footer"><i class="fas fa-circle-info" style="margin-right:7px"></i>Map routes are estimates; verify road conditions.</div>
                 </aside>
             </div>
         </div>
@@ -3689,6 +3760,9 @@ document.addEventListener('keydown',function(e){if(e.key==='Escape')closeLostPet
  let journeyLastAnnouncement='';
  let journeyPreviewMap=null;
  let journeyPreviewMarker=null;
+ let journeyPreviewRouteLayer=null;
+ let journeyPreviewDirectionMarker=null;
+ let journeyPreviewStartMarker=null;
  const journeyCanSpeak=('speechSynthesis' in window)&&('SpeechSynthesisUtterance' in window);
  function journeySpeak(message){
    if(!journeyVoiceEnabled||!journeyCanSpeak||!message)return;
@@ -3703,11 +3777,56 @@ document.addEventListener('keydown',function(e){if(e.key==='Escape')closeLostPet
      journeyPreviewMap=L.map(panel,{zoomControl:true,scrollWheelZoom:false,attributionControl:true});
      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap contributors'}).addTo(journeyPreviewMap);
    }
+   if(journeyPreviewRouteLayer)journeyPreviewMap.removeLayer(journeyPreviewRouteLayer);
+   if(journeyPreviewMarker)journeyPreviewMap.removeLayer(journeyPreviewMarker);
+   if(journeyPreviewDirectionMarker)journeyPreviewMap.removeLayer(journeyPreviewDirectionMarker);
+   if(journeyPreviewStartMarker)journeyPreviewMap.removeLayer(journeyPreviewStartMarker);
+   journeyPreviewRouteLayer=null;journeyPreviewMarker=null;journeyPreviewDirectionMarker=null;journeyPreviewStartMarker=null;
    const pt=[step.waypoint.lat,step.waypoint.lng];
-   if(journeyPreviewMarker)journeyPreviewMarker.setLatLng(pt);
-   else journeyPreviewMarker=L.circleMarker(pt,{radius:9,color:'#f59e0b',fillColor:'#fbbf24',fillOpacity:1}).addTo(journeyPreviewMap);
-   journeyPreviewMap.setView(pt,18);
-   setTimeout(()=>journeyPreviewMap.invalidateSize(),120);
+   const route=journeyRouteGeometry;
+   if(route.length>=2){
+     // Use the actual road geometry, not a straight line across buildings.
+     let turnIndex=Number.isInteger(step.index)?Math.max(0,Math.min(route.length-1,step.index)):-1;
+     if(turnIndex<0){
+       let nearest=Infinity;
+       route.forEach((p,i)=>{const d=metersBetween(p,step.waypoint);if(d<nearest){nearest=d;turnIndex=i;}});
+     }
+     let first=turnIndex,last=turnIndex,covered=0;
+     while(first>0&&covered<145){
+       covered+=metersBetween(route[first],route[first-1]);first--;
+     }
+     covered=0;
+     while(last<route.length-1&&covered<190){
+       covered+=metersBetween(route[last],route[last+1]);last++;
+     }
+     if(last-first<2){first=Math.max(0,turnIndex-2);last=Math.min(route.length-1,turnIndex+2);}
+     const segment=route.slice(first,last+1).map(p=>[p.lat,p.lng]);
+     const group=L.layerGroup().addTo(journeyPreviewMap);
+     L.polyline(segment,{color:'#fff',weight:12,opacity:.95,lineCap:'round',lineJoin:'round'}).addTo(group);
+     L.polyline(segment,{color:'#2563eb',weight:7,opacity:1,lineCap:'round',lineJoin:'round'}).addTo(group);
+     journeyPreviewRouteLayer=group;
+     journeyPreviewStartMarker=L.circleMarker(segment[0],{radius:7,color:'#fff',weight:3,fillColor:'#16a34a',fillOpacity:1})
+       .bindTooltip('Approach from here').addTo(journeyPreviewMap);
+     const nextPoint=route[Math.min(route.length-1,turnIndex+Math.max(1,Math.min(4,last-turnIndex)))];
+     const from=route[turnIndex];
+     if(nextPoint&&metersBetween(from,nextPoint)>1){
+       const angle=Math.atan2(nextPoint.lng-from.lng,nextPoint.lat-from.lat)*180/Math.PI;
+       const arrow=L.divIcon({className:'journey-route-arrow-icon',html:'<span style="display:flex;align-items:center;justify-content:center;width:34px;height:34px;border:3px solid white;border-radius:50%;background:#2563eb;color:white;font-weight:900;font-size:23px;transform:rotate('+angle+'deg);box-shadow:0 2px 9px #0007">↑</span>',iconSize:[34,34],iconAnchor:[17,17]});
+       journeyPreviewDirectionMarker=L.marker([nextPoint.lat,nextPoint.lng],{icon:arrow,interactive:false}).addTo(journeyPreviewMap);
+     }
+     journeyPreviewMarker=L.circleMarker(pt,{radius:8,color:'#fff',weight:3,fillColor:'#f59e0b',fillOpacity:1})
+       .bindTooltip('Turn here: '+journeyTurnText(step)).addTo(journeyPreviewMap);
+     const bounds=L.latLngBounds(segment);
+     setTimeout(()=>{
+       if(!journeyPreviewMap)return;
+       journeyPreviewMap.invalidateSize();
+       journeyPreviewMap.fitBounds(bounds,{padding:[38,38],maxZoom:18});
+     },120);
+   }else{
+     journeyPreviewMarker=L.circleMarker(pt,{radius:9,color:'#fff',weight:3,fillColor:'#f59e0b',fillOpacity:1}).addTo(journeyPreviewMap);
+     journeyPreviewMap.setView(pt,17);
+     setTimeout(()=>journeyPreviewMap&&journeyPreviewMap.invalidateSize(),120);
+   }
  }
  function journeyUpdateGuidance(){
    if(!userPosition||!journeyInstructions.length||!map)return;
@@ -3826,8 +3945,8 @@ document.addEventListener('keydown',function(e){if(e.key==='Escape')closeLostPet
    nextTurn.setAttribute('role','status');nextTurn.textContent='Finding your next turn...';journeyPanel.appendChild(nextTurn);
    const previewTitle=document.createElement('h5');previewTitle.textContent='Upcoming intersection — street map preview';journeyPanel.appendChild(previewTitle);
    const preview=document.createElement('div');preview.id='journeyCornerPreview';preview.className='journey-corner-preview';preview.hidden=true;journeyPanel.appendChild(preview);
-   if(journeyPreviewMap){journeyPreviewMap.remove();journeyPreviewMap=null;journeyPreviewMarker=null;}
-   const photoNote=document.createElement('p');photoNote.className='shelter-hint';photoNote.textContent='This is a zoomed street map, not a real street photograph. Road names and junctions depend on OpenStreetMap data.';journeyPanel.appendChild(photoNote);
+   if(journeyPreviewMap){journeyPreviewMap.remove();journeyPreviewMap=null;journeyPreviewMarker=null;journeyPreviewRouteLayer=null;journeyPreviewDirectionMarker=null;journeyPreviewStartMarker=null;}
+   const photoNote=document.createElement('p');photoNote.className='shelter-hint';photoNote.textContent='Follow the blue road line. Green = approach, orange = turn here, arrow = direction after the turn. This is a street map, not a photograph.';journeyPanel.appendChild(photoNote);
    const remaining=document.createElement('p');remaining.id='journeyRemaining';remaining.textContent='Follow the blue route on the map.';journeyPanel.appendChild(remaining);
    const buttons=document.createElement('div');buttons.className='journey-buttons';
    const tracking=document.createElement('button');tracking.type='button';tracking.id='journeyTrackingButton';tracking.className='btn btn-primary';
@@ -3841,7 +3960,7 @@ document.addEventListener('keydown',function(e){if(e.key==='Escape')closeLostPet
    stop.addEventListener('click',()=>{
      journeyStopTracking();journeyDestination=null;journeyInstructions=[];journeyRouteGeometry=[];
      if(journeyCanSpeak)window.speechSynthesis.cancel();
-     if(journeyPreviewMap){journeyPreviewMap.remove();journeyPreviewMap=null;journeyPreviewMarker=null;}
+     if(journeyPreviewMap){journeyPreviewMap.remove();journeyPreviewMap=null;journeyPreviewMarker=null;journeyPreviewRouteLayer=null;journeyPreviewDirectionMarker=null;journeyPreviewStartMarker=null;}
      if(journeyRouteControl){map.removeControl(journeyRouteControl);journeyRouteControl=null;}
      journeyShowMessage('Navigation ended. Select Navigate Here on a shelter to start again.');
    });buttons.appendChild(stop);
