@@ -1669,6 +1669,49 @@ input, textarea, select { max-width:100%; min-width:0; }
   #report_stray #shelterFinderMap {height:320px;min-height:280px}
 }
 </style>
+
+<style id="shelter-card-polish-v9">
+/* Compact verified shelter cards with progressive disclosure. */
+#report_stray .shelter-finder-list{max-height:none!important;overflow:visible!important;gap:12px!important;display:flex!important;flex-direction:column!important}
+#report_stray .shelter-finder-card{padding:16px!important;border-radius:16px!important;background:var(--bg-surface);border:1px solid var(--border-color);box-shadow:0 5px 18px rgba(0,0,0,.08);min-width:0}
+#report_stray .shelter-card-top{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+#report_stray .shelter-card-symbol{width:46px;height:46px;flex:0 0 46px;display:grid;place-items:center;background:rgba(245,158,11,.13);border:1px solid rgba(245,158,11,.35);border-radius:13px;color:#f59e0b;font-size:1.35rem}
+#report_stray .shelter-card-identity{min-width:0;flex:1}
+#report_stray .shelter-verified-label{display:inline-flex;align-items:center;gap:5px;color:#34d399;font-weight:800;font-size:.69rem;letter-spacing:.06em;margin-bottom:3px}
+#report_stray .shelter-card-identity h3{font-size:1.08rem!important;line-height:1.28;margin:0!important;overflow-wrap:anywhere}
+#report_stray .shelter-card-quick{display:flex;flex-wrap:wrap;gap:6px;margin:9px 0}
+#report_stray .shelter-quick-pill{font-size:.73rem;line-height:1.25;padding:5px 8px;border-radius:8px;background:rgba(148,163,184,.12);color:var(--text-dark);font-weight:700}
+#report_stray .shelter-open,#report_stray .shelter-ready{background:rgba(16,185,129,.13);color:#34d399}
+#report_stray .shelter-closed,#report_stray .shelter-full{background:rgba(239,68,68,.12);color:#fb7185}
+#report_stray .shelter-distance{color:#60a5fa}
+#report_stray .shelter-card-address{display:flex;align-items:flex-start;gap:7px;font-size:.8rem!important;line-height:1.45;margin:8px 0 12px!important;color:var(--text-muted)}
+#report_stray .shelter-card-address i{margin-top:3px;color:var(--primary);flex:0 0 13px}
+#report_stray .shelter-card-primary-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+#report_stray .shelter-card-primary-actions button{border:1px solid var(--border-color);border-radius:10px;padding:11px 8px;font:800 .81rem Nunito,sans-serif;cursor:pointer;min-width:0}
+#report_stray .shelter-navigate-main{background:#f59e0b;color:#111827;border-color:#f59e0b!important}
+#report_stray .shelter-detail-toggle{background:var(--bg-main);color:var(--text-dark)}
+#report_stray .shelter-detail-chevron{margin-left:3px;font-size:.7rem}
+#report_stray .shelter-card-extra[hidden]{display:none!important}
+#report_stray .shelter-card-extra{border-top:1px solid var(--border-color);margin-top:14px;padding-top:13px}
+#report_stray .shelter-extra-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:12px}
+#report_stray .shelter-extra-grid>div{display:grid;gap:3px;min-width:0;overflow-wrap:anywhere}
+#report_stray .shelter-extra-label{font-size:.7rem;text-transform:uppercase;letter-spacing:.04em;color:var(--text-muted);font-weight:800}
+#report_stray .shelter-extra-grid strong{font-size:.82rem;line-height:1.35}
+#report_stray .shelter-week-details{margin:9px 0;padding:8px 0;border-block:1px solid var(--border-color)}
+#report_stray .shelter-week-details summary{font-size:.8rem;font-weight:700;color:#60a5fa;cursor:pointer}
+#report_stray .shelter-week-details p{font-size:.77rem;margin:5px 0}
+#report_stray .shelter-extra-services{margin:12px 0}
+#report_stray .shelter-extra-services .shelter-service-tags{margin-top:7px}
+#report_stray .shelter-service-tag{font-size:.71rem;padding:6px 9px;line-height:1.3}
+#report_stray .shelter-extra-contact{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0;font-size:.8rem}
+#report_stray .shelter-extra-contact .shelter-extra-label{width:100%}
+#report_stray .shelter-extra-contact a{color:#60a5fa;overflow-wrap:anywhere}
+#report_stray .shelter-card-actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}
+#report_stray .shelter-card-actions button{padding:9px 11px;font-size:.76rem;background:var(--bg-main);border:1px solid var(--border-color);color:var(--text-dark)}
+#report_stray .shelter-integrated-panel>h3{font-size:1.07rem;margin-bottom:12px}
+#report_stray #shelterLocationStatus{font-size:.78rem;margin:8px 0}
+@media(max-width:440px){#report_stray .shelter-card-primary-actions{grid-template-columns:1fr 1fr}#report_stray .shelter-card-primary-actions button{font-size:.74rem;padding:10px 4px}#report_stray .shelter-extra-grid{gap:9px}}
+</style>
 </head>
 
 <body>
@@ -4051,10 +4094,49 @@ document.addEventListener('keydown',function(e){if(e.key==='Escape')closeLostPet
  function render(){const q=search.value.toLowerCase().trim(),f=filter.value;const rows=shelters.filter(s=>(!q||[s.shelter_name,s.address,s.city,s.province,s.animal_types,s.description].join(' ').toLowerCase().includes(q))&&(f!=='rescue'||Number(s.rescue_available)===1)&&(f!=='slots'||Number(s.available_slots)>0)&&(f!=='open'||hoursStatus(s).open)).sort((a,b)=>userPosition?score(b)-score(a):a.shelter_name.localeCompare(b.shelter_name));
   if(map){markers.forEach(m=>map.removeLayer(m));markers=[];}
   list.innerHTML=rows.length?'':'<div class="shelter-finder-card">No verified shelters match your search. Ask the admin to add and approve shelters.</div>';
-  rows.forEach((s,i)=>{const d=km(s), rating=s.average_rating===null?'Not rated yet':Number(s.average_rating).toFixed(1)+' / 5 ('+Number(s.rating_count)+' reviews)', location=[s.address,s.city,s.province].filter(Boolean).join(', '),maps=valid(s)?'https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(s.latitude+','+s.longitude):'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(location+', Philippines');
-   const h=hoursStatus(s);const card=document.createElement('article');card.className='shelter-finder-card';card.innerHTML='<h3>'+esc(s.shelter_name)+'</h3><p><i class="fas fa-location-dot"></i> '+esc(location)+'</p><p>⭐ '+esc(rating)+(d!==null?' · <strong>'+d.toFixed(1)+' km away</strong>':'')+'</p><p><strong>'+(Number(s.rescue_available)?'Rescue available':'Rescue unavailable')+'</strong> · '+Number(s.available_slots)+' / '+Number(s.capacity)+' available slots</p><p><span class="shelter-client-hours '+(h.open?'is-open':'is-closed')+'">'+esc(h.label)+'</span> · Today: '+esc(h.today)+'</p><details class="shelter-week-details"><summary>View weekly office hours</summary><div>'+h.week.map(v=>'<p>'+esc(v)+'</p>').join('')+'</div></details><p>'+esc(s.animal_types||'Animal types not specified')+'</p><div class="shelter-service-tags"><strong>Available Services</strong><div>'+String(s.description||'').split(/\s*,\s*/).filter(Boolean).map(service=>'<span class="shelter-service-tag"><i class="fas fa-circle-check"></i> '+esc(service)+'</span>').join('')+'</div></div><p>'+esc(s.contact_number||'')+(s.contact_email?' · '+esc(s.contact_email):'')+'</p><div class="shelter-card-actions"><a href="'+esc(maps)+'" target="_blank" rel="noopener noreferrer">Open Maps</a><button type="button" data-navigate="'+Number(s.id)+'">Navigate Here</button><button type="button" data-rate="'+Number(s.id)+'">Rate / Review</button>'+(valid(s)?'<button type="button" data-show="'+Number(s.id)+'">Show on Map</button><button type="button" data-route="'+Number(s.id)+'">Route to Rescue</button>':'')+'</div>';
+  rows.forEach((s,i)=>{
+   const d=km(s), rating=s.average_rating===null?'No reviews yet':Number(s.average_rating).toFixed(1)+' / 5 ('+Number(s.rating_count)+' reviews)';
+   const location=[s.address,s.city,s.province].filter(Boolean).join(', ');
+   const h=hoursStatus(s);
+   const rescue=Number(s.rescue_available)===1;
+   const slots=Number(s.available_slots);
+   const capacity=Number(s.capacity);
+   const services=String(s.description||'').split(/\s*,\s*/).map(v=>v.trim()).filter(Boolean);
+   const card=document.createElement('article');card.className='shelter-finder-card';
+   card.innerHTML=`
+    <div class="shelter-card-top">
+      <div class="shelter-card-symbol" aria-hidden="true"><i class="fas fa-house-medical-circle-check"></i></div>
+      <div class="shelter-card-identity"><span class="shelter-verified-label"><i class="fas fa-circle-check"></i> VERIFIED SHELTER</span><h3>${esc(s.shelter_name)}</h3></div>
+    </div>
+    <div class="shelter-card-quick">
+      <span class="shelter-quick-pill ${h.open?'shelter-open':'shelter-closed'}">${esc(h.label)}</span>
+      <span class="shelter-quick-pill ${rescue&&slots>0?'shelter-ready':'shelter-full'}">${rescue&&slots>0?'Rescue slots: '+slots:rescue?'No available slots':'Rescue unavailable'}</span>
+      ${d!==null?'<span class="shelter-quick-pill shelter-distance"><i class="fas fa-location-arrow"></i> '+d.toFixed(1)+' km away</span>':''}
+    </div>
+    <p class="shelter-card-address"><i class="fas fa-location-dot"></i><span>${esc(location||'Address unavailable')}</span></p>
+    <div class="shelter-card-primary-actions">
+      <button type="button" class="shelter-navigate-main" data-navigate="${Number(s.id)}"><i class="fas fa-diamond-turn-right"></i> Navigate Here</button>
+      <button type="button" class="shelter-detail-toggle" aria-expanded="false" aria-controls="shelter-detail-${Number(s.id)}" data-detail-toggle="${Number(s.id)}"><i class="fas fa-circle-info"></i> View Details <i class="fas fa-chevron-down shelter-detail-chevron"></i></button>
+    </div>
+    <div class="shelter-card-extra" id="shelter-detail-${Number(s.id)}" hidden>
+      <div class="shelter-extra-grid">
+        <div><span class="shelter-extra-label">Today's hours</span><strong>${esc(h.today)}</strong></div>
+        <div><span class="shelter-extra-label">Rating</span><strong>⭐ ${esc(rating)}</strong></div>
+        <div><span class="shelter-extra-label">Animal types</span><strong>${esc(s.animal_types||'Not specified')}</strong></div>
+        <div><span class="shelter-extra-label">Rescue capacity</span><strong>${slots} / ${capacity} available slots</strong></div>
+      </div>
+      <details class="shelter-week-details"><summary>Weekly opening hours</summary><div>${h.week.map(v=>'<p>'+esc(v)+'</p>').join('')}</div></details>
+      ${services.length?'<div class="shelter-extra-services"><span class="shelter-extra-label">Services offered</span><div class="shelter-service-tags">'+services.map(service=>'<span class="shelter-service-tag"><i class="fas fa-circle-check"></i> '+esc(service)+'</span>').join('')+'</div></div>':''}
+      ${s.contact_number||s.contact_email?'<div class="shelter-extra-contact"><span class="shelter-extra-label">Contact</span>'+(s.contact_number?'<a href="tel:'+esc(String(s.contact_number).replace(/[^+0-9]/g,''))+'">'+esc(s.contact_number)+'</a>':'')+(s.contact_email?'<a href="mailto:'+esc(s.contact_email)+'">'+esc(s.contact_email)+'</a>':'')+'</div>':''}
+      <div class="shelter-card-actions"><button type="button" data-rate="${Number(s.id)}">Rate / Review</button>${valid(s)?'<button type="button" data-show="'+Number(s.id)+'">Show on Map</button><button type="button" data-route="'+Number(s.id)+'">Route to Rescue</button>':''}</div>
+    </div>`;
    list.appendChild(card);
    if(map&&valid(s)){const m=L.marker([Number(s.latitude),Number(s.longitude)]).addTo(map).bindPopup('<strong>'+esc(s.shelter_name)+'</strong><div>'+esc(s.city+', '+s.province)+'</div>');markers.push(m);card.querySelector('[data-show]')?.addEventListener('click',()=>{map.setView(m.getLatLng(),13);m.openPopup();document.getElementById('shelterFinderMap').scrollIntoView({behavior:'smooth',block:'center'});});}
+   card.querySelector('[data-detail-toggle]')?.addEventListener('click',()=>{
+     const detail=card.querySelector('.shelter-card-extra');const button=card.querySelector('[data-detail-toggle]');
+     detail.hidden=!detail.hidden;button.setAttribute('aria-expanded',String(!detail.hidden));
+     button.innerHTML=detail.hidden?'<i class="fas fa-circle-info"></i> View Details <i class="fas fa-chevron-down shelter-detail-chevron"></i>':'<i class="fas fa-chevron-up"></i> Hide Details';
+   });
    card.querySelector('[data-route]')?.addEventListener('click',()=>routeToShelter(s));
    card.querySelector('[data-navigate]')?.addEventListener('click',()=>navigateToShelter(s));
    card.querySelector('[data-rate]').addEventListener('click',()=>{document.getElementById('reviewShelterId').value=s.id;document.getElementById('shelterReviewTitle').textContent='Rate '+s.shelter_name;document.getElementById('shelterReviewPanel').hidden=false;document.getElementById('shelterReviewPanel').scrollIntoView({behavior:'smooth',block:'center'});});
