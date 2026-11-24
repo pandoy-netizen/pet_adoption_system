@@ -250,6 +250,32 @@ if(isset($_POST['submit_sponsorship'])) {
 }
 
 
+
+/** Validate and store a report photo; return a filename or throw an exception. */
+function saveAnimalReportPhoto($field, $suffix = '') {
+    if (!isset($_FILES[$field]) || ($_FILES[$field]['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+        throw new RuntimeException('Please choose an animal photo and try again.');
+    }
+    $file = $_FILES[$field];
+    if (($file['size'] ?? 0) > 5 * 1024 * 1024) {
+        throw new RuntimeException('Photo is too large. Maximum size is 5 MB.');
+    }
+    $mime = (new finfo(FILEINFO_MIME_TYPE))->file($file['tmp_name']);
+    $extensions = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
+    if (!isset($extensions[$mime])) {
+        throw new RuntimeException('Please upload a JPG, PNG, or WebP image.');
+    }
+    $directory = __DIR__ . '/uploads';
+    if (!is_dir($directory) && !mkdir($directory, 0755, true)) {
+        throw new RuntimeException('Image storage is unavailable. Contact the administrator.');
+    }
+    $filename = bin2hex(random_bytes(12)) . $suffix . '.' . $extensions[$mime];
+    if (!move_uploaded_file($file['tmp_name'], $directory . '/' . $filename)) {
+        throw new RuntimeException('Photo upload failed. Please try again.');
+    }
+    return $filename;
+}
+
 if(isset($_POST['submit_lost_pet'])){
     $l_pet_name = mysqli_real_escape_string($conn, $_POST['l_pet_name']);
     $l_desc = mysqli_real_escape_string($conn, $_POST['l_description']);
@@ -259,17 +285,18 @@ if(isset($_POST['submit_lost_pet'])){
     $lostLatSql = ($lostLat !== false && abs($lostLat) <= 90) ? (string)$lostLat : 'NULL';
     $lostLonSql = ($lostLon !== false && abs($lostLon) <= 180) ? (string)$lostLon : 'NULL';
     
-    $imageName = "default_lost.jpg";
-    if(!empty($_FILES["l_image"]["name"])){
-        $imageName = time() . "_lost_" . basename($_FILES["l_image"]["name"]);
-        move_uploaded_file($_FILES["l_image"]["tmp_name"], "uploads/" . $imageName);
+    try {
+        $imageName = saveAnimalReportPhoto('l_image', '_lost');
+    } catch (RuntimeException $e) {
+        $lost_error = $e->getMessage();
     }
-    
+    if (empty($lost_error)) {
     $sql = "INSERT INTO lost_pets (user_id, user_display_name, contact_info, pet_name, description, location, latitude, longitude, image, status) 
             VALUES ('$user_id', '$full_name', '$contact_info', '$l_pet_name', '$l_desc', '$l_loc', $lostLatSql, $lostLonSql, '$imageName', 'Lost')";
     if(mysqli_query($conn, $sql)){
         $lost_success = "Lost pet alert posted successfully. The community will keep an eye out!";
         $scroll_target = "lost_found";
+    }
     }
 }
 
@@ -454,17 +481,21 @@ if(isset($_POST['submit_stray'])){
     $lat = mysqli_real_escape_string($conn, $_POST['lat']);
     $lon = mysqli_real_escape_string($conn, $_POST['lon']);
     $desc = mysqli_real_escape_string($conn, $_POST['description']);
-    $imageName = "default_stray.jpg";
-    if(!empty($_FILES["stray_photo"]["name"])){
-        $imageName = time() . "_" . basename($_FILES["stray_photo"]["name"]);
-        move_uploaded_file($_FILES["stray_photo"]["tmp_name"], "uploads/" . $imageName);
+    try {
+        $imageName = saveAnimalReportPhoto('stray_photo', '_rescue');
+    } catch (RuntimeException $e) {
+        $stray_error = $e->getMessage();
     }
-    
+    if (empty($stray_error)) {
     $sql = "INSERT INTO rescue_reports (user_id, reporter_name, contact_info, location, latitude, longitude, description, image, status) 
             VALUES ('$user_id', '$full_name', '$contact_info', '$address', '$lat', '$lon', '$desc', '$imageName', 'Action Needed')";
-    @mysqli_query($conn, $sql); 
-    $stray_success = "Stray reported successfully! Your report was submitted with the location details provided. The rescue team can review it.";
-    $scroll_target = "report_stray"; 
+    if (mysqli_query($conn, $sql)) {
+        $stray_success = "Stray reported successfully with its photo.";
+        $scroll_target = "report_stray";
+    } else {
+        $stray_error = 'Report could not be saved. Please try again.';
+    }
+    }
 }
 
 
@@ -1917,6 +1948,7 @@ input, textarea, select { max-width:100%; min-width:0; }
                     <h3 style="margin-top:0; color:var(--text-dark); display:flex; align-items:center; gap:10px;"><i class="fas fa-search-location" style="color:var(--danger);"></i> Lost Pets Alerts</h3>
                     
                     <?php if($lost_success) echo "<div class='alert alert-success' style='font-size:0.85rem;'><i class='fas fa-check-circle'></i> $lost_success</div>"; ?>
+                    <?php if(!empty($lost_error)) echo '<div class="alert alert-danger">' . htmlspecialchars($lost_error, ENT_QUOTES, 'UTF-8') . '</div>'; ?>
                     
                     <div class="form-container" style="padding: 20px; margin-top: 20px; margin-bottom: 30px; border-left: 4px solid var(--danger);">
                         <h4 style="margin: 0 0 15px; font-size: 1.1rem; color: var(--text-dark);">Report a Lost Pet</h4>
@@ -1925,7 +1957,7 @@ input, textarea, select { max-width:100%; min-width:0; }
                             <input type="text" id="lost-last-seen" name="l_location" placeholder="Last seen location (choose on Smart Map or type manually)" required style="padding: 10px; margin-bottom:10px;"><input type="hidden" id="lost-lat" name="l_lat"><input type="hidden" id="lost-lon" name="l_lon"><button type="button" class="btn btn-secondary" onclick="openSmartMap('lost')" style="margin-bottom:12px;width:100%"><i class="fas fa-map-pin"></i> Select Last-Seen Location on Map</button>
                             <textarea name="l_description" rows="2" placeholder="Describe the pet (color, collar, etc.)" required style="padding: 10px; margin-bottom:10px;"></textarea>
                             <label style="font-size:0.75rem; display:block; margin-bottom:5px;">Upload Photo</label>
-                            <input type="file" name="l_image" accept="image/*" style="font-size:0.85rem; padding:5px; margin-bottom:15px;">
+                            <input type="file" name="l_image" accept="image/jpeg,image/png,image/webp" required style="font-size:0.85rem; padding:5px; margin-bottom:15px;">
                             <button type="submit" name="submit_lost_pet" class="btn btn-outline" style="width: 100%; font-size: 0.9rem; padding: 10px; color: var(--danger); border-color: var(--danger);">Alert Community</button>
                         </form>
                     </div>
@@ -2734,6 +2766,7 @@ input, textarea, select { max-width:100%; min-width:0; }
             <p class="section-subtitle text-center">Report a stray, find a verified shelter, and navigate using the map.</p>
             
             <?php if($stray_success) echo "<div class='alert alert-success'><i class='fas fa-check-circle'></i> $stray_success</div>"; ?>
+            <?php if(!empty($stray_error)) echo '<div class="alert alert-danger">' . htmlspecialchars($stray_error, ENT_QUOTES, 'UTF-8') . '</div>'; ?>
             
             <div class="rescue-workspace">
                 <div class="rescue-form-card">
