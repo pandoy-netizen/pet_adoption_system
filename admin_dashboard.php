@@ -2840,6 +2840,45 @@ input, select, textarea { min-width: 0; }
 }
 @media(max-width:380px){.mobile-rescue .grid{gap:7px!important}.mobile-rescue .pet-card-content{padding:8px!important}}
 </style>
+
+<style id="admin-mobile-readable-cards-final">
+@media (max-width:700px) {
+  .mobile-rescue #view-active-reports > .grid,
+  .mobile-rescue #view-history-reports > .grid,
+  .mobile-rescue .grid {display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:14px!important;align-items:start!important;width:100%!important;}
+  .mobile-rescue .grid > .pet-card {width:100%!important;min-width:0!important;max-width:100%!important;box-sizing:border-box!important;margin:0!important;overflow:hidden!important;}
+  .mobile-rescue .pet-card-img-wrap,
+  .mobile-rescue .pet-card-img-wrap:has(.rescue-photo-view) {height:155px!important;min-height:0!important;}
+  .mobile-rescue .pet-card-content {padding:16px!important;min-width:0!important;}
+  .mobile-rescue .pet-card-content h4 {font-size:1rem!important;}
+  .mobile-rescue .pet-card-content p,.mobile-rescue .pet-card-content small,.mobile-rescue .pet-card-content label {font-size:.85rem!important;line-height:1.5!important;}
+  .mobile-rescue .pet-card-content > div {overflow-wrap:anywhere!important;word-break:normal!important;}
+  .mobile-rescue .pet-card-content form .form-row {display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;gap:12px!important;}
+  .mobile-rescue .pet-card-content form .form-group {min-width:0!important;width:100%!important;margin:0!important;}
+  .mobile-rescue .pet-card-content form .form-group label {display:block!important;font-size:.75rem!important;white-space:normal!important;overflow-wrap:normal!important;}
+  .mobile-rescue .pet-card-content form select {display:block!important;width:100%!important;min-width:0!important;max-width:100%!important;box-sizing:border-box!important;font-size:.84rem!important;padding:10px 7px!important;}
+  .mobile-rescue .pet-card-content .btn {font-size:.82rem!important;padding:10px 8px!important;white-space:normal!important;overflow-wrap:normal!important;}
+  .mobile-rescue .pet-card-content form {max-width:100%!important;min-width:0!important;}
+  .mobile-rescue .pet-card-content form[style*="display:flex"] {flex-wrap:wrap!important;}
+  .mobile-rescue .pet-card-content form[style*="display:flex"] .btn {flex:1 1 130px!important;}
+  .mobile-adoptions .grid {display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;align-items:stretch!important;gap:10px!important;}
+  .mobile-adoptions .grid > .form-container {display:flex!important;flex-direction:column!important;min-width:0!important;min-height:100%!important;box-sizing:border-box!important;padding:11px!important;}
+  .mobile-adoptions .application-identity {display:grid!important;grid-template-columns:28px minmax(0,1fr)!important;align-items:start!important;gap:8px!important;position:relative!important;padding-bottom:50px!important;min-height:98px!important;}
+  .mobile-adoptions .application-identity .application-avatar {grid-column:1!important;grid-row:1!important;width:28px!important;height:28px!important;min-width:28px!important;}
+  .mobile-adoptions .application-identity-details {grid-column:2!important;grid-row:1!important;min-width:0!important;}
+  .mobile-adoptions .application-identity-details h4 {font-size:.82rem!important;overflow-wrap:anywhere!important;word-break:normal!important;line-height:1.3!important;}
+  .mobile-adoptions .application-identity-details p {font-size:.72rem!important;line-height:1.35!important;}
+  .mobile-adoptions .application-identity .application-pet-photo {position:absolute!important;bottom:8px!important;right:0!important;width:38px!important;height:38px!important;}
+  .mobile-adoptions .grid > .form-container > div[style*="background:var(--bg-main)"] {flex:1 1 auto!important;min-height:0!important;}
+  .mobile-adoptions .grid > .form-container > form {margin-top:auto!important;display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;gap:5px!important;}
+  .mobile-adoptions .grid > .form-container > form .btn {min-width:0!important;width:100%!important;font-size:.68rem!important;padding:9px 2px!important;white-space:normal!important;}
+}
+@media(max-width:360px) {
+  .mobile-adoptions .grid {gap:7px!important;}
+  .mobile-adoptions .grid > .form-container {padding:8px!important;}
+  .mobile-rescue .pet-card-content form .form-row {grid-template-columns:minmax(0,1fr)!important;}
+}
+</style>
 </head>
 
 <body>
@@ -4203,7 +4242,7 @@ input, select, textarea { min-width: 0; }
 
 
 
-<section class="main-container <?php echo $activeTab == 'review-applications' ? 'active' : ''; ?> mobile-adoptions"">
+<section class="main-container <?php echo $activeTab == 'review-applications' ? 'active' : ''; ?> mobile-adoptions">
     
     <div class="container">
         
