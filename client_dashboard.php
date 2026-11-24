@@ -1440,6 +1440,76 @@ input, textarea, select { max-width:100%; min-width:0; }
   #dashboardPetGrid { grid-template-columns:repeat(4,minmax(0,1fr)) !important; }
 }
 </style>
+
+<style id="mobile-balanced-v5">
+/* Balanced mobile layout. This intentionally overrides the old 3-column phone rules. */
+@media (max-width: 599px) {
+  #dashboardPetGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 11px !important;
+  }
+  #dashboardPetGrid .pet-card { border-radius: 13px; }
+  #dashboardPetGrid .pet-card-img-wrap { aspect-ratio: 4 / 3; }
+  #dashboardPetGrid .pet-card-content { padding: 10px !important; gap: 5px; }
+  #dashboardPetGrid .pet-card-title { font-size: clamp(.88rem, 3.4vw, 1.05rem); line-height: 1.2; }
+  #dashboardPetGrid .badge { font-size: .65rem; padding: 4px 7px; }
+  #dashboardPetGrid .pet-tag { font-size: .7rem; padding: 3px 6px; }
+  #dashboardPetGrid .pet-tags { gap: 5px; }
+  #dashboardPetGrid .pet-card-content .btn { font-size: .82rem; padding: 9px 5px !important; }
+  #dashboardPetGrid .pet-card-content .btn-outline { flex: 0 0 34px !important; }
+  #dashboardPetGrid .favorite-btn { width: 32px; height: 32px; font-size: .88rem; }
+  #donation-section {
+    padding: 22px 14px !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+  }
+  #donation-section > div:first-child { font-size: 25px !important; line-height: 1.1; }
+  #donation-section > h2 {
+    font-size: clamp(1.2rem, 5vw, 1.5rem) !important;
+    line-height: 1.25 !important;
+    margin: 8px auto 10px !important;
+    max-width: 340px;
+  }
+  #donation-section > p {
+    font-size: .85rem !important;
+    line-height: 1.5 !important;
+    margin: 0 auto 14px !important;
+    max-width: 380px;
+  }
+  #donation-section > div:nth-of-type(2) {
+    display: block !important;
+    width: 100%;
+    max-width: 390px !important;
+    margin: 0 auto;
+    padding: 13px 12px !important;
+    border-radius: 12px !important;
+  }
+  #donation-section > div:nth-of-type(2) > h3 {
+    font-size: 1rem !important;
+    line-height: 1.3 !important;
+    margin: 0 0 10px !important;
+  }
+  #donation-section > div:nth-of-type(2) > img {
+    width: min(190px, 70%) !important;
+    padding: 5px !important;
+    margin-bottom: 8px !important;
+  }
+  #donation-section > div:nth-of-type(2) > p {
+    font-size: .78rem !important;
+    line-height: 1.4 !important;
+    margin: 8px 0 !important;
+  }
+  #donation-section #donationQrError { font-size: .82rem !important; }
+  #donation-section > p:last-child { font-size: .77rem !important; line-height: 1.4 !important; }
+}
+@media (min-width: 600px) and (max-width: 899px) {
+  #dashboardPetGrid { grid-template-columns: repeat(3, minmax(0,1fr)) !important; }
+  #donation-section > h2 { font-size: 1.7rem !important; }
+}
+@media (min-width: 900px) {
+  #dashboardPetGrid { grid-template-columns: repeat(4, minmax(0,1fr)) !important; }
+}
+</style>
 </head>
 
 <body>
