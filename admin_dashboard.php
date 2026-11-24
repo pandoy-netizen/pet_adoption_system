@@ -2454,6 +2454,60 @@ body.shelter-map-expanded{overflow:hidden}
 @media(max-width:650px){.shelter-services-menu{max-height:240px}}
 
 </style>
+
+<style id="shelter-admin-priority-redesign">
+#admin-shelters .shelter-registry-panel{margin:18px auto 24px!important;border:1px solid var(--border-color);background:var(--bg-surface)}
+#admin-shelters .shelter-registry-heading{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:22px}
+#admin-shelters .shelter-registry-heading h2{margin:4px 0 5px;font-size:clamp(1.35rem,2.2vw,1.8rem)}
+#admin-shelters .shelter-registry-heading p{color:var(--text-muted);font-size:.87rem;margin:0}
+#admin-shelters .shelter-section-eyebrow{color:#f59e0b;font-size:.72rem;letter-spacing:.11em;font-weight:850}
+#admin-shelters .shelter-count-pill{display:inline-flex;vertical-align:middle;border-radius:999px;background:rgba(245,158,11,.13);color:#f59e0b;padding:3px 10px;font-size:.8rem}
+#admin-shelters .shelter-table-scroll{overflow:visible}
+#admin-shelters .shelter-admin-table{min-width:0;border-collapse:separate;border-spacing:0 12px}
+#admin-shelters .shelter-admin-table thead th{font-size:.73rem;text-transform:uppercase;letter-spacing:.045em;color:var(--text-muted);border:0;padding:6px 12px}
+#admin-shelters .shelter-admin-table tbody tr.shelter-record{background:var(--bg-main)}
+#admin-shelters .shelter-admin-table tbody tr.shelter-record td{padding:16px 12px;border-top:1px solid var(--border-color);border-bottom:1px solid var(--border-color);font-size:.83rem;line-height:1.45}
+#admin-shelters .shelter-admin-table tbody tr.shelter-record td:first-child{border-left:1px solid var(--border-color);border-radius:15px 0 0 15px}
+#admin-shelters .shelter-admin-table tbody tr.shelter-record td:last-child{border-right:1px solid var(--border-color);border-radius:0 15px 15px 0}
+#admin-shelters .shelter-record-identity{display:flex;gap:11px;align-items:center;min-width:175px}
+#admin-shelters .shelter-record-icon{width:44px;height:44px;flex-shrink:0;border-radius:13px;background:rgba(245,158,11,.13);color:#f59e0b;display:grid;place-items:center;font-size:1.1rem}
+#admin-shelters .shelter-record-kicker{display:block;color:#34d399;font-size:.67rem;letter-spacing:.055em;font-weight:850;margin-bottom:4px}
+#admin-shelters .shelter-record-name{display:block;font-size:.93rem;line-height:1.35;color:var(--text-dark)}
+#admin-shelters .shelter-record-muted{color:var(--text-muted);font-size:.75rem;margin-top:4px}
+#admin-shelters .shelter-record-accent{color:#f59e0b}
+#admin-shelters .shelter-verification-pill{display:inline-block;padding:5px 10px;border-radius:999px;font-weight:800;font-size:.74rem;background:rgba(148,163,184,.14);color:var(--text-muted)}
+#admin-shelters .shelter-verification-pill.approved{background:rgba(16,185,129,.15);color:#34d399}
+#admin-shelters .shelter-verification-pill.rejected,#admin-shelters .shelter-verification-pill.suspended{background:rgba(239,68,68,.15);color:#fb7185}
+#admin-shelters .shelter-admin-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;min-width:175px}
+#admin-shelters .shelter-admin-actions .btn{padding:9px 10px;font-size:.77rem;white-space:nowrap;justify-content:center}
+#admin-shelters .shelter-admin-actions .shelter-edit-btn{background:#f59e0b;color:#172033;font-weight:850;border-color:#f59e0b}
+#admin-shelters .shelter-admin-actions form{grid-column:1/-1;display:flex;gap:7px}
+#admin-shelters .shelter-admin-actions form select{min-width:0;flex:1;padding:8px 6px;border-radius:9px}
+#admin-shelters .shelter-schedule{padding:0!important;overflow:hidden;margin-top:18px}
+#admin-shelters .shelter-schedule-toggle{display:flex;justify-content:space-between;align-items:center;gap:12px;cursor:pointer;padding:16px 18px;list-style:none;font-weight:850;color:var(--text-dark)}
+#admin-shelters .shelter-schedule-toggle::-webkit-details-marker{display:none}
+#admin-shelters .shelter-schedule-toggle small{display:block;color:var(--text-muted);font-size:.76rem;font-weight:500;margin-top:4px}
+#admin-shelters .shelter-schedule-edit{color:#f59e0b;font-size:.8rem;white-space:nowrap}
+#admin-shelters .shelter-schedule[open] .shelter-schedule-edit .fa-chevron-down{transform:rotate(180deg)}
+#admin-shelters .shelter-schedule-body{padding:0 18px 16px}
+#admin-shelters .shelter-schedule-hint{color:var(--text-muted);font-size:.8rem;margin:0 0 10px}
+#admin-shelters .shelter-day{grid-template-columns:minmax(100px,1fr) minmax(0,1fr) minmax(0,1fr);padding:7px 0;gap:10px}
+#admin-shelters .shelter-day label{font-size:.82rem}
+#admin-shelters .shelter-day input[type=time]{padding:8px 10px;font-size:.83rem}
+#admin-shelters .shelter-map-help{padding:15px!important}
+#admin-shelters .shelter-map-hint{display:none}
+#admin-shelters .shelter-map-quicklist{max-height:210px!important}
+@media(max-width:1100px){#admin-shelters .shelter-table-scroll{overflow-x:auto}#admin-shelters .shelter-admin-table{min-width:900px}}
+@media(max-width:650px){#admin-shelters .shelter-table-scroll{overflow:visible}#admin-shelters .shelter-admin-table,#admin-shelters .shelter-admin-table tbody,#admin-shelters .shelter-admin-table tr.shelter-record,#admin-shelters .shelter-admin-table tr.shelter-record td{display:block;min-width:0;width:100%;box-sizing:border-box}#admin-shelters .shelter-admin-table thead{display:none}#admin-shelters .shelter-admin-table tbody tr.shelter-record{border:1px solid var(--border-color);border-radius:15px;margin:0 0 12px;overflow:hidden}#admin-shelters .shelter-admin-table tbody tr.shelter-record td,#admin-shelters .shelter-admin-table tbody tr.shelter-record td:first-child,#admin-shelters .shelter-admin-table tbody tr.shelter-record td:last-child{border:0;border-radius:0;padding:8px 14px}#admin-shelters .shelter-admin-table tbody tr.shelter-record td:first-child{padding-top:15px}#admin-shelters .shelter-admin-table tbody tr.shelter-record td:last-child{padding-bottom:15px}#admin-shelters .shelter-admin-table tbody tr.shelter-record td:not(:first-child):before{content:attr(data-label);display:block;color:var(--text-muted);font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;font-weight:800;margin-bottom:4px}#admin-shelters .shelter-registry-heading>.btn{width:100%;text-align:center}#admin-shelters .shelter-day{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}#admin-shelters .shelter-day label{grid-column:1/-1}#admin-shelters .shelter-schedule-toggle{padding:13px}#admin-shelters .shelter-schedule-body{padding:0 13px 13px}}
+</style>
+<script>
+document.addEventListener('DOMContentLoaded',function(){
+const f=document.getElementById('shelter-admin-form'),n=document.getElementById('shelter-schedule-count');if(!f||!n)return;
+const refresh=()=>{const count=f.querySelectorAll('.shelter-schedule input[type="checkbox"][name^="day_open"]:checked').length;n.textContent=count+' day'+(count===1?'':'s')+' selected';};
+f.addEventListener('change',refresh);refresh();
+const obs=new MutationObserver(refresh);obs.observe(f,{attributes:true,subtree:true,attributeFilter:['value']});
+});
+</script>
 </head>
 
 <body>
@@ -2637,6 +2691,26 @@ body.shelter-map-expanded{overflow:hidden}
   <h1 style="font-size:2rem;font-weight:900;margin-bottom:8px"><i class="fas fa-house-medical"></i> Shelter Management</h1>
   <p style="color:var(--text-muted)">Add shelters across the Philippines. Only Approved shelters with valid GPS coordinates appear on the client map.</p>
   <?php if ($shelterAdminNotice !== ''): ?><div class="shelter-notice"><?php echo $adminEscape($shelterAdminNotice); ?></div><?php endif; ?>
+  <div class="shelter-admin-panel shelter-registry-panel" id="registered-shelters">
+   <div class="shelter-registry-heading"><div><div class="shelter-section-eyebrow"><i class="fas fa-shield-heart"></i> SHELTER DIRECTORY</div><h2>Registered Shelters <span class="shelter-count-pill"><?php echo count($shelterAdminRows); ?></span></h2><p>Manage verification, capacity, location and shelter records.</p></div><a class="btn btn-primary" href="#shelter-form-title"><i class="fas fa-plus"></i> Add Shelter</a></div>
+   <div class="shelter-table-scroll"><table class="shelter-admin-table"><thead><tr><th>Shelter</th><th>Location</th><th>Rescue / Slots</th><th>Rating</th><th>Office Hours</th><th>Status</th><th>Actions</th></tr></thead><tbody>
+   <?php foreach ($shelterAdminRows as $sh): ?>
+    <tr class="shelter-record"><td data-label="Shelter"><div class="shelter-record-identity"><div class="shelter-record-icon"><i class="fas fa-house-medical"></i></div><div><span class="shelter-record-kicker"><i class="fas fa-<?php echo $sh['verification_status']==='Approved'?'circle-check':'circle-info'; ?>"></i> <?php echo $sh['verification_status']==='Approved'?'VERIFIED SHELTER':'SHELTER RECORD'; ?></span><strong class="shelter-record-name"><?php echo $adminEscape($sh['shelter_name']); ?></strong><div class="shelter-record-muted"><?php echo $adminEscape($sh['contact_number']); ?></div></div></div></td>
+    <td data-label="Location"><i class="fas fa-location-dot shelter-record-accent"></i> <?php echo $adminEscape($sh['city'].', '.$sh['province']); ?></td>
+    <td data-label="Rescue / Slots"><?php echo (int)$sh['rescue_available'] ? 'Available' : 'Unavailable'; ?> · <?php echo (int)$sh['available_slots']; ?>/<?php echo (int)$sh['capacity']; ?></td>
+    <td data-label="Rating"><?php echo $sh['average_rating'] === null ? 'No ratings' : $adminEscape($sh['average_rating']).' / 5 ('.(int)$sh['rating_count'].')'; ?></td>
+    <td data-label="Office Hours"><span class="shelter-hours-badge" data-shelter-hours="<?php echo $adminEscape($sh['opening_hours'] ?? ''); ?>">Checking hours…</span><div style="font-size:.76rem;color:var(--text-muted);margin-top:5px">Asia/Manila</div></td>
+    <td data-label="Verification"><span class="shelter-verification-pill <?php echo strtolower($adminEscape($sh['verification_status'])); ?>"><?php echo $adminEscape($sh['verification_status']); ?></span></td>
+    <td data-label="Actions"><div class="shelter-admin-actions">
+     <button type="button" class="btn" onclick="document.getElementById('adminShelterMap').scrollIntoView({behavior:'smooth',block:'center'});window.focusAdminShelter?.(adminShelterRecords.find(s=>String(s.id)==='<?php echo (int)$sh['id']; ?>'));"><i class="fas fa-map-marker-alt"></i> Map</button>
+     <button type="button" class="btn shelter-edit-btn" onclick='editShelterAdmin(<?php echo htmlspecialchars(json_encode($sh, JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT), ENT_QUOTES, "UTF-8"); ?>)'>Edit</button>
+     <form method="post" action="?tab=shelters"><input type="hidden" name="shelter_csrf" value="<?php echo $adminEscape($_SESSION['shelter_admin_csrf']); ?>"><input type="hidden" name="shelter_action" value="status"><input type="hidden" name="shelter_id" value="<?php echo (int)$sh['id']; ?>"><select name="verification_status" aria-label="Verification status"><?php foreach (['Pending','Approved','Rejected','Suspended'] as $opt): ?><option value="<?php echo $opt; ?>" <?php echo $sh['verification_status']===$opt?'selected':''; ?>><?php echo $opt; ?></option><?php endforeach; ?></select><button type="submit" class="btn">Update</button></form>
+     <form method="post" action="?tab=shelters" onsubmit="return confirm('Delete this shelter and all its ratings?')"><input type="hidden" name="shelter_csrf" value="<?php echo $adminEscape($_SESSION['shelter_admin_csrf']); ?>"><input type="hidden" name="shelter_action" value="delete"><input type="hidden" name="shelter_id" value="<?php echo (int)$sh['id']; ?>"><button type="submit" class="btn" style="color:#ef4444">Delete</button></form>
+    </div></td></tr>
+   <?php endforeach; ?>
+   <?php if (!$shelterAdminRows): ?><tr><td colspan="7">No shelters added yet.</td></tr><?php endif; ?>
+   </tbody></table></div>
+  </div>
   <div class="shelter-admin-panel">
    <h2 id="shelter-form-title">Add Animal Shelter</h2>
    <form method="post" action="?tab=shelters" id="shelter-admin-form">
@@ -2683,36 +2757,17 @@ body.shelter-map-expanded{overflow:hidden}
         <div id="adminShelterMap" class="shelter-admin-map" aria-label="Interactive shelter map: tap to select location"></div>
         <div class="shelter-map-legend"><span><i class="shelter-legend-dot shelter-legend-approved"></i> Approved</span><span><i class="shelter-legend-dot shelter-legend-other"></i> Not approved</span><span><i class="shelter-legend-dot shelter-legend-selected"></i> Selected pin</span></div>
       </div>
-      <aside class="shelter-map-help"><div class="shelter-map-side-title"><i class="fas fa-location-crosshairs"></i><strong>Location tools</strong></div><button type="button" class="btn btn-primary shelter-map-locate" id="adminShelterLocate"><i class="fas fa-location-crosshairs"></i> Find My Location</button><p class="shelter-map-hint">Your location is only for finding nearby shelters. Tap the map to set the shelter's address.</p>
-        <label class="shelter-map-filter-label" for="adminShelterSearch">Find a registered shelter</label><input id="adminShelterSearch" type="search" placeholder="Search name or city..." autocomplete="off">
+      <aside class="shelter-map-help"><div class="shelter-map-side-title"><i class="fas fa-location-crosshairs"></i><strong>Location tools</strong></div><button type="button" class="btn btn-primary shelter-map-locate" id="adminShelterLocate"><i class="fas fa-location-crosshairs"></i> Find My Location</button>
+        <label class="shelter-map-filter-label" for="adminShelterSearch">Find Shelter</label><input id="adminShelterSearch" type="search" placeholder="Search name or city..." autocomplete="off">
         <div id="adminShelterQuickList" class="shelter-map-quicklist" aria-label="Registered shelters"></div>
         <div class="shelter-place-result" aria-live="polite"><span class="shelter-place-caption"><i class="fas fa-map-pin"></i> Selected shelter location</span><strong id="adminShelterPlaceName">No location selected</strong><small id="adminShelterMapMessage">Tap the map to drop a pin.</small></div>
       </aside>
     </div>
-    <div class="shelter-schedule"><h3><i class="fas fa-clock"></i> Operating Days & Office Hours (Philippine Time)</h3><p style="color:var(--text-muted);margin-top:5px">Choose open days and set the hours. Unchecked days are closed. Status is calculated from the saved schedule, not from a live attendance feed.</p><?php foreach (['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'] as $day): ?><div class="shelter-day"><label><input type="checkbox" name="day_open[<?php echo $day; ?>]" value="1" <?php echo in_array($day,['Monday','Tuesday','Wednesday','Thursday','Friday'],true)?'checked':''; ?>> <?php echo $day; ?></label><input type="time" name="open_time[<?php echo $day; ?>]" value="08:00" aria-label="<?php echo $day; ?> opening time"><input type="time" name="close_time[<?php echo $day; ?>]" value="17:00" aria-label="<?php echo $day; ?> closing time"></div><?php endforeach; ?></div>
+    <details class="shelter-schedule" id="shelter-schedule-editor"><summary class="shelter-schedule-toggle"><span><i class="fas fa-clock"></i> Operating Days &amp; Hours <small>Philippine Time · <span id="shelter-schedule-count">5 days selected</span></small></span><span class="shelter-schedule-edit"><i class="fas fa-pen"></i> Edit Schedule <i class="fas fa-chevron-down"></i></span></summary><div class="shelter-schedule-body"><p class="shelter-schedule-hint">Select operating days and set opening and closing times.</p><?php foreach (['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'] as $day): ?><div class="shelter-day"><label><input type="checkbox" name="day_open[<?php echo $day; ?>]" value="1" <?php echo in_array($day,['Monday','Tuesday','Wednesday','Thursday','Friday'],true)?'checked':''; ?>> <?php echo $day; ?></label><input type="time" name="open_time[<?php echo $day; ?>]" value="08:00" aria-label="<?php echo $day; ?> opening time"><input type="time" name="close_time[<?php echo $day; ?>]" value="17:00" aria-label="<?php echo $day; ?> closing time"></div><?php endforeach; ?></div></details>
     <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:16px"><button class="btn btn-primary" type="submit"><i class="fas fa-save"></i> Save Shelter</button><button class="btn" type="button" onclick="resetShelterAdminForm()">Clear / New</button></div>
    </form>
   </div>
-  <div class="shelter-admin-panel" style="margin-top:24px">
-   <h2>Registered Shelters (<?php echo count($shelterAdminRows); ?>)</h2>
-   <div class="shelter-table-scroll"><table class="shelter-admin-table"><thead><tr><th>Shelter</th><th>Location</th><th>Rescue / Slots</th><th>Rating</th><th>Office Hours</th><th>Status</th><th>Actions</th></tr></thead><tbody>
-   <?php foreach ($shelterAdminRows as $sh): ?>
-    <tr><td><strong><?php echo $adminEscape($sh['shelter_name']); ?></strong><div style="font-size:.8rem;color:var(--text-muted)"><?php echo $adminEscape($sh['contact_number']); ?></div></td>
-    <td><?php echo $adminEscape($sh['city'].', '.$sh['province']); ?></td>
-    <td><?php echo (int)$sh['rescue_available'] ? 'Available' : 'Unavailable'; ?> · <?php echo (int)$sh['available_slots']; ?>/<?php echo (int)$sh['capacity']; ?></td>
-    <td><?php echo $sh['average_rating'] === null ? 'No ratings' : $adminEscape($sh['average_rating']).' / 5 ('.(int)$sh['rating_count'].')'; ?></td>
-    <td><span class="shelter-hours-badge" data-shelter-hours="<?php echo $adminEscape($sh['opening_hours'] ?? ''); ?>">Checking hours…</span><div style="font-size:.76rem;color:var(--text-muted);margin-top:5px">Asia/Manila</div></td>
-    <td><strong><?php echo $adminEscape($sh['verification_status']); ?></strong></td>
-    <td><div class="shelter-admin-actions">
-     <button type="button" class="btn" onclick="document.getElementById('adminShelterMap').scrollIntoView({behavior:'smooth',block:'center'});window.focusAdminShelter?.(adminShelterRecords.find(s=>String(s.id)==='<?php echo (int)$sh['id']; ?>'));"><i class="fas fa-map-marker-alt"></i> View on Map</button>
-     <button type="button" class="btn" onclick='editShelterAdmin(<?php echo htmlspecialchars(json_encode($sh, JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT), ENT_QUOTES, "UTF-8"); ?>)'>Edit</button>
-     <form method="post" action="?tab=shelters"><input type="hidden" name="shelter_csrf" value="<?php echo $adminEscape($_SESSION['shelter_admin_csrf']); ?>"><input type="hidden" name="shelter_action" value="status"><input type="hidden" name="shelter_id" value="<?php echo (int)$sh['id']; ?>"><select name="verification_status" aria-label="Verification status"><?php foreach (['Pending','Approved','Rejected','Suspended'] as $opt): ?><option value="<?php echo $opt; ?>" <?php echo $sh['verification_status']===$opt?'selected':''; ?>><?php echo $opt; ?></option><?php endforeach; ?></select><button type="submit" class="btn">Update</button></form>
-     <form method="post" action="?tab=shelters" onsubmit="return confirm('Delete this shelter and all its ratings?')"><input type="hidden" name="shelter_csrf" value="<?php echo $adminEscape($_SESSION['shelter_admin_csrf']); ?>"><input type="hidden" name="shelter_action" value="delete"><input type="hidden" name="shelter_id" value="<?php echo (int)$sh['id']; ?>"><button type="submit" class="btn" style="color:#ef4444">Delete</button></form>
-    </div></td></tr>
-   <?php endforeach; ?>
-   <?php if (!$shelterAdminRows): ?><tr><td colspan="7">No shelters added yet.</td></tr><?php endif; ?>
-   </tbody></table></div>
-  </div>
+
  </div>
 </section>
 
