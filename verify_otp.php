@@ -79,8 +79,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 $message = "No verification code found.";
 
             } elseif (
-                strtotime($row['verification_expires']) === false ||
-                strtotime($row['verification_expires']) < time()
+                strtotime($row['verification_expires'] . ' UTC') === false ||
+                strtotime($row['verification_expires'] . ' UTC') < time()
             ) {
 
                 $message = "This OTP has expired. Please request a new one.";
