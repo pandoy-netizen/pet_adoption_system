@@ -1288,6 +1288,62 @@ footer { padding-inline: var(--page-gutter); }
   .hero::before, .badge, .copyright i { animation: none !important; }
 }
 
+
+/* Compact mobile refinement: Messenger in-app browser and small screens */
+@media (max-width: 600px) {
+  :root { --page-gutter: 16px; }
+  body { font-size: 14px; line-height: 1.55; }
+  .navbar { padding: 10px 16px !important; min-height: 60px; }
+  .logo { gap: 7px; }
+  .logo img { height: 30px; max-width: 30px; }
+  .logo h2 { font-size: clamp(.78rem, 3.1vw, .98rem); letter-spacing: -.45px; }
+  .menu-toggle { width: 38px; height: 38px; flex-basis: 38px; font-size: 1.05rem; }
+  .hero { padding: 92px 16px 48px; min-height: 0; }
+  .hero-content { padding: 0 4px; }
+  .hero-content .section-tag { font-size: .68rem; padding: 4px 10px; margin-bottom: 10px; }
+  .hero-content h1 { font-size: clamp(1.65rem, 7vw, 2.15rem); line-height: 1.2; margin-bottom: 12px; }
+  .hero-content p { font-size: .85rem; line-height: 1.55; margin-bottom: 22px; }
+  .hero-btn { font-size: .83rem; padding: 10px 18px; }
+  .section-tag { font-size: .7rem; letter-spacing: 1.2px; }
+  .journey { padding: 38px 16px; }
+  .journey-head { margin-bottom: 20px; }
+  .journey-head h2 { font-size: clamp(1.4rem, 5.5vw, 1.8rem); margin: 7px 0 10px; }
+  .journey-head p { font-size: .84rem; line-height: 1.55; }
+  .journey-grid { gap: 12px; }
+  .journey-card { padding: 16px 17px; border-radius: 16px; }
+  .journey-icon { width: 40px; height: 40px; border-radius: 12px; font-size: 1.05rem; margin-bottom: 12px; }
+  .journey-number { top: 18px; right: 18px; font-size: .73rem; }
+  .journey-card h3 { font-size: .98rem; margin-bottom: 5px; }
+  .journey-card p { font-size: .82rem; line-height: 1.55; }
+  .journey-action { margin-top: 22px; }
+  .impact-section { padding: 42px 16px; gap: 20px; }
+  .impact-inner h2 { font-size: clamp(1.45rem, 6vw, 1.95rem); line-height: 1.25; margin: 9px 0 12px; }
+  .impact-inner p { font-size: .85rem; line-height: 1.6; }
+  .impact-link { font-size: .85rem; margin-top: 15px; }
+  .impact-art { min-height: 135px; border-radius: 17px; gap: 10px; }
+  .impact-art i { font-size: 2.7rem; }
+  .impact-art span { font-size: .85rem; }
+  .about { padding: 42px 16px; }
+  .about-grid { gap: 24px; }
+  .about-text h2 { font-size: clamp(1.5rem, 6vw, 1.95rem); line-height: 1.25; margin: 8px 0 12px; }
+  .about-text > p { font-size: .85rem; line-height: 1.65; }
+  .about-info { grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; margin-top: 20px; }
+  .info-box { padding: 14px 12px; border-radius: 14px; }
+  .info-box i { font-size: 1.25rem; margin-bottom: 8px; }
+  .info-box h4 { font-size: .85rem; margin-bottom: 5px; }
+  .info-box p, .info-box a { font-size: .74rem; line-height: 1.45; overflow-wrap: anywhere; }
+  .about-image img { max-height: 235px; object-fit: cover; border-radius: 16px; }
+  footer { padding: 34px 16px 22px; }
+  .footer-logo h2 { font-size: clamp(1.1rem, 4.8vw, 1.5rem); margin-bottom: 17px; }
+  .social-links { margin-bottom: 22px; gap: 12px; }
+  .social-links a { width: 38px; height: 38px; font-size: 1rem; }
+  .copyright { font-size: .73rem; padding-top: 18px; line-height: 1.6; }
+}
+@media (max-width: 350px) {
+  .about-info { grid-template-columns: 1fr; }
+  .logo h2 { font-size: .75rem; }
+}
+
     </style>
 
 </head>
