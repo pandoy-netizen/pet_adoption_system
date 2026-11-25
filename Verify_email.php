@@ -1,478 +1,381 @@
 <?php
-session_start();
-
-/* =========================
-   DATABASE CONNECTION
-========================= */
-$host = "localhost";
-$user = "root";
-$password = "";
-$database = "pet_adoption_rescue";
-
-$conn = mysqli_connect($host, $user, $password, $database);
-
-if (!$conn) {
-    die("Database connection failed: " . mysqli_connect_error());
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
 }
 
-/* =========================
-   CHECK VERIFICATION SESSION
-========================= */
-if (!isset($_SESSION['verification_user_id']) || !isset($_SESSION['verification_email'])) {
-    header("Location: register.php");
+require_once __DIR__ . '/config/db.php';
+
+$message = '';
+$message_type = 'error';
+$verified = false;
+
+if (empty($_SESSION['verification_user_id']) || empty($_SESSION['verification_email'])) {
+    header('Location: register.php');
     exit;
 }
 
 $user_id = (int) $_SESSION['verification_user_id'];
-$email = $_SESSION['verification_email'];
+$email = (string) $_SESSION['verification_email'];
 
-$message = "";
-$message_type = "";
-
-/* =========================
-   AUTOMATICALLY DETERMINE NAME COLUMN
-========================= */
-$name_column = "";
-
-$check_full_name = mysqli_query(
-    $conn,
-    "SHOW COLUMNS FROM users LIKE 'full_name'"
-);
-
-if ($check_full_name && mysqli_num_rows($check_full_name) > 0) {
-    $name_column = "full_name";
-} else {
-    $check_name = mysqli_query(
-        $conn,
-        "SHOW COLUMNS FROM users LIKE 'name'"
-    );
-
-    if ($check_name && mysqli_num_rows($check_name) > 0) {
-        $name_column = "name";
-    }
+if (empty($_SESSION['email_verify_csrf'])) {
+    $_SESSION['email_verify_csrf'] = bin2hex(random_bytes(32));
 }
 
-/* =========================================================
-   VERIFY OTP
-========================================================= */
-if (isset($_POST['verify'])) {
+function verify_escape($value) {
+    return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
+}
 
-    $entered_code = trim($_POST['verification_code'] ?? "");
+function verify_send_email($email, $name, $code) {
+    require_once __DIR__ . '/PHPMailer/src/Exception.php';
+    require_once __DIR__ . '/PHPMailer/src/PHPMailer.php';
+    require_once __DIR__ . '/PHPMailer/src/SMTP.php';
 
-    if (empty($entered_code)) {
+    $username = getenv('SMTP_USER') ?: '';
+    $password = getenv('SMTP_PASSWORD') ?: '';
+    $from = getenv('SMTP_FROM') ?: $username;
+    $host = getenv('SMTP_HOST') ?: 'smtp.gmail.com';
+    $port = (int) (getenv('SMTP_PORT') ?: 587);
 
-        $message = "Please enter the verification code.";
-        $message_type = "error";
+    if ($username === '' || $password === '' || $from === '') {
+        throw new RuntimeException('SMTP environment variables are missing.');
+    }
 
-    } elseif (!preg_match('/^[0-9]{6}$/', $entered_code)) {
+    $mail = new \PHPMailer\PHPMailer\PHPMailer(true);
+    $mail->isSMTP();
+    $mail->Host = $host;
+    $mail->SMTPAuth = true;
+    $mail->Username = $username;
+    $mail->Password = $password;
+    $mail->Port = $port;
+    $mail->SMTPSecure = $port === 465
+        ? \PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_SMTPS
+        : \PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_STARTTLS;
+    $mail->CharSet = 'UTF-8';
+    $mail->setFrom($from, 'PAW Care');
+    $mail->addAddress($email, $name);
+    $mail->isHTML(true);
+    $mail->Subject = 'PAW Care - Email Verification Code';
+    $safe_name = verify_escape($name);
+    $safe_code = verify_escape($code);
+    $mail->Body = '<div style="font-family:Arial,sans-serif"><h2 style="color:#d4a017">PAW Care</h2><p>Hello ' . $safe_name . ',</p><p>Your verification code is:</p><p style="font-size:30px;font-weight:bold;letter-spacing:6px;color:#d4a017">' . $safe_code . '</p><p>This code expires in 10 minutes.</p><p>If you did not request this, please ignore this email.</p></div>';
+    $mail->AltBody = "Hello $name,\nYour PAW Care verification code is: $code\nThis code expires in 10 minutes.";
+    $mail->send();
+}
 
-        $message = "The verification code must contain exactly 6 digits.";
-        $message_type = "error";
+try {
+    $stmt = $conn->prepare('SELECT id, email_verified FROM users WHERE id = ? AND email = ? LIMIT 1');
+    $stmt->bind_param('is', $user_id, $email);
+    $stmt->execute();
+    $account = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    if (!$account) {
+        unset($_SESSION['verification_user_id'], $_SESSION['verification_email']);
+        header('Location: register.php');
+        exit;
+    }
+    if ((int) $account['email_verified'] === 1) {
+        $verified = true;
+        $message = 'Your account is already verified.';
+        $message_type = 'success';
+    }
+} catch (Throwable $e) {
+    error_log('Email verification lookup error: ' . $e->getMessage());
+    http_response_code(500);
+    exit('Unable to load verification details. Please try again later.');
+}
 
-    } else {
+if (!$verified && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    $csrf = (string) ($_POST['csrf_token'] ?? '');
+    $action = (string) ($_POST['action'] ?? '');
 
-        /* =========================
-           GET USER VERIFICATION DATA
-        ========================= */
-        $stmt = $conn->prepare("
-            SELECT id, email, email_verified, verification_code, verification_expires
-            FROM users
-            WHERE id = ? AND email = ?
-            LIMIT 1
-        ");
-
-        $stmt->bind_param("is", $user_id, $email);
-        $stmt->execute();
-
-        $result = $stmt->get_result();
-
-        if ($result->num_rows === 0) {
-
-            $message = "Verification account not found. Please register again.";
-            $message_type = "error";
-
+    if (!hash_equals($_SESSION['email_verify_csrf'], $csrf)) {
+        $message = 'Invalid request. Refresh the page and try again.';
+    } elseif ($action === 'verify') {
+        $otp = trim((string) ($_POST['otp'] ?? ''));
+        if (!preg_match('/^[0-9]{6}$/', $otp)) {
+            $message = 'Please enter a valid 6-digit OTP.';
         } else {
+            try {
+                $stmt = $conn->prepare('SELECT verification_code, verification_expires FROM users WHERE id = ? AND email = ? AND email_verified = 0 LIMIT 1');
+                $stmt->bind_param('is', $user_id, $email);
+                $stmt->execute();
+                $data = $stmt->get_result()->fetch_assoc();
+                $stmt->close();
 
-            $account = $result->fetch_assoc();
-
-            /* =========================
-               CHECK IF ALREADY VERIFIED
-            ========================= */
-            if ((int)$account['email_verified'] === 1) {
-
-                unset($_SESSION['verification_user_id']);
-                unset($_SESSION['verification_email']);
-
-                header("Location: login.php?verified=1");
-                exit;
-            }
-
-            /* =========================
-               CHECK CODE
-            ========================= */
-            if (
-                empty($account['verification_code']) ||
-                $entered_code !== $account['verification_code']
-            ) {
-
-                $message = "Incorrect verification code. Please try again.";
-                $message_type = "error";
-
-            }
-
-            /* =========================
-               CHECK EXPIRATION
-            ========================= */
-            elseif (
-                empty($account['verification_expires']) ||
-                strtotime($account['verification_expires']) < time()
-            ) {
-
-                $message = "Your verification code has expired. Please request a new code.";
-                $message_type = "error";
-
-            }
-
-            /* =========================
-               VERIFICATION SUCCESS
-            ========================= */
-            else {
-
-                $update = $conn->prepare("
-                    UPDATE users
-                    SET email_verified = 1,
-                        verification_code = NULL,
-                        verification_expires = NULL
-                    WHERE id = ?
-                ");
-
-                $update->bind_param("i", $user_id);
-
-                if ($update->execute()) {
-
-                    /* Clear verification session */
-                    unset($_SESSION['verification_user_id']);
-                    unset($_SESSION['verification_email']);
-
-                    header("Location: login.php?verified=1");
-                    exit;
-
+                if (!$data || empty($data['verification_code']) || empty($data['verification_expires'])) {
+                    $message = 'No active verification code. Please request a new one.';
                 } else {
+                    $stmt = $conn->prepare('SELECT (CAST(? AS DATETIME) >= UTC_TIMESTAMP()) AS valid_time');
+                    $stmt->bind_param('s', $data['verification_expires']);
+                    $stmt->execute();
+                    $not_expired = (int) $stmt->get_result()->fetch_assoc()['valid_time'] === 1;
+                    $stmt->close();
 
-                    $message = "Unable to verify your account. Please try again.";
-                    $message_type = "error";
+                    if (!$not_expired) {
+                        $message = 'This OTP has expired. Please request a new one.';
+                    } elseif (!hash_equals((string) $data['verification_code'], $otp)) {
+                        $message = 'Invalid verification code. Please try again.';
+                    } else {
+                        $stmt = $conn->prepare('UPDATE users SET email_verified = 1, verification_code = NULL, verification_expires = NULL WHERE id = ? AND email = ? AND email_verified = 0 AND verification_code = ? AND verification_expires >= UTC_TIMESTAMP()');
+                        $stmt->bind_param('iss', $user_id, $email, $otp);
+                        $stmt->execute();
+                        $verified = $stmt->affected_rows === 1;
+                        $stmt->close();
+                        if ($verified) {
+                            unset($_SESSION['verification_user_id'], $_SESSION['verification_email']);
+                            $message = 'Account verified successfully!';
+                            $message_type = 'success';
+                        } else {
+                            $message = 'Verification failed or code expired. Please try again.';
+                        }
+                    }
                 }
+            } catch (Throwable $e) {
+                error_log('Email OTP verification error: ' . $e->getMessage());
+                $message = 'Verification is temporarily unavailable. Please try again.';
+            }
+        }
+    } elseif ($action === 'resend') {
+        $last_sent = (int) ($_SESSION['verify_resend_at'] ?? 0);
+        if (time() - $last_sent < 60) {
+            $message = 'Please wait 60 seconds before requesting another code.';
+        } else {
+            $_SESSION['verify_resend_at'] = time();
+            try {
+                $name_column = 'name';
+                $columns = $conn->query("SHOW COLUMNS FROM users");
+                $names = [];
+                while ($column = $columns->fetch_assoc()) {
+                    $names[] = $column['Field'];
+                }
+                if (in_array('full_name', $names, true)) {
+                    $name_column = 'full_name';
+                } elseif (!in_array('name', $names, true)) {
+                    $name_column = in_array('username', $names, true) ? 'username' : '';
+                }
+                $display_name = 'User';
+                if ($name_column !== '') {
+                    $stmt = $conn->prepare("SELECT `$name_column` AS display_name FROM users WHERE id = ? AND email = ? AND email_verified = 0 LIMIT 1");
+                    $stmt->bind_param('is', $user_id, $email);
+                    $stmt->execute();
+                    $record = $stmt->get_result()->fetch_assoc();
+                    $stmt->close();
+                    if ($record && !empty($record['display_name'])) {
+                        $display_name = (string) $record['display_name'];
+                    }
+                }
+
+                $new_code = sprintf('%06d', random_int(0, 999999));
+                $stmt = $conn->prepare('UPDATE users SET verification_code = ?, verification_expires = DATE_ADD(UTC_TIMESTAMP(), INTERVAL 10 MINUTE) WHERE id = ? AND email = ? AND email_verified = 0');
+                $stmt->bind_param('sis', $new_code, $user_id, $email);
+                $stmt->execute();
+                $updated = $stmt->affected_rows === 1;
+                $stmt->close();
+                if (!$updated) {
+                    throw new RuntimeException('Pending user not found.');
+                }
+                verify_send_email($email, $display_name, $new_code);
+                $message = 'A new verification code has been sent. Check your inbox and spam folder.';
+                $message_type = 'success';
+            } catch (Throwable $e) {
+                error_log('Verification resend error: ' . $e->getMessage());
+                $message = 'Unable to send verification email. Please check SMTP configuration or try again later.';
             }
         }
     }
 }
 
-/* =========================================================
-   RESEND VERIFICATION CODE
-========================================================= */
-if (isset($_POST['resend'])) {
-
-    /* Get user's name */
-    $fullname = "User";
-
-    if ($name_column !== "") {
-
-        $stmt = $conn->prepare("
-            SELECT `$name_column`, email_verified
-            FROM users
-            WHERE id = ? AND email = ?
-            LIMIT 1
-        ");
-
-        $stmt->bind_param("is", $user_id, $email);
-        $stmt->execute();
-
-        $result = $stmt->get_result();
-
-        if ($result->num_rows > 0) {
-
-            $user_data = $result->fetch_assoc();
-
-            if ((int)$user_data['email_verified'] === 1) {
-
-                unset($_SESSION['verification_user_id']);
-                unset($_SESSION['verification_email']);
-
-                header("Location: login.php?verified=1");
-                exit;
-            }
-
-            if (!empty($user_data[$name_column])) {
-                $fullname = $user_data[$name_column];
-            }
-        }
-    }
-
-    /* =========================
-       GENERATE NEW OTP
-    ========================= */
-    $new_code = sprintf("%06d", random_int(0, 999999));
-
-    $new_expiration = date(
-        "Y-m-d H:i:s",
-        strtotime("+10 minutes")
-    );
-
-    /* =========================
-       SAVE NEW OTP
-    ========================= */
-    $update = $conn->prepare("
-        UPDATE users
-        SET verification_code = ?,
-            verification_expires = ?
-        WHERE id = ? AND email = ?
-    ");
-
-    $update->bind_param(
-        "ssis",
-        $new_code,
-        $new_expiration,
-        $user_id,
-        $email
-    );
-
-    if ($update->execute()) {
-
-        /* =========================
-           SEND EMAIL
-        ========================= */
-
-        require 'PHPMailer/src/Exception.php';
-        require 'PHPMailer/src/PHPMailer.php';
-        require 'PHPMailer/src/SMTP.php';
-
-        $mail = new PHPMailer\PHPMailer\PHPMailer(true);
-
-        try {
-
-            $mail->isSMTP();
-
-            $mail->Host = 'smtp.gmail.com';
-            $mail->SMTPAuth = true;
-
-            /*
-             * IMPORTANT:
-             * Use your Gmail address here.
-             */
-            $mail->Username = 'your_email@gmail.com';
-
-            /*
-             * Use your NEW Google App Password here.
-             * Do NOT use your normal Gmail password.
-             */
-            $mail->Password = 'YOUR_NEW_GOOGLE_APP_PASSWORD';
-
-            $mail->SMTPSecure = PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_STARTTLS;
-            $mail->Port = 587;
-
-            $mail->setFrom(
-                'your_email@gmail.com',
-                'PAW Care'
-            );
-
-            $mail->addAddress(
-                $email,
-                $fullname
-            );
-
-            $mail->isHTML(true);
-
-            $mail->Subject = 'PAW Care - New Verification Code';
-
-            $mail->Body = "
-                <div style='font-family: Arial, sans-serif;'>
-                    <h2 style='color:#d4a017;'>PAW Care</h2>
-
-                    <p>Hello <b>" . htmlspecialchars($fullname) . "</b>,</p>
-
-                    <p>You requested a new email verification code.</p>
-
-                    <p>Your new verification code is:</p>
-
-                    <div style='
-                        font-size:32px;
-                        font-weight:bold;
-                        letter-spacing:8px;
-                        color:#d4a017;
-                        margin:20px 0;
-                    '>
-                        $new_code
-                    </div>
-
-                    <p>This code will expire in <b>10 minutes</b>.</p>
-
-                    <p>If you did not request this code, you can safely ignore this email.</p>
-
-                    <br>
-
-                    <p>
-                        Thank you,<br>
-                        <b>PAW Care</b>
-                    </p>
-                </div>
-            ";
-
-            $mail->AltBody =
-                "Hello $fullname,\n\n" .
-                "Your new PAW Care verification code is: $new_code\n\n" .
-                "This code will expire in 10 minutes.\n\n" .
-                "Thank you,\nPAW Care";
-
-            $mail->send();
-
-            $message = "A new verification code has been sent to your email.";
-            $message_type = "success";
-
-        } catch (Exception $e) {
-
-            $message = "The new code was generated, but the email could not be sent. Please check your SMTP settings.";
-            $message_type = "error";
-        }
-
-    } else {
-
-        $message = "Unable to generate a new verification code.";
-        $message_type = "error";
-    }
-}
+$safe_email = verify_escape($email);
+$safe_message = verify_escape($message);
+$safe_csrf = verify_escape($_SESSION['email_verify_csrf']);
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
-
 <meta charset="UTF-8">
-
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <title>Verify Email - PAW Care</title>
 
 <style>
-
 * {
     box-sizing: border-box;
 }
 
 body {
-    font-family: 'Segoe UI', sans-serif;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background: #f4f7f6;
     display: flex;
     justify-content: center;
     align-items: center;
     min-height: 100vh;
     margin: 0;
+    padding: 20px;
+    color: #333;
 }
 
-.verify-container {
-    background: white;
+.verification-container {
+    background: #ffffff;
     padding: 40px;
-    border-radius: 12px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-    width: 380px;
-    max-width: 90%;
+    border-radius: 10px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 430px;
     text-align: center;
+    animation: fadeIn 0.5s ease;
 }
 
-.icon {
-    width: 70px;
-    height: 70px;
-    background: #d4a017;
-    color: white;
-    border-radius: 50%;
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(15px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.logo-icon {
+    width: 72px;
+    height: 72px;
     margin: 0 auto 20px;
+    background: #fff8e5;
+    border-radius: 50%;
     display: flex;
-    justify-content: center;
     align-items: center;
-    font-size: 32px;
+    justify-content: center;
+}
+
+.logo-icon svg {
+    width: 38px;
+    height: 38px;
+    fill: #d4a017;
 }
 
 h2 {
     color: #333;
-    margin-bottom: 10px;
+    font-size: 25px;
+    font-weight: 700;
+    margin: 0 0 12px;
 }
 
-.description {
-    color: #666;
+.subtitle {
+    color: #777;
     font-size: 14px;
-    line-height: 1.6;
+    line-height: 1.7;
+    margin: 0 0 25px;
+}
+
+.email-display {
+    background: #f8f9fa;
+    border: 1px solid #eeeeee;
+    padding: 12px;
+    border-radius: 8px;
+    color: #555;
+    font-size: 13px;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+    margin-bottom: 25px;
+}
+
+.otp-label {
+    display: block;
+    text-align: left;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 10px;
+    color: #444;
+}
+
+.otp-input {
+    width: 100%;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    text-align: center;
+    font-size: 25px;
+    font-weight: 700;
+    letter-spacing: 12px;
+    color: #333;
+    background: #fff;
+    outline: none;
+    transition: 0.3s;
     margin-bottom: 20px;
 }
 
-.email {
-    font-weight: bold;
-    color: #333;
-    word-break: break-word;
-}
-
-input {
-    width: 100%;
-    padding: 14px;
-    margin-bottom: 15px;
-    border: 1px solid #ddd;
-    border-radius: 6px;
-    box-sizing: border-box;
-    text-align: center;
-    font-size: 24px;
-    letter-spacing: 8px;
-}
-
-input:focus {
-    outline: none;
+.otp-input:focus {
     border-color: #d4a017;
+    box-shadow: 0 0 0 3px rgba(212, 160, 23, 0.12);
 }
 
-button {
+.otp-input::placeholder {
+    font-size: 14px;
+    font-weight: 400;
+    letter-spacing: normal;
+    color: #aaa;
+}
+
+.verify-button,
+.login-button {
     width: 100%;
-    padding: 13px;
+    display: block;
+    padding: 14px;
     background: #d4a017;
     border: none;
     color: white;
-    font-weight: bold;
-    border-radius: 6px;
+    font-weight: 700;
+    font-size: 14px;
+    border-radius: 7px;
     cursor: pointer;
+    text-decoration: none;
     transition: 0.3s;
 }
 
-button:hover {
+.verify-button:hover,
+.login-button:hover {
     background: #b8870f;
+    transform: translateY(-1px);
 }
 
-.resend-button {
-    margin-top: 12px;
-    background: #555;
+.verify-button:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+    transform: none;
 }
 
-.resend-button:hover {
-    background: #333;
+.message-box {
+    padding: 13px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    font-size: 13px;
+    line-height: 1.6;
 }
 
-.error {
-    color: #d00000;
-    background: #ffeaea;
-    padding: 10px;
-    border-radius: 6px;
-    font-size: 14px;
-    margin-bottom: 15px;
+.error-message {
+    background: #fff0f0;
+    border: 1px solid #ffcccc;
+    color: #c62828;
 }
 
-.success {
-    color: #198754;
-    background: #e8f7ee;
-    padding: 10px;
-    border-radius: 6px;
-    font-size: 14px;
-    margin-bottom: 15px;
+.success-message {
+    background: #eaf8ee;
+    border: 1px solid #b8e3c2;
+    color: #218838;
+}
+
+.info-text {
+    margin-top: 22px;
+    font-size: 12px;
+    color: #999;
+    line-height: 1.7;
 }
 
 .back-link {
-    display: block;
-    margin-top: 18px;
-    color: #666;
+    display: inline-block;
+    margin-top: 20px;
+    color: #777;
     text-decoration: none;
     font-size: 13px;
 }
@@ -481,90 +384,224 @@ button:hover {
     color: #d4a017;
 }
 
-.note {
-    margin-top: 20px;
-    color: #888;
-    font-size: 12px;
-    line-height: 1.5;
+.success-icon {
+    width: 85px;
+    height: 85px;
+    background: #eaf8ee;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 25px;
+    animation: popIn 0.5s ease;
 }
 
-</style>
+.success-icon svg {
+    width: 48px;
+    height: 48px;
+    stroke: #28a745;
+    fill: none;
+    stroke-width: 3;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
 
+@keyframes popIn {
+    from {
+        opacity: 0;
+        transform: scale(0.6);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.success-title {
+    color: #333;
+    margin-bottom: 12px;
+}
+
+.success-description {
+    color: #777;
+    font-size: 14px;
+    line-height: 1.8;
+    margin-bottom: 25px;
+}
+
+.security-note {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 7px;
+    margin-top: 22px;
+    color: #999;
+    font-size: 12px;
+}
+
+@media (max-width: 480px) {
+    .verification-container {
+        padding: 30px 22px;
+    }
+
+    h2 {
+        font-size: 22px;
+    }
+
+    .otp-input {
+        font-size: 22px;
+        letter-spacing: 9px;
+    }
+}
+</style>
 </head>
 
 <body>
 
-<div class="verify-container">
+<div class="verification-container">
 
-    <div class="icon">
-        ✉
+<?php if ($verified): ?>
+
+    <div class="success-icon">
+        <svg viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="10"></circle>
+            <path d="M7 12.5l3.2 3.2L17 9"></path>
+        </svg>
+    </div>
+
+    <h2 class="success-title">
+        Email Verified!
+    </h2>
+
+    <p class="success-description">
+        Congratulations! Your email address has been
+        successfully verified.
+        Your PAW Care account is now ready to use.
+    </p>
+
+    <div class="message-box success-message">
+        <?php echo $safe_message; ?>
+    </div>
+
+    <a href="login.php" class="login-button">
+        Continue to Login
+    </a>
+
+    <div class="security-note">
+        Your account is now verified and ready.
+    </div>
+
+<?php else: ?>
+
+    <div class="logo-icon">
+        <svg viewBox="0 0 24 24">
+            <circle cx="4.5" cy="11" r="2"></circle>
+            <circle cx="9" cy="6" r="2"></circle>
+            <circle cx="15" cy="6" r="2"></circle>
+            <circle cx="19.5" cy="11" r="2"></circle>
+            <path d="M12 12c-2.5 0-4 2-5.5 4.2C5 18.4 6.6 21 9 21c1.2 0 2-.7 3-.7s1.8.7 3 .7c2.4 0 4-2.6 2.5-4.8C16 14 14.5 12 12 12z"></path>
+        </svg>
     </div>
 
     <h2>Verify Your Email</h2>
 
-    <div class="description">
+    <p class="subtitle">
+        Enter the 6-digit verification code sent
+        to your email address.
+        Enter the code below to activate your account.
+    </p>
 
-        We sent a 6-digit verification code to:
-
-        <div class="email">
-            <?php echo htmlspecialchars($email); ?>
-        </div>
-
+    <div class="email-display">
+        <?php echo $safe_email; ?>
     </div>
 
-    <?php if ($message != ""): ?>
+    <?php if ($message !== ""): ?>
 
-        <div class="<?php echo htmlspecialchars($message_type); ?>">
-            <?php echo htmlspecialchars($message); ?>
+        <div class="message-box <?php echo $message_type === "success" ? "success-message" : "error-message"; ?>">
+            <?php echo $safe_message; ?>
         </div>
 
     <?php endif; ?>
 
-    <!-- VERIFY FORM -->
-    <form method="POST">
+    <form method="POST" id="otpForm">
+        <input type="hidden" name="csrf_token" value="<?php echo $safe_csrf; ?>">
+        <input type="hidden" name="action" value="verify">
+
+        <label class="otp-label" for="otp">
+            Verification Code
+        </label>
 
         <input
+            class="otp-input"
             type="text"
-            name="verification_code"
+            id="otp"
+            name="otp"
             placeholder="000000"
             maxlength="6"
+            minlength="6"
             pattern="[0-9]{6}"
             inputmode="numeric"
             autocomplete="one-time-code"
             required
+            autofocus
         >
 
         <button
             type="submit"
-            name="verify"
+            class="verify-button"
+            id="verifyButton"
         >
-            Verify Email
+            Verify Code
         </button>
 
     </form>
 
-    <!-- RESEND FORM -->
-    <form method="POST">
-
-        <button
-            type="submit"
-            name="resend"
-            class="resend-button"
-        >
-            Resend Code
-        </button>
-
+    <form method="POST" style="margin-top:12px">
+        <input type="hidden" name="csrf_token" value="<?php echo $safe_csrf; ?>">
+        <input type="hidden" name="action" value="resend">
+        <button type="submit" class="verify-button" style="background:#555">Resend Code</button>
     </form>
 
-    <div class="note">
+    <p class="info-text">
         Your verification code is valid for 10 minutes.
-    </div>
+        Please check your inbox or spam folder.
+    </p>
 
     <a href="register.php" class="back-link">
         ← Back to Registration
     </a>
 
+    <div class="security-note">
+        Secure Email Verification
+    </div>
+
+<?php endif; ?>
+
 </div>
+
+<script>
+const otpInput = document.getElementById('otp');
+const otpForm = document.getElementById('otpForm');
+const verifyButton = document.getElementById('verifyButton');
+
+if (otpInput) {
+    otpInput.addEventListener('input', function () {
+        this.value = this.value.replace(/\D/g, '').slice(0, 6);
+    });
+}
+
+if (otpForm && verifyButton) {
+    otpForm.addEventListener('submit', function (event) {
+        if (!otpForm.checkValidity()) {
+            return;
+        }
+
+        verifyButton.disabled = true;
+        verifyButton.textContent = 'Verifying...';
+    });
+}
+</script>
 
 </body>
 </html>
