@@ -1200,6 +1200,94 @@ $startUrl = $loggedIn ? $dashboardUrl : 'login.php';
         [data-theme="dark"] .navbar .nav-links a:not(.btn-login) { color:#e2e8f0; }
         [data-theme="dark"] .navbar .nav-links a:not(.btn-login):hover { color:#ff9f43; }
 
+
+/* Responsive layout refinements — preserves existing functionality */
+:root { --page-gutter: clamp(18px, 4vw, 72px); --content-max: 1280px; }
+body { min-width: 0; }
+.navbar { padding-inline: var(--page-gutter); gap: 20px; }
+.logo { min-width: 0; flex-shrink: 1; }
+.logo h2 { overflow-wrap: anywhere; font-size: clamp(.95rem, 1.6vw, 1.45rem); line-height: 1.2; }
+.nav-links { gap: clamp(12px, 1.7vw, 28px); flex-shrink: 0; }
+.nav-links a { white-space: nowrap; }
+.hero { min-height: min(720px, 85svh); height: auto; padding: clamp(125px, 16vh, 175px) var(--page-gutter) clamp(80px, 10vh, 130px); clip-path: none; }
+.hero-content { max-width: 850px; padding: 0; }
+.hero-content h1 { font-size: clamp(2rem, 5.3vw, 4.25rem); overflow-wrap: anywhere; }
+.hero-content p { max-width: 720px; margin-inline: auto; line-height: 1.75; }
+.pets, .about, .journey { padding-inline: var(--page-gutter); }
+.pets > *, .about-grid, .journey > *, .impact-section > * { min-width: 0; }
+.pet-container, .about-grid, .journey-grid { max-width: var(--content-max); margin-inline: auto; }
+.pet-container { grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); }
+.about-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: clamp(30px, 5vw, 70px); }
+.about-info { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 26px; }
+.about-text, .about-image, .info-box, .journey-card, .impact-inner, .impact-art { min-width: 0; }
+.about-image::before { left: -10px; top: 12px; }
+.about-image img { display: block; width: 100%; max-width: 100%; }
+.journey { padding-block: clamp(65px, 7vw, 95px); }
+.journey-head { margin-bottom: clamp(25px, 3vw, 42px); }
+.journey-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: clamp(14px, 2vw, 22px); }
+.journey-card { padding: clamp(20px, 2.2vw, 30px); }
+.impact-section { grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); padding: clamp(60px, 7vw, 90px) var(--page-gutter); }
+.impact-section > * { width: 100%; }
+footer { padding-inline: var(--page-gutter); }
+.modal { padding: 16px; }
+.modal-content { width: min(100%, 850px); max-height: calc(100dvh - 32px); grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.modal-img { height: 100%; min-height: 280px; }
+.alert { width: min(calc(100% - 32px), 600px); }
+@media (max-width: 1100px) {
+  .journey-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 980px) {
+  .menu-toggle { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; flex: 0 0 44px; background: transparent; border: 1px solid rgba(128,128,128,.25); border-radius: 12px; font-size: 1.3rem; color: var(--text-main); cursor: pointer; z-index: 1001; }
+  .nav-links { position: absolute; top: 100%; left: 0; width: 100%; background: var(--white); flex-direction: column; align-items: stretch; gap: 0; padding: 0 var(--page-gutter); max-height: 0; overflow: hidden; box-shadow: 0 10px 20px rgba(0,0,0,.1); transition: max-height .35s ease, padding .35s ease; }
+  .nav-links.active { max-height: min(75dvh, 500px); overflow-y: auto; padding: 14px var(--page-gutter) 22px; border-top: 1px solid rgba(128,128,128,.2); }
+  .nav-links a { display: block; padding: 12px 8px; margin: 0; font-size: 1rem; }
+  .nav-links .btn-login { width: 100%; margin-top: 10px; text-align: center; }
+  .theme-toggle { width: 100%; margin-top: 8px; min-height: 44px; }
+  .about-grid { grid-template-columns: 1fr; }
+  .about-image { max-width: 720px; width: 100%; margin-inline: auto; }
+  .impact-section { grid-template-columns: 1fr; }
+  .impact-art { min-height: 210px; }
+}
+@media (max-width: 600px) {
+  :root { --page-gutter: 20px; }
+  .navbar { gap: 10px; min-height: 68px; }
+  .logo { gap: 8px; }
+  .logo img { height: 35px; max-width: 38px; object-fit: contain; }
+  .logo h2 { font-size: clamp(.85rem, 3.5vw, 1.08rem); letter-spacing: -.5px; }
+  .hero { min-height: 0; padding: 135px var(--page-gutter) 85px; }
+  .hero-content h1 { font-size: clamp(2rem, 9vw, 3rem); line-height: 1.17; }
+  .hero-content p { font-size: .98rem; line-height: 1.7; }
+  .hero-btn { padding: 13px 23px; font-size: .95rem; max-width: 100%; }
+  .journey { padding-block: 62px; }
+  .journey-grid { grid-template-columns: 1fr; gap: 16px; }
+  .journey-card { padding: 24px 22px; }
+  .journey-action { margin-top: 30px; }
+  .about { padding-block: 65px; }
+  .about-info { grid-template-columns: 1fr; gap: 14px; }
+  .info-box { padding: 22px; }
+  .about-image::before { display: none; }
+  .about-image img { border-radius: 20px; }
+  .impact-section { padding-block: 60px; gap: 28px; }
+  .impact-art { min-height: 180px; }
+  .impact-art i { font-size: 4rem; }
+  footer { padding-block: 55px 25px; }
+  .footer-logo h2 { font-size: clamp(1.3rem, 6vw, 2rem); overflow-wrap: anywhere; }
+  .modal { padding: 12px; }
+  .modal-content { width: 100%; max-height: calc(100dvh - 24px); grid-template-columns: 1fr; }
+  .modal-img { height: 220px; min-height: 0; border-radius: 24px 24px 0 0; }
+  .modal-body { padding: 24px 20px; }
+  .close-btn { top: 12px; right: 12px; }
+}
+@media (max-width: 360px) {
+  :root { --page-gutter: 14px; }
+  .logo h2 { font-size: .82rem; }
+  .logo img { height: 30px; }
+  .hero-content h1 { font-size: 1.85rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero::before, .badge, .copyright i { animation: none !important; }
+}
+
     </style>
 
 </head>
@@ -1582,7 +1670,7 @@ $startUrl = $loggedIn ? $dashboardUrl : 'login.php';
         if (window.scrollY > 50) {
 
             navbar.style.padding =
-                'clamp(10px, 1.5vw, 15px) 8%';
+                'clamp(10px, 1.5vw, 15px) var(--page-gutter)';
 
             navbar.style.background = document.documentElement.getAttribute('data-theme') === 'dark' ? 'rgba(15,23,42,.98)' : 'rgba(255, 255, 255, 0.98)';
 
@@ -1592,7 +1680,7 @@ $startUrl = $loggedIn ? $dashboardUrl : 'login.php';
         } else {
 
             navbar.style.padding =
-                'clamp(15px, 2vw, 25px) 8%';
+                'clamp(15px, 2vw, 25px) var(--page-gutter)';
 
             navbar.style.background = document.documentElement.getAttribute('data-theme') === 'dark' ? 'rgba(15,23,42,.96)' : 'rgba(255, 255, 255, 0.95)';
 
