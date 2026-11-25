@@ -26,40 +26,8 @@ function verify_escape($value) {
 }
 
 function verify_send_email($email, $name, $code) {
-    require_once __DIR__ . '/PHPMailer/src/Exception.php';
-    require_once __DIR__ . '/PHPMailer/src/PHPMailer.php';
-    require_once __DIR__ . '/PHPMailer/src/SMTP.php';
-
-    $username = getenv('SMTP_USER') ?: '';
-    $password = getenv('SMTP_PASSWORD') ?: '';
-    $from = getenv('SMTP_FROM') ?: $username;
-    $host = getenv('SMTP_HOST') ?: 'smtp.gmail.com';
-    $port = (int) (getenv('SMTP_PORT') ?: 587);
-
-    if ($username === '' || $password === '' || $from === '') {
-        throw new RuntimeException('SMTP environment variables are missing.');
-    }
-
-    $mail = new \PHPMailer\PHPMailer\PHPMailer(true);
-    $mail->isSMTP();
-    $mail->Host = $host;
-    $mail->SMTPAuth = true;
-    $mail->Username = $username;
-    $mail->Password = $password;
-    $mail->Port = $port;
-    $mail->SMTPSecure = $port === 465
-        ? \PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_SMTPS
-        : \PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_STARTTLS;
-    $mail->CharSet = 'UTF-8';
-    $mail->setFrom($from, 'PAW Care');
-    $mail->addAddress($email, $name);
-    $mail->isHTML(true);
-    $mail->Subject = 'PAW Care - Email Verification Code';
-    $safe_name = verify_escape($name);
-    $safe_code = verify_escape($code);
-    $mail->Body = '<div style="font-family:Arial,sans-serif"><h2 style="color:#d4a017">PAW Care</h2><p>Hello ' . $safe_name . ',</p><p>Your verification code is:</p><p style="font-size:30px;font-weight:bold;letter-spacing:6px;color:#d4a017">' . $safe_code . '</p><p>This code expires in 10 minutes.</p><p>If you did not request this, please ignore this email.</p></div>';
-    $mail->AltBody = "Hello $name,\nYour PAW Care verification code is: $code\nThis code expires in 10 minutes.";
-    $mail->send();
+    require_once __DIR__ . '/gmail_api_mailer.php';
+    paw_send_verification_email($email, $name, $code);
 }
 
 try {
@@ -179,7 +147,7 @@ if (!$verified && $_SERVER['REQUEST_METHOD'] === 'POST') {
                 $message_type = 'success';
             } catch (Throwable $e) {
                 error_log('Verification resend error: ' . $e->getMessage());
-                $message = 'Unable to send verification email. Please check SMTP configuration or try again later.';
+                $message = 'Unable to send verification email. Please try again later.';
             }
         }
     }
