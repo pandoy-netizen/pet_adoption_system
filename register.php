@@ -27,52 +27,272 @@ if (isset($_SESSION['email_error'])) {
     unset($_SESSION['email_error']);
 }
 
+function gmailApiRequest($url, $postFields, $headers = [])
+{
+    if (!function_exists('curl_init')) {
+        throw new RuntimeException("PHP cURL extension is not enabled.");
+    }
+
+    $ch = curl_init($url);
+
+    if ($ch === false) {
+        throw new RuntimeException("Unable to initialize cURL.");
+    }
+
+    curl_setopt_array($ch, [
+        CURLOPT_POST => true,
+        CURLOPT_POSTFIELDS => $postFields,
+        CURLOPT_HTTPHEADER => $headers,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_CONNECTTIMEOUT => 15,
+        CURLOPT_TIMEOUT => 30,
+        CURLOPT_SSL_VERIFYPEER => true,
+        CURLOPT_SSL_VERIFYHOST => 2
+    ]);
+
+    $response = curl_exec($ch);
+    $curlError = curl_error($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
+    curl_close($ch);
+
+    if ($response === false) {
+        throw new RuntimeException("Gmail API connection failed: " . $curlError);
+    }
+
+    $decoded = json_decode($response, true);
+
+    if ($httpCode < 200 || $httpCode >= 300) {
+        $apiError = $decoded['error']['message']
+            ?? $decoded['error_description']
+            ?? $decoded['error']
+            ?? "HTTP " . $httpCode;
+
+        if (is_array($apiError)) {
+            $apiError = json_encode($apiError);
+        }
+
+        throw new RuntimeException(
+            "Google API HTTP " . $httpCode . ": " . $apiError
+        );
+    }
+
+    if (!is_array($decoded)) {
+        throw new RuntimeException("Invalid response from Google API.");
+    }
+
+    return $decoded;
+}
+
+function getGmailAccessToken()
+{
+    $clientId = trim(getenv('GOOGLE_CLIENT_ID') ?: '');
+    $clientSecret = trim(getenv('GOOGLE_CLIENT_SECRET') ?: '');
+    $refreshToken = trim(getenv('GOOGLE_REFRESH_TOKEN') ?: '');
+
+    if ($clientId === '' || $clientSecret === '' || $refreshToken === '') {
+        throw new RuntimeException(
+            "Missing GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET or GOOGLE_REFRESH_TOKEN."
+        );
+    }
+
+    $response = gmailApiRequest(
+        'https://oauth2.googleapis.com/token',
+        http_build_query([
+            'client_id' => $clientId,
+            'client_secret' => $clientSecret,
+            'refresh_token' => $refreshToken,
+            'grant_type' => 'refresh_token'
+        ]),
+        [
+            'Content-Type: application/x-www-form-urlencoded'
+        ]
+    );
+
+    if (empty($response['access_token'])) {
+        throw new RuntimeException("Google did not return an access token.");
+    }
+
+    return $response['access_token'];
+}
+
 function sendVerificationEmail($email, $fullname, $verification_code)
 {
     try {
-        require_once __DIR__ . '/PHPMailer/src/Exception.php';
-        require_once __DIR__ . '/PHPMailer/src/PHPMailer.php';
-        require_once __DIR__ . '/PHPMailer/src/SMTP.php';
+        $senderEmail = trim(
+            getenv('GMAIL_SENDER_EMAIL')
+            ?: getenv('PET_ADOPTION_SYSTEM_FROM_EMAIL')
+            ?: ''
+        );
 
-        $username = trim((string) (getenv('SMTP_USER') ?: ''));
-        $password = (string) (getenv('SMTP_PASSWORD') ?: '');
-        $sender = trim((string) (getenv('SMTP_FROM') ?: $username));
-        $host = trim((string) (getenv('SMTP_HOST') ?: 'smtp.gmail.com'));
-        $port = (int) (getenv('SMTP_PORT') ?: 587);
-
-        if (!filter_var($username, FILTER_VALIDATE_EMAIL) || $password === '' || !filter_var($sender, FILTER_VALIDATE_EMAIL)) {
-            throw new RuntimeException('SMTP credentials are missing or invalid.');
+        if (!filter_var($senderEmail, FILTER_VALIDATE_EMAIL)) {
+            throw new RuntimeException("Invalid GMAIL_SENDER_EMAIL.");
         }
 
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            throw new RuntimeException('Recipient email is invalid.');
+            throw new RuntimeException("Invalid recipient email address.");
         }
 
-        $mail = new \PHPMailer\PHPMailer\PHPMailer(true);
-        $mail->isSMTP();
-        $mail->Host = $host;
-        $mail->SMTPAuth = true;
-        $mail->Username = $username;
-        $mail->Password = $password;
-        $mail->Port = $port;
-        $mail->SMTPSecure = $port === 465
-            ? \PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_SMTPS
-            : \PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_STARTTLS;
-        $mail->CharSet = 'UTF-8';
-        $mail->Timeout = 20;
-        $mail->setFrom($sender, 'PAW Care');
-        $mail->addAddress($email, $fullname);
-        $mail->isHTML(true);
-        $mail->Subject = 'PAW Care - Email Verification';
-        $safeName = htmlspecialchars($fullname, ENT_QUOTES, 'UTF-8');
-        $safeCode = htmlspecialchars($verification_code, ENT_QUOTES, 'UTF-8');
-        $mail->Body = '<div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;padding:20px;color:#333"><h2 style="color:#d4a017">PAW Care</h2><p>Hello <b>' . $safeName . '</b>,</p><p>Welcome to PAW Care! Enter this verification code to activate your account:</p><div style="padding:24px;text-align:center;background:#f8f8f8;border-radius:10px;font-size:32px;font-weight:bold;letter-spacing:8px;color:#d4a017">' . $safeCode . '</div><p>This code expires in <b>10 minutes</b>.</p><p>If you did not create this account, ignore this message.</p></div>';
-        $mail->AltBody = "Hello {$fullname},\n\nYour PAW Care verification code is: {$verification_code}\nThis code expires in 10 minutes.";
-        $mail->send();
+        $accessToken = getGmailAccessToken();
+
+        $safeName = htmlspecialchars(
+            $fullname,
+            ENT_QUOTES,
+            'UTF-8'
+        );
+
+        $safeCode = htmlspecialchars(
+            $verification_code,
+            ENT_QUOTES,
+            'UTF-8'
+        );
+
+        $htmlBody = "
+        <div style='
+            font-family:Arial,sans-serif;
+            max-width:600px;
+            margin:auto;
+            padding:20px;
+            color:#333;
+        '>
+
+            <h2 style='
+                color:#d4a017;
+                text-align:center;
+            '>
+                PAW Care
+            </h2>
+
+            <p>Hello <b>{$safeName}</b>,</p>
+
+            <p>
+                Welcome to <b>PAW Care</b>!
+            </p>
+
+            <p>
+                Thank you for creating an account.
+                Please use the verification code below
+                to verify your email address.
+            </p>
+
+            <div style='
+                background:#f8f8f8;
+                padding:25px;
+                text-align:center;
+                margin:25px 0;
+                border-radius:10px;
+                border:1px solid #eeeeee;
+            '>
+
+                <p style='color:#555;'>
+                    Your verification code:
+                </p>
+
+                <span style='
+                    font-size:32px;
+                    font-weight:bold;
+                    letter-spacing:8px;
+                    color:#d4a017;
+                '>
+                    {$safeCode}
+                </span>
+
+            </div>
+
+            <p>
+                This verification code will expire
+                in <b>10 minutes</b>.
+            </p>
+
+            <p>
+                If you did not create this account,
+                please ignore this email.
+            </p>
+
+            <br>
+
+            <p>
+                Thank you,<br>
+                <b>PAW Care</b>
+            </p>
+
+        </div>";
+
+        $plainBody =
+            "Hello {$fullname},\n\n" .
+            "Welcome to PAW Care!\n\n" .
+            "Your verification code is: {$verification_code}\n\n" .
+            "This code expires in 10 minutes.\n\n" .
+            "Thank you,\nPAW Care";
+
+        $boundary = 'pawcare_' . bin2hex(random_bytes(12));
+
+        $subject = 'PAW Care - Email Verification';
+
+        $encodedSubject = '=?UTF-8?B?' .
+            base64_encode($subject) .
+            '?=';
+
+        $encodedName = '=?UTF-8?B?' .
+            base64_encode('PAW Care') .
+            '?=';
+
+        $headers = [
+            'From: ' . $encodedName . ' <' . $senderEmail . '>',
+            'To: <' . $email . '>',
+            'Subject: ' . $encodedSubject,
+            'MIME-Version: 1.0',
+            'Content-Type: multipart/alternative; boundary="' . $boundary . '"'
+        ];
+
+        $mime = implode("\r\n", $headers) . "\r\n\r\n";
+
+        $mime .= '--' . $boundary . "\r\n";
+        $mime .= "Content-Type: text/plain; charset=UTF-8\r\n";
+        $mime .= "Content-Transfer-Encoding: base64\r\n\r\n";
+        $mime .= chunk_split(base64_encode($plainBody), 76, "\r\n");
+        $mime .= "\r\n";
+
+        $mime .= '--' . $boundary . "\r\n";
+        $mime .= "Content-Type: text/html; charset=UTF-8\r\n";
+        $mime .= "Content-Transfer-Encoding: base64\r\n\r\n";
+        $mime .= chunk_split(base64_encode($htmlBody), 76, "\r\n");
+        $mime .= "\r\n";
+
+        $mime .= '--' . $boundary . "--\r\n";
+
+        $rawMessage = rtrim(
+            strtr(base64_encode($mime), '+/', '-_'),
+            '='
+        );
+
+        $response = gmailApiRequest(
+            'https://gmail.googleapis.com/gmail/v1/users/me/messages/send',
+            json_encode([
+                'raw' => $rawMessage
+            ]),
+            [
+                'Authorization: Bearer ' . $accessToken,
+                'Content-Type: application/json'
+            ]
+        );
+
+        if (empty($response['id'])) {
+            throw new RuntimeException(
+                "Gmail API did not confirm the sent message."
+            );
+        }
+
+        error_log("Gmail API: Verification email accepted successfully.");
+
         return true;
-    } catch (\Throwable $e) {
-        error_log('PAW Care SMTP send failure: ' . $e->getMessage());
-        $_SESSION['email_error'] = 'The verification email could not be sent. Please check SMTP configuration or Railway logs.';
+
+    } catch (Throwable $e) {
+        error_log("Gmail API Error: " . $e->getMessage());
+
+        $_SESSION['email_error'] =
+            "The verification email could not be sent. Please check Gmail API configuration.";
+
         return false;
     }
 }
@@ -166,7 +386,10 @@ if (
                         random_int(0, 999999)
                     );
 
-                    $verification_expires = gmdate("Y-m-d H:i:s", time() + 600);
+                    $verification_expires = gmdate(
+                        "Y-m-d H:i:s",
+                        time() + 600
+                    );
 
                     $update = $conn->prepare(
                         "UPDATE users
@@ -218,7 +441,10 @@ if (
                     random_int(0, 999999)
                 );
 
-                $verification_expires = gmdate("Y-m-d H:i:s", time() + 600);
+                $verification_expires = gmdate(
+                    "Y-m-d H:i:s",
+                    time() + 600
+                );
 
                 $sql = "
                     INSERT INTO users
@@ -364,7 +590,7 @@ button:hover{background:var(--primary-hover);transform:translateY(-2px)}
 
         <div class="smtp-error-box">
 
-            <strong>Email Delivery Error:</strong>
+            <strong>Gmail API Error:</strong>
 
             <br><br>
 
@@ -373,7 +599,7 @@ button:hover{background:var(--primary-hover);transform:translateY(-2px)}
             <br><br>
 
             <small>
-                Please check your SMTP settings
+                Please check your Gmail API settings
                 in Railway Variables.
             </small>
 
